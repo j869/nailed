@@ -55,22 +55,40 @@ app.get("/logout", (req, res) => {
   });
 });
 
-app.get("/secrets", async (req, res) => {
+app.get("/customers", async (req, res) => {
   if (req.isAuthenticated()) {
-    let user = {};
+    let allCustomers = {};
     try {
-      const result = await db.query("SELECT * FROM users WHERE id = $1", [
-        req.user.id,
+      const result = await db.query("SELECT * FROM customers WHERE 1 = 1 OR id = $1 ORDER BY current_status DESC", [
+        1,
       ]);
-      user = result.rows[0];
+      allCustomers = result.rows;
+      let status = {};
+      let openCustomers = [];
+      let closedCustomers = [];
+    for (let i in result.rows) {
+        try {
+          status = JSON.parse(result.rows[i].current_status).category;
+        } catch (err) {
+          status = result.rows[i].current_status
+        }
+        console.log(status);
+        if (status === "open") {
+          openCustomers.push(result.rows[i]);
+        } else {
+          closedCustomers.push(result.rows[i]);
+        }
+      }
+      allCustomers = {open : openCustomers, closed : closedCustomers};
     } catch (err) {
       console.log(err)
     }
 
-    res.render("secrets.ejs", {
-      secret : user.secret
+    //console.log(allCustomers);
+    res.render("listCustomers.ejs", {
+      data : allCustomers
     });
-    //TODO: Update this to pull in the user secret to render in secrets.ejs
+    //TODO: Update this to pull in the user secret to render in listCustomers.ejs
   } else {
     res.redirect("/login");
   }
@@ -83,7 +101,7 @@ app.get("/submit", (req, res) => {
 app.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/secrets",
+    successRedirect: "/customers",
     failureRedirect: "/login",
   })
 );
@@ -112,7 +130,7 @@ app.post("/register", async (req, res) => {
           const user = result.rows[0];
           req.login(user, (err) => {
             console.log("success");
-            res.redirect("/secrets");
+            res.redirect("/customers");
           });
         }
       });
@@ -125,21 +143,48 @@ app.post("/register", async (req, res) => {
 //TODO: Create the post route for submit.
 //Handle the submitted data and add it to the database
 
-app.post("/submit", async (req, res) => {
-
+app.post("/addCustomer", async (req, res) => {
+  console.log("attempting to add a customer", req.body.primaryPhone);
   try {
-    console.log("attempting to update",  req.user.id);
+    console.log(req.body);
     const result = await db.query(
-      "UPDATE users SET secret = $1 WHERE ID = $2 RETURNING *",
-      [req.body.secret, req.user.id]
+      "INSERT INTO customers (full_name, primary_phone, primary_email, contact_other, current_status, contact_history) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "open", req.body.contactHistory]
     );
-    const user = result.rows[0];
-    console.log("finished updating ");
+    const newCustomer = result.rows[0];
   } catch (err) {
     console.log(err);  
   }  
-  res.redirect("/secrets");
+  res.redirect("/customers");
 });
+
+
+app.post("/updateCustomer/:id", async (req, res) => {
+  console.log( req.params);
+  const userID = parseInt(req.params.id);
+  console.log(userID);
+  // a known fault is that this will not set non alphabetical characters {} " ' etc - you need to excape them
+  const updateSQL = "UPDATE customers SET     full_name='" + req.body.fullName + "', " +
+                                          "primary_phone='" + req.body.primaryPhone + "', " +
+                                          "primary_email='" + req.body.primaryEmail + "', " +
+                                          "contact_other='" + req.body.contactOther + "', " + 
+                                          "current_status=null, " + 
+                                          "contact_history='" + req.body.contactHistory + "' " +
+                    "WHERE id=" + userID + " RETURNING *"    
+  console.log(updateSQL);
+  try {
+     const result = await db.query(updateSQL   
+
+      //  "UPDATE customers SET full_name='$1', primary_phone='$2', primary_email='$3', contact_other='$4', current_status='$5', contact_history='$6') WHERE id=$7 RETURNING *",
+      //  [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, null, req.body.contactHistory, 5]
+     );
+    const updatedCustomer = result.rows[0];
+  } catch (err) {
+     console.log(err);  
+  }  
+  res.redirect("/customers");
+});
+
 
 passport.use(
   "local",
@@ -164,7 +209,8 @@ passport.use(
           }
         });
       } else {
-        return cb("User not found");
+        return cb("Sorry, we do not recognise you as an active user of our system.");
+        // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
       }
     } catch (err) {
       console.log(err);
