@@ -9,31 +9,8 @@ app.use(express.static("public"));
 
 
 app.get("/", (req, res) => {
-  res.render("home.ejs");
+  res.send("working");
 });
-
-app.get("/login", (req, res) => {
-  res.render("login.ejs");
-});
-
-app.get("/register", (req, res) => {
-  res.render("register.ejs");
-});
-
-app.get("/logout", (req, res) => {
-  req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.redirect("/");
-  });
-});
-
-
-app.get("/submit", (req, res) => {
-  res.render("submit.ejs");
-})
-
 
 
 app.listen(port, () => {
