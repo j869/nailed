@@ -73,7 +73,6 @@ app.get("/customers", async (req, res) => {
         } catch (err) {
           status = result.rows[i].current_status
         }
-        console.log(status);
         if (status === "open") {
           openCustomers.push(result.rows[i]);
         } else {
@@ -130,7 +129,6 @@ app.post("/register", async (req, res) => {
           );
           const user = result.rows[0];
           req.login(user, (err) => {
-            console.log("success");
             res.redirect("/customers");
           });
         }
@@ -145,9 +143,7 @@ app.post("/register", async (req, res) => {
 //Handle the submitted data and add it to the database
 
 app.post("/addCustomer", async (req, res) => {
-  console.log("attempting to add a customer", req.body.primaryPhone);
   try {
-    console.log(req.body);
     const result = await db.query(
       "INSERT INTO customers (full_name, primary_phone, primary_email, contact_other, current_status, contact_history) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
       [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "open", req.body.contactHistory]
@@ -161,9 +157,7 @@ app.post("/addCustomer", async (req, res) => {
 
 
 app.post("/updateCustomer/:id", async (req, res) => {
-  console.log( req.params);
   const userID = parseInt(req.params.id);
-  console.log(userID);
   // a known fault is that this will not set non alphabetical characters {} " ' etc - you need to excape them
   const updateSQL = "UPDATE customers SET     full_name='" + req.body.fullName + "', " +
                                           "primary_phone='" + req.body.primaryPhone + "', " +
@@ -172,7 +166,6 @@ app.post("/updateCustomer/:id", async (req, res) => {
                                           "current_status=null, " + 
                                           "contact_history='" + req.body.contactHistory + "' " +
                     "WHERE id=" + userID + " RETURNING *"    
-  console.log(updateSQL);
   try {
      const result = await db.query(updateSQL   
 
