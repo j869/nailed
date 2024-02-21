@@ -1,0 +1,201 @@
+<%- include('partials/header') %>
+
+Previous Task(s) was completed 21Feb24 (0 days ago)
+<div class="d-flex flex-row">
+    <div class="card w-100">
+        <div class="card-body">
+        <h5 class="card-title">Cladding</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+        </div>
+    </div>
+    <div class="card w-100">
+        <div class="card-body">
+        <h5 class="card-title">Roofing</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+        </div>
+    </div>    
+    <button>Add</button>
+</div>
+
+<div class="jumbotron centered">
+  <div class="container">
+
+
+    <div class="row">
+        <div class="col-sm-3">
+            Preparation
+            <div class="d-flex flex-column">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">call Plumber</h5>
+                        <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
+                        <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">book trencher</h5>
+                    </div>
+                </div>            
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">visit Reece</h5>
+                    </div>
+                </div>      
+                <div class="card">
+                    <div class="card-body">
+                        <button>Add new +</button>
+                    </div>
+                </div>      
+            </div>        
+        </div>
+
+
+        <!-- 
+        // swipe right -> means view the next job (you've just finished trenching. do you want to add some notes to the plumbers job?)  the pre-tasks for this next job should be visible on the current page (do you want to go to arrange the plumbers visit with the owner while you're there?)
+        // swipe left means your looking at the history of the job
+        // swipe up & down means your looking through the other jobs you need to do today (or next week) 
+
+
+        // add a search bar . type in a phone number, email, name or address to bring up the current job
+        -->
+
+        <div class="col-sm-6">
+            <div class="card text-center">
+                <div class="card-header">
+                    <ul class="nav nav-pills card-header-pills">
+                        <li class="nav-item">
+                        <a class="nav-link active" href="#">Mark Done</a>
+                        </li>
+                        <!-- <li class="nav-item">
+                        <a class="nav-link" href="#">Link</a>
+                        </li> -->
+                        <li class="nav-item">
+                        <h5><a class="nav-link disabled card-title" aria-disabled="true">Task Name: Trenching (John)</a></h5>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="d-flex flex-row">
+                    <div class="card-body">
+                        <p class="card-text">Text box description and random notes</p>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">John: see attached pic <img src="https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png" width="20" height="20"></li>
+                        <li class="list-group-item">Plumb: John this is the ...</li>
+                        <li class="list-group-item">Owner: when is it done?</li>
+                    </ul>   
+                </div>  
+
+
+                <!-- SLIDER  -->
+                <!-- https://stackoverflow.com/questions/65875721/ho-can-i-add-two-values-in-bootstrap-range-slider -->
+                <div class="card-body">
+                    <h5>Reminder</h5>
+                    <div id="slider-outer-div">
+                        <div id="slider-max-label" class="slider-label"></div>
+                        <div id="slider-min-label" class="slider-label"></div>
+                        <div id="slider-div">
+                            <div>1 Day</div>
+                            <div>
+                                <input id="ex2" type="text" data-slider-min="1"
+                                    data-slider-max="30" data-slider-value="[7,14]"
+                                    data-slider-tooltip="hide" />
+                            </div>
+                            <div>30 Days</div>
+                        </div>
+                    </div>
+                </div>  
+
+            </div>
+        </div>
+
+
+
+        <div class="col-sm-3">
+            Follow up
+            <div class="d-flex flex-column">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">record pictures</h5>
+                        <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
+                        <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">confirm plumber availability</h5>
+                    </div>
+                </div>            
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">call Bryan</h5>
+                    </div>
+                </div>      
+                <div class="card">
+                    <div class="card-body">
+                        <button>Add new +</button>
+                    </div>
+                </div>      
+            </div>        
+        </div>
+
+    </div>
+    
+
+
+
+    </div>
+</div>
+
+Next Task
+<div class="d-flex flex-row">
+    <div class="card w-100">
+        <div class="card-body">
+        <h5 class="card-title">Plumbing</h5>
+        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
+        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+        </div>
+    </div>
+    <button>Add</button>
+</div>
+
+
+
+
+
+
+
+
+<script>
+    const setLabel = (lbl, val) => {
+            const label = $(`#slider-${lbl}-label`);
+            label.text(val);
+            const slider = $(`#slider-div .${lbl}-slider-handle`);
+            const rect = slider[0].getBoundingClientRect();
+            label.offset({
+                top: rect.top - 30,
+                left: rect.left
+            });
+        }
+
+        const setLabels = (values) => {
+            setLabel("min", values[0]);
+            setLabel("max", values[1]);
+        }
+
+
+        $('#ex2').slider().on('slide', function (ev) {
+            setLabels(ev.value);
+        });
+        setLabels($('#ex2').attr("data-value").split(","));
+</script>
+
+
+
+<%- include('partials/footer') %>
+
+
+

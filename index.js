@@ -56,6 +56,18 @@ app.get("/logout", (req, res) => {
   });
 });
 
+
+app.get("/tasks", async (req, res) => {
+  if (req.isAuthenticated()) {
+
+    res.render("editTask.ejs");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+
+
 app.get("/customers", async (req, res) => {
   if (req.isAuthenticated()) {
     let allCustomers = {};
@@ -101,7 +113,7 @@ app.get("/submit", (req, res) => {
 app.post(
   "/login",
   passport.authenticate("local", {
-    successRedirect: "/customers",
+    successRedirect: "/tasks",
     failureRedirect: "/login",
   })
 );
