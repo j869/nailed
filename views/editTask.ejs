@@ -1,21 +1,16 @@
 <%- include('partials/header') %>
 
-Previous Task(s) was completed 21Feb24 (0 days ago)
+Previous Task(s) was completed xxFeb2024 (x days ago)
 <div class="d-flex flex-row">
-    <div class="card w-100">
-        <div class="card-body">
-        <h5 class="card-title">Cladding</h5>
-        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+    <% for (let pre in siteContent.job_antecedents) { %>
+        <div class="card w-100">
+            <div class="card-body">
+            <h5 class="card-title"><%= siteContent.job_antecedents[pre].display_text %></h5>
+            <p class="card-text"><%= siteContent.job_antecedents[pre].free_text %></p>
+            <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+            </div>
         </div>
-    </div>
-    <div class="card w-100">
-        <div class="card-body">
-        <h5 class="card-title">Roofing</h5>
-        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
-        </div>
-    </div>    
+    <% } %>
     <button>Add</button>
 </div>
 
@@ -24,26 +19,20 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
 
 
     <div class="row">
+
+        <!-- TASK ANTECEDENTS LIST -->
         <div class="col-sm-3">
             Preparation
             <div class="d-flex flex-column">
+                <% for (let pr in siteContent.task_antecedents) { %>
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">call Plumber</h5>
+                        <h5 class="card-title"><%= siteContent.task_antecedents[pr].display_text %></h5>
                         <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                         <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
                     </div>
                 </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">book trencher</h5>
-                    </div>
-                </div>            
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">visit Reece</h5>
-                    </div>
-                </div>      
+                <% } %>
                 <div class="card">
                     <div class="card-body">
                         <button>Add new +</button>
@@ -62,6 +51,10 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
         // add a search bar . type in a phone number, email, name or address to bring up the current job
         -->
 
+
+
+
+        <!-- CURRENT JOB CARD -->
         <div class="col-sm-6">
             <div class="card text-center">
                 <div class="card-header">
@@ -73,19 +66,22 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
                         <a class="nav-link" href="#">Link</a>
                         </li> -->
                         <li class="nav-item">
-                        <h5><a class="nav-link disabled card-title" aria-disabled="true">Task Name: Trenching (John)</a></h5>
+                        <h5><a class="nav-link disabled card-title" aria-disabled="true">Job Card: '<%= siteContent.job.display_text %>' for <%= siteContent.job.display_name %></a></h5>
                         </li>
                     </ul>
                 </div>
 
                 <div class="d-flex flex-row">
                     <div class="card-body">
-                        <p class="card-text">Text box description and random notes</p>
+                        <p class="card-text"><%= siteContent.job.free_text %> </p>
                     </div>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item">John: see attached pic <img src="https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png" width="20" height="20"></li>
-                        <li class="list-group-item">Plumb: John this is the ...</li>
-                        <li class="list-group-item">Owner: when is it done?</li>
+                        <% for (let con in siteContent.job.conversation) { %>
+                            <li class="list-group-item"><strong><%= siteContent.job.conversation[con].display_name %></strong>: <%= siteContent.job.conversation[con].message_text %> 
+                                <% for (let att in siteContent.job.conversation[con].attachment) { %>
+                                    <a href="<%= siteContent.job.conversation[con].attachment[att].link %>"><img src="<%= siteContent.job.conversation[con].attachment[att].thumbnail %>" width="20" height="20"></a></li>
+                                <% } %>
+                        <% } %>
                     </ul>   
                 </div>  
 
@@ -101,7 +97,7 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
                             <div>1 Day</div>
                             <div>
                                 <input id="ex2" type="text" data-slider-min="1"
-                                    data-slider-max="30" data-slider-value="[7,14]"
+                                    data-slider-max="30" data-slider-value="[<%= siteContent.job.reminder.escalation1_interval %>,<%= siteContent.job.reminder.escalation2_interval %> ]"
                                     data-slider-tooltip="hide" />
                             </div>
                             <div>30 Days</div>
@@ -113,32 +109,19 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
         </div>
 
 
-
+        <!-- TASK DECENDANTS LIST -->
         <div class="col-sm-3">
             Follow up
             <div class="d-flex flex-column">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">record pictures</h5>
-                        <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
-                        <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
+                <% for (let po in siteContent.task_decendants) { %>
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><%= siteContent.task_decendants[po].display_text %></h5>
+                            <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
+                            <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
+                        </div>
                     </div>
-                </div>
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">confirm plumber availability</h5>
-                    </div>
-                </div>            
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">call Bryan</h5>
-                    </div>
-                </div>      
-                <div class="card">
-                    <div class="card-body">
-                        <button>Add new +</button>
-                    </div>
-                </div>      
+                <% } %>    
             </div>        
         </div>
 
@@ -152,13 +135,15 @@ Previous Task(s) was completed 21Feb24 (0 days ago)
 
 Next Task
 <div class="d-flex flex-row">
-    <div class="card w-100">
-        <div class="card-body">
-        <h5 class="card-title">Plumbing</h5>
-        <p class="card-text">With supporting text below as a natural lead-in to additional content.</p>
-        <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+    <% for (let post in siteContent.job_decendants) { %>
+        <div class="card w-100">
+            <div class="card-body">
+            <h5 class="card-title"><%= siteContent.job_decendants[post].display_text %></h5>
+            <p class="card-text"><%= siteContent.job_decendants[post].free_text %></p>
+            <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+            </div>
         </div>
-    </div>
+    <% } %>
     <button>Add</button>
 </div>
 

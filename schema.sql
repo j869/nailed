@@ -1,5 +1,4 @@
 drop table users;
-
 CREATE TABLE users
 (
     id SERIAL PRIMARY KEY,     -- returns an integer from 1 to ?
@@ -21,6 +20,7 @@ create table roles
 );
 
 
+drop table jobs;
 CREATE TABLE jobs
 (
     id SERIAL PRIMARY KEY,
@@ -36,7 +36,11 @@ CREATE TABLE jobs
     conversation_id INTEGER,     -- stays the same across the build.  I want to see all customer interactions for the whole build
     target_date TIMESTAMP,      -- if you miss the target date, this date will increment based on the reminder schedule
     created_by varchar(127),     -- it could be the user_id, but more likely it will be a function() on behalf of a user
-    created_date TIMESTAMP     -- INSERT INTO t (col_timestamp) VALUES ('2022-10-10 11:30:30');     use select LOCALTIMESTAMP(0); to set value because NOW() returns the timezone
+    created_date TIMESTAMP,     -- INSERT INTO t (col_timestamp) VALUES ('2022-10-10 11:30:30');     use select LOCALTIMESTAMP(0); to set value because NOW() returns the timezone
+    change_array TEXT,      -- who changed it, when, and what did they change?  Excludes changes to the notes, excludes adding to the conversation... Task definition type datapoints only (i.e due date, person responsible, job name, etc)
+    completed_by VARCHAR(127),     -- who clicked the 'done' button, and (maybe) which machine were they using?
+    completed_date TIMESTAMP,
+    current_status VARCHAR(127)      
 );
 
 CREATE TABLE job_process_flow
@@ -95,25 +99,27 @@ CREATE TABLE conversations
     visibility VARCHAR(15)            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
 );
 
+drop table attachments;
 CREATE TABLE attachments
 (
     id SERIAL PRIMARY KEY,
-    attachment_thumbnail bytea,     -- images and video are stored in a seperate database for performance reasons
-    attachment_link VARCHAR(255),
+    thumbnail bytea,     -- images and video are stored in a seperate database for performance reasons
+    link VARCHAR(1023),
     conversation_id INTEGER
 );
 
 
+drop table reminders;
 CREATE TABLE reminders
 (
     id SERIAL PRIMARY KEY,
+    escalation1_interval VARCHAR(127),
+    escalation2_interval VARCHAR(127),
+    escalation3_interval VARCHAR(127),
     definition_object TEXT,
     current_status VARCHAR(127),      -- reminder definitions are purged after the job is completed
     created_by INTEGER    -- FK user_id
 );
-
-
-
 
 
 -- John discussed key requirements with Bryan, Alex, and Amandah on 12Feb

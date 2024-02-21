@@ -59,8 +59,36 @@ app.get("/logout", (req, res) => {
 
 app.get("/tasks", async (req, res) => {
   if (req.isAuthenticated()) {
+    let data = { 
+      job : {
+        display_text : "Trenching", 
+        display_name : "John", 
+        free_text : "Text box description and <h1>random</h1> notes", 
+        target_date : "21-Feb-2024", 
+        reminder : {escalation1_interval : 7, escalation2_interval : 21},
+        conversation : [
+          {display_name : "John", message_text : "see attached pic", attachment : [{thumbnail : "https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png", link : "http://www.google.com"},]}, 
+          {display_name : "Nick", message_text : "John this is the ...", }, 
+          {display_name : "Owner", message_text : "when is it done?", }, ]
+        }, 
+      task_antecedents : [
+        {display_text : "Call Plumber", current_status : true, free_text : ""}, 
+        {display_text : "vook trencher", current_status : true, free_text : ""}, 
+        {display_text : "visit reece", current_status : true, free_text : ""}, 
+      ],
+      task_decendants : [
+        {display_text : "record pics", free_text : ""}, 
+        {display_text : "confirm plumber availability", free_text : ""}, 
+        {display_text : "call Bryan", free_text : ""}, ],
+      job_antecedents : [
+        {display_text : "Cladding", free_text : "supporting text"}, 
+        {display_text : "Roofing", free_text : "supporting text"}, ],
+      job_decendants : [{display_text : "Plumbing", free_text : "supporting text"},  ],
+    };
 
-    res.render("editTask.ejs");
+    res.render("editTask.ejs", {
+      siteContent : data
+    });
   } else {
     res.redirect("/login");
   }
