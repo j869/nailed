@@ -2,7 +2,7 @@ drop table users;
 
 CREATE TABLE users
 (
-    id SERIAL PRIMARY KEY,
+    id SERIAL PRIMARY KEY,     -- returns an integer from 1 to ?
     email VARCHAR(127) NOT NULL UNIQUE,
     password VARCHAR(127),
     full_name TEXT,
@@ -33,7 +33,10 @@ CREATE TABLE jobs
     build_id INTEGER,
     product_id INTEGER,     -- is it an american barn or a dog kennel?
     reminder_id INTEGER,     -- defines how and how often reminders are sent
-    conversation_id INTEGER     -- stays the same across the build.  I want to see all customer interactions for the whole build
+    conversation_id INTEGER,     -- stays the same across the build.  I want to see all customer interactions for the whole build
+    target_date TIMESTAMP,      -- if you miss the target date, this date will increment based on the reminder schedule
+    created_by varchar(127),     -- it could be the user_id, but more likely it will be a function() on behalf of a user
+    created_date TIMESTAMP     -- INSERT INTO t (col_timestamp) VALUES ('2022-10-10 11:30:30');     use select LOCALTIMESTAMP(0); to set value because NOW() returns the timezone
 );
 
 CREATE TABLE job_process_flow
