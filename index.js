@@ -311,7 +311,7 @@ app.get("/delJob", async (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/customer/8",
+    successRedirect: "/customers",
     failureRedirect: "/login",
   })
 );
