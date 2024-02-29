@@ -10,7 +10,7 @@ CREATE TABLE users
     system_access_type VARCHAR(127)
 );
 
-
+drop table roles;
 create table roles
 (
     id SERIAL PRIMARY KEY,
@@ -26,8 +26,7 @@ CREATE TABLE jobs
     id SERIAL PRIMARY KEY,
     display_text VARCHAR(127),
     free_text TEXT,
-    job_template_id INTEGER,        -- provides some checking if the display_text changes.  when a change occurs it probably means that the user intends to define a different task, but it could just be wording
-                                   -- the original task template that was used to draft pre-job and post-job tasks (not changed after creation).  
+    job_template_id INTEGER,        -- provides some checking if the display_text changes.  when a change occurs it probably means that the user intends to define a different task, but it could just be wording                                   -- the original task template that was used to draft pre-job and post-job tasks (not changed after creation).  
     user_id INTEGER,    -- person responsible
     role_id INTEGER,     -- the task relates to which users role? John has driver, building maintenance, trencher role - this affects the default task_template used
     build_id INTEGER,
@@ -43,6 +42,7 @@ CREATE TABLE jobs
     current_status VARCHAR(127)       -- active, pending, completed
 );
 
+drop table job_process_flow;
 CREATE TABLE job_process_flow
 (
     id SERIAL PRIMARY KEY,
@@ -50,6 +50,7 @@ CREATE TABLE job_process_flow
     decendant_id INTEGER        -- job_id relating to the child job
 );
 
+drop table job_templates;
 CREATE TABLE job_templates
 (
     id SERIAL PRIMARY KEY,
@@ -63,6 +64,7 @@ CREATE TABLE job_templates
     reminder_id INTEGER   -- what reminder schedule is normally used for this job
 );
 
+drop table task_templates;
 CREATE TABLE task_templates
 (
     id SERIAL PRIMARY KEY,
@@ -73,19 +75,19 @@ CREATE TABLE task_templates
     owner_id INTEGER   --  if the current user owns the task they can archive or confirm the applicability.  Is it really necessary to call the plumber after you finish a trench?   Bryan can exert some control over the process by adding a task himself
 );
 
-
+drop table tasks;
 CREATE TABLE tasks    -- would this be better named activities??    -- a very large table
 (
     id SERIAL PRIMARY KEY,
     display_text VARCHAR(127),
     free_text TEXT,
     job_id INTEGER,
-    current_status VARCHAR(127)       -- tentitive: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
-    owner_id INTEGER     -- if Bryan assigns a task to a job, you need bryan to remove it
+    current_status VARCHAR(127),       -- tentitive: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
+    owner_id INTEGER,     -- if Bryan assigns a task to a job, you need bryan to remove it
     precedence varchar(15)    -- is it a pre task or a post task
 );
-INSERT INTO public.tasks(display_text, free_text, job_id, current_status, owner_id, precedence) VALUES ('reece supplies', null, 4, 'pending', 4, 'pretask');
 
+drop table conversations;
 CREATE TABLE conversations
 (
     id SERIAL PRIMARY KEY,
@@ -93,8 +95,8 @@ CREATE TABLE conversations
     person_id VARCHAR(15),        -- OPTIONAL if you have a link to the user table, or the customer table you can put it here
     message_text TEXT,
     has_attachment VARCHAR(127),           -- defaults to 0.  stores the quantity of attachments and (perhaps) what kind of attachment
-    visibility VARCHAR(15)            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
-    job_id INTEGER          -- link conversation back to the relevant job
+    visibility VARCHAR(15),            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
+    job_id INTEGER,          -- link conversation back to the relevant job
     post_date TIMESTAMP      -- order conversation by this
 );
 
@@ -106,7 +108,7 @@ CREATE TABLE attachments
     link VARCHAR(1023),
     conversation_id INTEGER
 );
-INSERT INTO attachments(id, thumbnail, link, conversation_id) VALUES (null, null, "http://www.google.com.au", 1);
+
 
 
 drop table reminders;
@@ -135,16 +137,16 @@ CREATE TABLE customers
     primary_email VARCHAR(255),
 	contact_other TEXT,                -- notes. wifes name, wifes contact, best time to call
 	current_status VARCHAR(255),
-    follow_up TIMESTAMP,               -- date to next contact the customer, otherwise null
+    follow_up TIMESTAMP               -- date to next contact the customer, otherwise null
 );
 
-
+drop table builds;
 CREATE TABLE builds
 (
     id SERIAL PRIMARY KEY,
     customer_id INTEGER,      --one customer, many builds
     product_id INTEGER,
-	active_enquiry TIMESTAMP             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
+	active_enquiry TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
     job_id INTEGER              -- the currently active job in progress
 )
 
