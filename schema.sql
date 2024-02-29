@@ -148,21 +148,21 @@ CREATE TABLE builds
     product_id INTEGER,
 	active_enquiry TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
     job_id INTEGER              -- the currently active job in progress
-)
+);
 
-drop table product_templates      -- old name for table products
+drop table product_templates;      -- old name for table products
 -- CREATE TABLE product_templates
 -- (
 --     id SERIAL PRIMARY KEY,
 --     display_text VARCHAR(127)     -- american barn, garaport
 -- );
 
-drop table products
+drop table products;
 CREATE TABLE products   --  What if the build is not a 6x6 garage? you need a different process
 (
     id SERIAL PRIMARY KEY,
     display_text VARCHAR(127)     -- american barn, garaport
-)
+);
 
 
 

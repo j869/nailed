@@ -340,7 +340,7 @@ app.post("/register", async (req, res) => {
           );
           const user = result.rows[0];
           req.login(user, (err) => {
-            res.redirect("/jobs/1");
+            res.redirect("/login");
           });
         }
       });
