@@ -1,96 +1,97 @@
-
 <%- include('partials/header') %>
 
-<a class="btn btn-light btn-lg" href="/logout" role="button">Log Out</a>
+
+
+        <!-- Search Bar -->
+        <form class="form-inline" action="/customers" method="get">
+          <div class="row">
+              <div class="col">
+                  <input class="form-control mr-sm-2" type="text" name="query" placeholder="Search" aria-label="Search">
+              </div>
+              <div class="col">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </div>
+        </div>
+        </form>
 
 <div class="jumbotron text-center">
     <div class="container">
-      <!-- <i class="fas fa-key fa-6x"></i> -->
-      <h1 class="display-3">Customers</h1>
-      <br><hr><br>
+        <h1 class="display-3">Customers</h1>
 
 
-    <div class="accordion" id="accordionStayOpenExample">
-      <div class="accordion-item">
-          <h2 class="accordion-header">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseOne" aria-expanded="true" aria-controls="stayOpen-collapseOne">
-                  Active customers
-              </button>
-          </h2>
-          <div id="stayOpen-collapseOne" class="accordion-collapse collapse show">
-              <div class="accordion-body">
-                <% for (let i in data.open) { %>
-                  <form class="item" action="/updateCustomer/<%= data.open[i].id %>" method="post">
-                    <br><%= data.open[i].id %>
-                    <input type="text" name="fullName" value="<%= data.open[i].full_name %>"  >
-                    <input type="text" name="primaryPhone" value="<%= data.open[i].primary_phone %>"    >
-                    <input type="text" name="primaryEmail" value="<%= data.open[i].primary_email %>"    >
-                    <input type="text" name="contactOther" value="<%= data.open[i].contact_other %>"    >
-                    <input type="text" name="contactHistory" value="<%= data.open[i].contact_history %>"    >
-                    <button class="update" type="submit" name="Update" value="submit">U</button>
-                  </form>  
-                <% } %>
-              </div>
-          </div>
-      </div>
-      <div class="accordion-item">
-          <h2 class="accordion-header">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseTwo" aria-expanded="false" aria-controls="stayOpen-collapseTwo">
-                  Archived Customers
-              </button>
-          </h2>
-          <div id="stayOpen-collapseTwo" class="accordion-collapse collapse show">
-              <div class="accordion-body">
-                <% for (let i in data.closed) { %>
-                  <form class="item" action="/updateCustomer/<%= data.closed[i].id %>" method="post">
-                    <br><%= data.closed[i].id %>
-                    <input type="text" name="fullName" value="<%= data.closed[i].full_name %>"  >
-                    <input type="text" name="primaryPhone" value="<%= data.closed[i].primary_phone %>"    >
-                    <input type="text" name="primaryEmail" value="<%= data.closed[i].primary_email %>"    >
-                    <input type="text" name="contactOther" value="<%= data.closed[i].contact_other %>"    >
-                    <input type="text" name="contactHistory" value="<%= data.closed[i].contact_history %>"    >
-                    <button class="update" type="submit" name="Update" value="submit">U</button>
-                  </form>  
-                <% } %>   
-              </div>
-          </div>
-      </div>
-      <div class="accordion-item">
-          <h2 class="accordion-header">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseThree" aria-expanded="false" aria-controls="stayOpen-collapseThree">
-                  Add a new customer
-              </button>
-          </h2>
-          <div id="stayOpen-collapseThree" class="accordion-collapse collapse show">
-              <div class="accordion-body">
-                <form class="item" action="/addCustomer" method="post">
-                  <input type="text" name="fullName" placeholder="customer name" autocomplete="off" autofocus="true" />
-                  <input type="text" name="primaryPhone" placeholder="primary phone" autocomplete="off"  />
-                  <input type="text" name="primaryEmail" placeholder="primary email" autocomplete="off"  />
-                  <input type="text" name="contactOther" placeholder="other contacts" autocomplete="off"  />
-                  <input type="text" name="contactHistory" placeholder="contact history" autocomplete="off"  />
-                  <button class="add" type="submit" name="list" value=submit >+</button>
-                </form>  
-              </div>
-          </div>
-      </div>
-  </div>
-
-
-
-
-
-  </div>
+        <br><hr><br>
+        <div class="accordion" id="accordionStayOpenExample">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseOne" aria-expanded="true" aria-controls="stayOpen-collapseOne">
+                        Active customers
+                    </button>
+                </h2>
+                <div id="stayOpen-collapseOne" class="accordion-collapse collapse show">
+                    <div class="accordion-body">
+                        <% for (let i in data.open) { %>
+                        <form class="item" method="post" action="/updateCustomer/<%= data.open[i].id %>">
+                            <br><%= data.open[i].id %>
+                            <input type="text" name="fullName" value="<%= data.open[i].full_name %>">
+                            <input type="text" name="homeAddress" value="<%= data.open[i].home_address %>">
+                            <input type="text" name="primaryPhone" value="<%= data.open[i].primary_phone %>">
+                            <input type="text" name="primaryEmail" value="<%= data.open[i].primary_email %>">
+                            <input type="text" name="contactOther" value="<%= data.open[i].contact_other %>">
+                            <!-- <button class="update" type="submit" name="action" value="update">Update</button>
+                            <button class="update" type="submit" name="action" value="delete">Delete</button> -->
+                            <button class="update" type="submit" name="action" value="view">View</button>
+                            <!-- <button class="update" type="submit" name="action" value="edit">Edit</button> -->
+                        </form>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseTwo" aria-expanded="false" aria-controls="stayOpen-collapseTwo">
+                        Archived Customers
+                    </button>
+                </h2>
+                <div id="stayOpen-collapseTwo" class="accordion-collapse collapse show">
+                    <div class="accordion-body">
+                        <% for (let i in data.closed) { %>
+                        <form class="item" method="post" action="/updateCustomer/<%= data.open[i].id %>">
+                            <br><%= data.open[i].id %>
+                            <input type="text" name="fullName" value="<%= data.open[i].full_name %>">
+                            <input type="text" name="primaryPhone" value="<%= data.open[i].primary_phone %>">
+                            <input type="text" name="primaryEmail" value="<%= data.open[i].primary_email %>">
+                            <input type="text" name="contactOther" value="<%= data.open[i].contact_other %>">
+                            <input type="text" name="contactHistory" value="<%= data.open[i].contact_history %>">
+                            <!-- <button class="update" type="submit" name="action" value="update">Update</button>
+                            <button class="update" type="submit" name="action" value="delete">Delete</button> -->
+                            <button class="update" type="submit" name="action" value="view">View</button>
+                            <!-- <button class="update" type="submit" name="action" value="edit">Edit</button> -->
+                        </form>
+                        <% } %>   
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseThree" aria-expanded="false" aria-controls="stayOpen-collapseThree">
+                        Add a new customer
+                    </button>
+                </h2>
+                <div id="stayOpen-collapseThree" class="accordion-collapse collapse show">
+                    <div class="accordion-body">
+                        <form class="item" action="/addCustomer" method="post">
+                            <input type="text" name="fullName"     placeholder="customer name" autocomplete="off" autofocus="true" />
+                            <input type="text" name="homeAddress"  placeholder="home address" autocomplete="off"  />
+                            <input type="text" name="primaryPhone" placeholder="primary phone" autocomplete="off"  />
+                            <input type="text" name="primaryEmail" placeholder="primary email" autocomplete="off"  />
+                            <input type="text" name="contactOther" placeholder="other contact" autocomplete="off"  />
+                            <button class="add" type="submit" name="list" value="submit">add</button>
+                        </form>  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-  <div>
-  
-  </div>
-
-  <!-- <a class="btn btn-dark btn-lg" href="/submit" role="button">Submit a Secret</a> -->
-
-  <%- include('partials/footer') %>
-
-
-
-  
+<%- include('partials/footer') %>

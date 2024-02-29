@@ -40,7 +40,7 @@ CREATE TABLE jobs
     change_array TEXT,      -- who changed it, when, and what did they change?  Excludes changes to the notes, excludes adding to the conversation... Task definition type datapoints only (i.e due date, person responsible, job name, etc)
     completed_by VARCHAR(127),     -- who clicked the 'done' button, and (maybe) which machine were they using?
     completed_date TIMESTAMP,
-    current_status VARCHAR(127)      
+    current_status VARCHAR(127)       -- active, pending, completed
 );
 
 CREATE TABLE job_process_flow
@@ -48,12 +48,6 @@ CREATE TABLE job_process_flow
     id SERIAL PRIMARY KEY,
     antecedent_id INTEGER,     --job_id relating to the parent job
     decendant_id INTEGER        -- job_id relating to the child job
-);
-
-CREATE TABLE product_templates   --  What if the build is not a 6x6 garage? you need a different process
-(
-    id SERIAL PRIMARY KEY,
-    display_text VARCHAR(127)     -- american barn, garaport
 );
 
 CREATE TABLE job_templates
@@ -80,14 +74,17 @@ CREATE TABLE task_templates
 );
 
 
-CREATE TABLE tasks    -- a very large table
+CREATE TABLE tasks    -- would this be better named activities??    -- a very large table
 (
     id SERIAL PRIMARY KEY,
     display_text VARCHAR(127),
     free_text TEXT,
     job_id INTEGER,
     current_status VARCHAR(127)       -- tentitive: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
+    owner_id INTEGER     -- if Bryan assigns a task to a job, you need bryan to remove it
+    precedence varchar(15)    -- is it a pre task or a post task
 );
+INSERT INTO public.tasks(display_text, free_text, job_id, current_status, owner_id, precedence) VALUES ('reece supplies', null, 4, 'pending', 4, 'pretask');
 
 CREATE TABLE conversations
 (
@@ -97,6 +94,8 @@ CREATE TABLE conversations
     message_text TEXT,
     has_attachment VARCHAR(127),           -- defaults to 0.  stores the quantity of attachments and (perhaps) what kind of attachment
     visibility VARCHAR(15)            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
+    job_id INTEGER          -- link conversation back to the relevant job
+    post_date TIMESTAMP      -- order conversation by this
 );
 
 drop table attachments;
@@ -107,6 +106,7 @@ CREATE TABLE attachments
     link VARCHAR(1023),
     conversation_id INTEGER
 );
+INSERT INTO attachments(id, thumbnail, link, conversation_id) VALUES (null, null, "http://www.google.com.au", 1);
 
 
 drop table reminders;
@@ -116,9 +116,9 @@ CREATE TABLE reminders
     escalation1_interval VARCHAR(127),
     escalation2_interval VARCHAR(127),
     escalation3_interval VARCHAR(127),
-    definition_object TEXT,
+    definition_object TEXT,     -- added because I wasn't sure how I need to define the reminder
     current_status VARCHAR(127),      -- reminder definitions are purged after the job is completed
-    created_by INTEGER    -- FK user_id
+    created_by INTEGER    -- FK user_id... why? is this so that the reminder can't be deleted... I think this field is unnecessary
 );
 
 
@@ -130,9 +130,37 @@ CREATE TABLE customers
 (
     id SERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
+    home_address VARCHAR(511),     -- Bryan order: name, address, phone number, email (26Feb24)
 	primary_phone VARCHAR(15) NOT NULL,     --     +61409877561
     primary_email VARCHAR(255),
-	contact_other TEXT,
+	contact_other TEXT,                -- notes. wifes name, wifes contact, best time to call
 	current_status VARCHAR(255),
-	contact_history TEXT
+    follow_up TIMESTAMP,               -- date to next contact the customer, otherwise null
 );
+
+
+CREATE TABLE builds
+(
+    id SERIAL PRIMARY KEY,
+    customer_id INTEGER,      --one customer, many builds
+    product_id INTEGER,
+	active_enquiry TIMESTAMP             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
+    job_id INTEGER              -- the currently active job in progress
+)
+
+drop table product_templates      -- old name for table products
+-- CREATE TABLE product_templates
+-- (
+--     id SERIAL PRIMARY KEY,
+--     display_text VARCHAR(127)     -- american barn, garaport
+-- );
+
+drop table products
+CREATE TABLE products   --  What if the build is not a 6x6 garage? you need a different process
+(
+    id SERIAL PRIMARY KEY,
+    display_text VARCHAR(127)     -- american barn, garaport
+)
+
+
+

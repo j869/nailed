@@ -1,0 +1,116 @@
+<%- include('partials/header') %>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expandable Table</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <table class="table table-hover table-dark ">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">First</th>
+                <th scope="col">Last</th>
+                <th scope="col">Handle</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="expandable-row" data-details="details1">
+                <th scope="row">1</th>
+                <td>Mark</td>
+                <td>Otto</td>
+                <td>@mdo</td>
+            </tr>
+            <tr class="collapse details1 table-active">
+                <td colspan="4">
+
+
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">First</th>
+                        <th scope="col">Last</th>
+                        <th scope="col">Handle</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th scope="row">1</th>
+                        <td>Mark</td>
+                        <td>Otto</td>
+                        <td>@mdo</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">2</th>
+                        <td>Jacob</td>
+                        <td>Thornton</td>
+                        <td>@fat</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">3</th>
+                        <td colspan="2">Larry the Bird</td>
+                        <td>@twitter</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+
+
+                </td>
+            </tr>
+            <tr class="expandable-row" data-details="details2">
+                <th scope="row">2</th>
+                <td>Jacob</td>
+                <td>Thornton</td>
+                <td>@fat</td>
+            </tr>
+            <tr class="collapse details2">
+                <td colspan="4">Details for row 2</td>
+            </tr>
+            <tr class="expandable-row" data-details="details3">
+                <th scope="row">3</th>
+                <td colspan="2">Larry the Bird</td>
+                <td>@twitter</td>
+            </tr>
+            <tr class="collapse details3">
+                <td colspan="4">Details for row 3</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const expandableRows = document.querySelectorAll('.expandable-row');
+            expandableRows.forEach(row => {
+                row.addEventListener('click', function () {
+                    const detailsId = this.getAttribute('data-details');
+                    const detailsRow = document.querySelector(`.${detailsId}`);
+                    const allDetailsRows = document.querySelectorAll('.collapse');
+                    allDetailsRows.forEach(row => {
+                        if (row.classList.contains('show')) {
+                            row.classList.remove('show');
+                        }
+                    });
+                    detailsRow.classList.toggle('show');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+<%- include('partials/footer') %>
+
+
+

@@ -1,17 +1,19 @@
 <%- include('partials/header') %>
 
-Previous Task(s) was completed xxFeb2024 (x days ago)
+Previous Task(s) was completed <div class="editable" id="dueDate" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.target_date %></div> (x days ago)
 <div class="d-flex flex-row">
     <% for (let pre in siteContent.job_antecedents) { %>
         <div class="card w-100">
             <div class="card-body">
             <h5 class="card-title"><%= siteContent.job_antecedents[pre].display_text %></h5>
-            <p class="card-text"><%= siteContent.job_antecedents[pre].free_text %></p>
+            <p class="card-text"><div class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job_antecedents[pre].id %>"><%= siteContent.job_antecedents[pre].free_text %></div></p>
+            <a href="<%= baseURL %>/jobs/<%= siteContent.job_antecedents[pre].id %>">update</a>
             <!-- <a href="#" class="btn btn-primary">Edit</a> -->
             </div>
         </div>
     <% } %>
-    <button>Add</button>
+    <a href="<%= baseURL %>/addJob?type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
+    
 </div>
 
 <div class="jumbotron centered">
@@ -27,7 +29,7 @@ Previous Task(s) was completed xxFeb2024 (x days ago)
                 <% for (let pr in siteContent.task_antecedents) { %>
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title"><%= siteContent.task_antecedents[pr].display_text %></h5>
+                        <h5 class="card-title"><div class="editable" id="taskTitle" contenteditable="true" data-record-id="<%= siteContent.task_antecedents[pr].id  %>"><%= siteContent.task_antecedents[pr].display_text %></div></h5>
                         <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                         <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
                     </div>
@@ -35,7 +37,7 @@ Previous Task(s) was completed xxFeb2024 (x days ago)
                 <% } %>
                 <div class="card">
                     <div class="card-body">
-                        <button>Add new +</button>
+                        <a href="<%= baseURL %>/addtask?type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
                     </div>
                 </div>      
             </div>        
@@ -60,24 +62,34 @@ Previous Task(s) was completed xxFeb2024 (x days ago)
                 <div class="card-header">
                     <ul class="nav nav-pills card-header-pills">
                         <li class="nav-item">
-                        <a class="nav-link active" href="#">Mark Done</a>
+                        <a class="nav-link active" href="<%= baseURL %>/jobDone/<%= siteContent.job.id %>">Mark Done</a>
+                        <a href="<%= baseURL %>/delJob?jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Delete</a>
                         </li>
                         <!-- <li class="nav-item">
                         <a class="nav-link" href="#">Link</a>
                         </li> -->
                         <li class="nav-item">
-                        <h5><a class="nav-link disabled card-title" aria-disabled="true">Job Card: '<%= siteContent.job.display_text %>' for <%= siteContent.job.display_name %></a></h5>
+                        <!-- <h5><a class="nav-link disabled card-title" aria-disabled="true">Job Card: <div class="editable" id="jobTitle" contenteditable="true">Trenching</div> for </a></h5> -->
+                        <h5><div class="editable" id="jobTitle" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.display_text %></div> for <%= siteContent.job.display_name %></h5>
                         </li>
                     </ul>
                 </div>
 
+                
                 <div class="d-flex flex-row">
                     <div class="card-body">
-                        <p class="card-text"><%= siteContent.job.free_text %> </p>
+                        <p class="card-text"><div class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.free_text %></div></p>
                     </div>
+                    
+                    <!-- Conversation and attachments -->
                     <ul class="list-group list-group-flush">
                         <% for (let con in siteContent.job.conversation) { %>
-                            <li class="list-group-item"><strong><%= siteContent.job.conversation[con].display_name %></strong>: <%= siteContent.job.conversation[con].message_text %> 
+                            <% 
+                                let maxLength = 16;
+                                let origiMessage = siteContent.job.conversation[con].message_text ;
+                                let truncMessage = origiMessage.length > maxLength ? origiMessage.substr(0, maxLength - 3) + '...' : origiMessage;
+                            %>
+                            <li class="list-group-item"><strong><%= siteContent.job.conversation[con].display_name %></strong>: <%= truncMessage %> 
                                 <% for (let att in siteContent.job.conversation[con].attachment) { %>
                                     <a href="<%= siteContent.job.conversation[con].attachment[att].link %>"><img src="<%= siteContent.job.conversation[con].attachment[att].thumbnail %>" width="20" height="20"></a></li>
                                 <% } %>
@@ -116,12 +128,17 @@ Previous Task(s) was completed xxFeb2024 (x days ago)
                 <% for (let po in siteContent.task_decendants) { %>
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title"><%= siteContent.task_decendants[po].display_text %></h5>
+                            <h5 class="card-title"><div class="editable" id="taskTitle" contenteditable="true" data-record-id="<%= siteContent.task_decendants[po].id  %>"><%= siteContent.task_decendants[po].display_text %></div></h5>
                             <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                             <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
                         </div>
                     </div>
                 <% } %>    
+                <div class="card">
+                    <div class="card-body">
+                        <a href="<%= baseURL %>/addtask?type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
+                    </div>
+                </div>   
             </div>        
         </div>
 
@@ -139,12 +156,12 @@ Next Task
         <div class="card w-100">
             <div class="card-body">
             <h5 class="card-title"><%= siteContent.job_decendants[post].display_text %></h5>
-            <p class="card-text"><%= siteContent.job_decendants[post].free_text %></p>
-            <!-- <a href="#" class="btn btn-primary">Edit</a> -->
+            <p class="card-text"><div class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job_decendants[post].id  %>"><%= siteContent.job_decendants[post].free_text %></div></p>
+            <a href="<%= baseURL %>/jobs/<%= siteContent.job_decendants[post].id %>" class="btn btn-light">Edit</a>
             </div>
         </div>
     <% } %>
-    <button>Add</button>
+    <a href="<%= baseURL %>/addJob?type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
 </div>
 
 
@@ -155,7 +172,8 @@ Next Task
 
 
 <script>
-    const setLabel = (lbl, val) => {
+        // manage the reminder widget
+        const setLabel = (lbl, val) => {
             const label = $(`#slider-${lbl}-label`);
             label.text(val);
             const slider = $(`#slider-div .${lbl}-slider-handle`);
@@ -165,17 +183,47 @@ Next Task
                 left: rect.left
             });
         }
-
         const setLabels = (values) => {
             setLabel("min", values[0]);
             setLabel("max", values[1]);
         }
-
-
         $('#ex2').slider().on('slide', function (ev) {
             setLabels(ev.value);
         });
         setLabels($('#ex2').attr("data-value").split(","));
+
+
+        //add listener to all editable fields.  When field changes, notify the database
+        document.addEventListener('DOMContentLoaded', function() {
+            const editableElements = document.querySelectorAll('.editable');
+            editableElements.forEach(function(element) {
+                element.addEventListener('dblclick', function(event) {
+                    event.preventDefault();    // Prevent default behavior
+                    event.target.contentEditable = true;  // Make the element editable
+                    event.target.focus();    // Set focus to the element
+                });
+                element.addEventListener('blur', function(event) {
+                    // When the element loses focus, save the updated value
+                    const newValue = event.target.textContent;
+                    const fieldID = event.target.id;
+                    const recordID = event.target.getAttribute('data-record-id');
+                    // Make an HTTP GET request to the server to update the database
+                    fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                        .then(response => {
+                            if (response.ok) {
+                                console.log('Database updated successfully.');
+                            } else {
+                                throw new Error('Failed to update database.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                });
+            });
+        });
+
+
 </script>
 
 
