@@ -122,7 +122,7 @@ CREATE TABLE reminders
     current_status VARCHAR(127),      -- reminder definitions are purged after the job is completed
     created_by INTEGER    -- FK user_id... why? is this so that the reminder can't be deleted... I think this field is unnecessary
 );
-
+insert into reminders (escalation1_interval, escalation2_interval, current_status, created_by) VALUES (7,14,'active',1);
 
 -- John discussed key requirements with Bryan, Alex, and Amandah on 12Feb
 -- For future action:
@@ -146,10 +146,10 @@ CREATE TABLE builds
     id SERIAL PRIMARY KEY,
     customer_id INTEGER,      --one customer, many builds
     product_id INTEGER,
-	active_enquiry TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
+	enquiry_date TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
     job_id INTEGER              -- the currently active job in progress
 );
-
+insert
 drop table product_templates;      -- old name for table products
 -- CREATE TABLE product_templates
 -- (

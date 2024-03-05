@@ -216,7 +216,7 @@ app.get("/addjob", async (req, res) => {
   if (precedence == "origin") {
     buildID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
   } else {
-    jobid = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
+    jobID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
   }
   //  no longer provided... its derived from the buildID record      const productID = req.query.product_id;
   console.log("adding to job("+jobID+") for build(" + buildID + ") on " + precedence + " called " + title);
@@ -227,7 +227,7 @@ app.get("/addjob", async (req, res) => {
     if (precedence == "parent") {
       // Add a single job as a placeholder.  You're looking at a job and you think you want to create a child job.  so use this functino to create it.  Then edit the new child job to fill out other details.
       //get the job_template_id
-      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)")   //RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
+      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
       console.log("updated template to include the new job.  job_template_id=" + q1.rows[0].id);
 
       const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
@@ -239,10 +239,13 @@ app.get("/addjob", async (req, res) => {
       newJobID = newJob.rows[0].id;
       const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
     } else if (precedence == "origin") {
-        let jobTemplateID
+        //pull down the build record.  What kind of build? garage or hay shed?
+        const q2 = await pool.query("SELECT product_id FROM build WHERE builds.id = $1", [buildID]) ;    
+        const productID = q2.rows[0].product_id        ;
+        let jobTemplateID;
+        
         // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
         const q1 = await pool.query("SELECT job_templates.* FROM job_templates INNER JOIN builds ON job_templates.product_id = builds.product_id WHERE builds.id = $1 AND antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
-        const productID = q1.rows[0].product_id        
         let jobTemplate;
         if (q1.rows.length === 0) {
           //console.log("No templates found for this product type.");
@@ -256,12 +259,14 @@ app.get("/addjob", async (req, res) => {
           } catch (error) {
             console.error("15435 Error inserting into job_templates:", error);
           }
-        } else {
-          jobTemplate = q1.rows[0];
-          jobTemplateID = q1.rows[0].id;
         }
-
+        jobTemplate = q1.rows[0];
+        jobTemplateID = q1.rows[0].id;
         
+
+
+
+
         if (jobTemplateID) {
           //If there is a template already then we have already returned it in q1...
           console.log(jobTemplate);
