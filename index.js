@@ -1,3 +1,4 @@
+//#region imports
 import express from "express";
 import bodyParser from "body-parser";
 import axios from "axios";
@@ -35,30 +36,17 @@ const db = new pg.Client({
   port: process.env.PG_PORT,
 });
 db.connect();
+//#endregion
 
 app.get("/", (req, res) => {
   res.render("home.ejs");
 });
 
-app.get("/login", (req, res) => {
-  res.render("login.ejs");
-  baseURL = `${req.protocol}://${req.get('host')}`;
-});
 
-app.get("/register", (req, res) => {
-  res.render("register.ejs");
-  baseURL = `${req.protocol}://${req.get('host')}`;
-});
 
-app.get("/logout", (req, res) => {
-  req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.redirect("/");
-  });
-});
 
+
+//#region customers
 app.get("/customer/:id", async (req, res) => {
   const custID = parseInt(req.params.id);
   if (req.isAuthenticated()) {
@@ -98,7 +86,6 @@ app.get("/customer/:id", async (req, res) => {
     res.redirect("/login");
   }
 });
-
 
 app.get("/customers", async (req, res) => {
   if (req.isAuthenticated()) {
@@ -142,217 +129,6 @@ app.get("/customers", async (req, res) => {
   }    
 });
 
-
-// app.get("/customers2", async (req, res) => {
-//   if (req.isAuthenticated()) {
-//     let allCustomers = {};
-//     try {
-//       const result = await db.query("SELECT * FROM customers WHERE 1 = 1 OR id = $1 ORDER BY current_status DESC", [
-//         1,
-//       ]);
-//       allCustomers = result.rows;
-//       let status = {};
-//       let openCustomers = [];
-//       let closedCustomers = [];
-//     for (let i in result.rows) {
-//         try {
-//           status = JSON.parse(result.rows[i].current_status).category;
-//         } catch (err) {
-//           status = result.rows[i].current_status
-//         }
-//         if (status === "open") {
-//           openCustomers.push(result.rows[i]);
-//         } else {
-//           closedCustomers.push(result.rows[i]);
-//         }
-//       }
-//       allCustomers = {open : openCustomers, closed : closedCustomers};
-//     } catch (err) {
-//       console.log(err)
-//     }
-
-//     //console.log(allCustomers);
-//     res.render("listCustomers.ejs", {
-//       data : allCustomers
-//     });
-//     //TODO: Update this to pull in the user secret to render in listCustomers.ejs
-//   } else {
-//     res.redirect("/login");
-//   }
-// });
-
-
-
-
-
-
-
-
-
-app.get("/jobs/:id", async (req, res) => {
-  if (req.isAuthenticated()) {
-    //console.log("as2987");
-    //console.log(req.params.id);
-    const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
-    //console.log(response.data);
-    res.render("editTask.ejs", {
-    //res.render("jobs.ejs", {
-      siteContent : response.data, baseURL : baseURL
-    });
-  } else {
-    res.redirect("/login");
-  }
-});
-
-
-app.get("/jobDone/:id", async (req, res) => {
-  const jobID = parseInt(req.params.id);
-  if (req.isAuthenticated()) {
-    const response = await axios.get(`${API_URL}/jobDone/${req.params.id}`);
-    res.redirect("/jobs/" + jobID);
-  } else {
-    res.redirect("/login");
-  }
-});
-
-
-
-
-
-
-
-app.get("/update", async (req,res) => {
-  const fieldID = req.query.fieldID;
-  const newValue = req.query.newValue;         // open to SQL injection attacks unless user entered value has been cleaned
-  const rowID = req.query.whereID;
-  let table = "";
-  let columnName = "";
-  let value = "";
-  let q ;
-
-  switch (fieldID) {
-    case "dueDate": 
-      table = "jobs";
-      columnName = "target_date"
-      value = "'" + newValue + "'";
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "jobDesc":
-      table = "jobs";
-      columnName = "free_text"
-      value = "'" + newValue + "'";
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "jobTitle":
-      table = "jobs";
-      columnName = "display_text"
-      value = "'" + newValue + "'";
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "taskTitle":
-      table = "tasks";
-      columnName = "display_text"
-      value = "'" + newValue + "'";
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-  
-  
-    case "test":
-      break
-    default:
-      console.error("Unknown field was edited: " + fieldID );
-  }
-})
-
-
-
-
-
-app.get("/addtask", async (req, res) => {
-  let precedence;
-  if (req.isAuthenticated()) {
-    if (req.query.type == "parent") {
-      precedence = "pretask";
-    } else if (req.query.type == "child") {
-      precedence = "postask";
-    } else {
-      console.error("did not understand " + req.query.type)
-    }
-    const response = await axios.get(`${API_URL}/addtask?precedence=${precedence}&job_id=${req.query.jobnum}`);
-    res.redirect("/jobs/" + req.query.jobnum);
-  } else {
-    res.redirect("/login");
-  }
-});
-
-
-
-app.get("/addjob", async (req, res) => {
-  if (req.isAuthenticated()) {
-    
-    //Add a single job as a placeholder for further user input (and the relationship)
-    const response = await axios.get(`${API_URL}/addjob?precedence=${req.query.type}&id=${req.query.jobnum}`);
-    res.redirect("/jobs/" + req.query.jobnum);
-  } else {
-    res.redirect("/login");
-  }
-});
-
-
-app.get("/delJob", async (req, res) => {
-  if (req.isAuthenticated()) {
-    const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
-    res.redirect("/jobs/1");
-  } else {
-    res.redirect("/login");
-  }
-});
-
-
-app.post("/login",
-  passport.authenticate("local", {
-    successRedirect: "/customers",
-    failureRedirect: "/login",
-  })
-);
-
-
-app.post("/register", async (req, res) => {
-  const email = req.body.username;
-  const password = req.body.password;
-  
-  try {
-    const checkResult = await db.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ]);
-    
-
-    if (checkResult.rows.length > 0) {
-      req.redirect("/login");
-    } else {
-      bcrypt.hash(password, saltRounds, async (err, hash) => {
-        if (err) {
-          console.error("Error hashing password:", err);
-        } else {
-            const result = await db.query(
-            "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING *",
-            [email, hash]
-          );
-          const user = result.rows[0];
-          req.login(user, (err) => {
-            res.redirect("/login");
-          });
-        }
-      });
-    }
-  } catch (err) {
-    console.error(err);
-  }
-});
-
-
-
-
 app.post("/addCustomer", async (req, res) => {
   if (req.isAuthenticated()) {
     try {
@@ -370,35 +146,6 @@ app.post("/addCustomer", async (req, res) => {
   res.redirect("/customers");
 }
 });
-
-
-app.post("/addBuild", async (req, res) => {
-  console.log(req.body);
-  console.log("AddBuild() on " + API_URL)
-  let productID = req.body.product_id;
-  
-  if (req.isAuthenticated()) {
-    try {
-      const result = await db.query(
-        "INSERT INTO builds (customer_id, product_id, enquiry_date) VALUES ($1, $2, $3::timestamp) RETURNING *",
-        [req.body.customer_id, req.body.product_id, req.body.enquiry_date]
-      );
-      const newBuild = result.rows[0];    
-
-      //start workflow
-      console.log("adding the original job for the build(" + result.rows[0].id + ")");
-      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
-      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
-
-      res.redirect("/jobs/" + response.data.id);
-          
-    } catch (err) {
-      console.log(err);  
-    }  
-    //res.redirect("/customer/" + req.body.customer_id);
-  }
-});
-
 
 app.post("/updateCustomer/:id", async (req, res) => {
   if (req.isAuthenticated()) {
@@ -452,7 +199,43 @@ app.post("/updateCustomer/:id", async (req, res) => {
     res.redirect("/login");
   }       
 });
+//#endregion
 
+
+
+
+
+
+
+
+//#region builds
+
+app.post("/addBuild", async (req, res) => {
+  console.log(req.body);
+  console.log("AddBuild() on " + API_URL)
+  let productID = req.body.product_id;
+  
+  if (req.isAuthenticated()) {
+    try {
+      const result = await db.query(
+        "INSERT INTO builds (customer_id, product_id, enquiry_date) VALUES ($1, $2, $3::timestamp) RETURNING *",
+        [req.body.customer_id, req.body.product_id, req.body.enquiry_date]
+      );
+      const newBuild = result.rows[0];    
+
+      //start workflow
+      console.log("adding the original job for the build(" + result.rows[0].id + ")");
+      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
+      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
+
+      res.redirect("/jobs/" + response.data.id);
+          
+    } catch (err) {
+      console.log(err);  
+    }  
+    //res.redirect("/customer/" + req.body.customer_id);
+  }
+});
 
 app.post("/updateBuild/:id", async (req, res) => {
   const buildID = parseInt(req.params.id);
@@ -506,7 +289,158 @@ app.post("/updateBuild/:id", async (req, res) => {
   }       
 });
 
+//#endregion
 
+
+
+
+
+
+
+
+//#region jobs
+app.get("/jobs/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    //console.log("as2987");
+    //console.log(req.params.id);
+    const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    //console.log(response.data);
+    res.render("editTask.ejs", {
+    //res.render("jobs.ejs", {
+      siteContent : response.data, baseURL : baseURL
+    });
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/jobDone/:id", async (req, res) => {
+  const jobID = parseInt(req.params.id);
+  if (req.isAuthenticated()) {
+    const response = await axios.get(`${API_URL}/jobDone/${req.params.id}`);
+    res.redirect("/jobs/" + jobID);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/delJob", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
+    res.redirect("/jobs/1");
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/addjob", async (req, res) => {
+  if (req.isAuthenticated()) {
+    
+    //Add a single job as a placeholder for further user input (and the relationship)
+    const response = await axios.get(`${API_URL}/addjob?precedence=${req.query.type}&id=${req.query.jobnum}`);
+    res.redirect("/jobs/" + req.query.jobnum);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+
+
+
+
+
+
+
+
+//#region tasks
+
+app.get("/addtask", async (req, res) => {
+  let precedence;
+  if (req.isAuthenticated()) {
+    if (req.query.type == "parent") {
+      precedence = "pretask";
+    } else if (req.query.type == "child") {
+      precedence = "postask";
+    } else {
+      console.error("did not understand " + req.query.type)
+    }
+    const response = await axios.get(`${API_URL}/addtask?precedence=${precedence}&job_id=${req.query.jobnum}`);
+    res.redirect("/jobs/" + req.query.jobnum);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+
+
+
+
+
+
+//#region authentication
+
+app.get("/login", (req, res) => {
+  res.render("login.ejs");
+  baseURL = `${req.protocol}://${req.get('host')}`;
+});
+
+app.post("/login",
+  passport.authenticate("local", {
+    successRedirect: "/customers",
+    failureRedirect: "/login",
+  })
+);
+
+app.get("/register", (req, res) => {
+  res.render("register.ejs");
+  baseURL = `${req.protocol}://${req.get('host')}`;
+});
+
+app.post("/register", async (req, res) => {
+  const email = req.body.username;
+  const password = req.body.password;
+  
+  try {
+    const checkResult = await db.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
+    
+
+    if (checkResult.rows.length > 0) {
+      req.redirect("/login");
+    } else {
+      bcrypt.hash(password, saltRounds, async (err, hash) => {
+        if (err) {
+          console.error("Error hashing password:", err);
+        } else {
+            const result = await db.query(
+            "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING *",
+            [email, hash]
+          );
+          const user = result.rows[0];
+          req.login(user, (err) => {
+            res.redirect("/login");
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+app.get("/logout", (req, res) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/");
+  });
+});
 
 passport.use(
   "local",
@@ -551,3 +485,60 @@ passport.deserializeUser((user, cb) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+//#endregion
+
+
+
+
+
+
+
+//#region not in use
+
+app.get("/update", async (req,res) => {
+  const fieldID = req.query.fieldID;
+  const newValue = req.query.newValue;         // open to SQL injection attacks unless user entered value has been cleaned
+  const rowID = req.query.whereID;
+  let table = "";
+  let columnName = "";
+  let value = "";
+  let q ;
+
+  switch (fieldID) {
+    case "dueDate": 
+      table = "jobs";
+      columnName = "target_date"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "jobDesc":
+      table = "jobs";
+      columnName = "free_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "jobTitle":
+      table = "jobs";
+      columnName = "display_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "taskTitle":
+      table = "tasks";
+      columnName = "display_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+  
+  
+    case "test":
+      break
+    default:
+      console.error("Unknown field was edited: " + fieldID );
+  }
+})
+
+//#endregion
+
+

@@ -1,3 +1,4 @@
+//#region   middleware
 import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
@@ -11,6 +12,14 @@ export const app = express();
 const port = 4000;
 //const saltRounds = 10;
 env.config();
+if (process.env.SESSION_SECRET) {
+  console.log('en1    npm middleware loaded ok');
+} else {
+  console.log('en9    you must run nodemon from Documents/nailed/  : ', process.cwd());
+  console.log('       rm -R node_modules');
+  console.log('       npm cache clean --force');
+  console.log('       npm i');
+}
 
 app.use(
   session({
@@ -34,6 +43,7 @@ export const pool = new Pool({
   port: process.env.PG_PORT,
 });
 //db.connect();
+//#endregion
 
 
 
@@ -138,7 +148,6 @@ app.get("/jobs/:id", async (req, res) => {
   }
 });
 
-
 app.get("/jobDone/:id", async (req,res) => {
   console.log(req.params);
   const jobID = parseInt(req.params.id);
@@ -164,13 +173,24 @@ app.get("/update", async (req, res) => {
   const column = req.query.column;
   const value = req.query.value;
   const id = req.query.id;
+  console.log("ud10");
   try {
     // put every database query into a try - catch block
     //update table
     const q = await pool.query("UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
+      console.log("ud50");
     }
+
+    if (table === "jobs") {
+      console.log("ud55 " + column);
+      if (column === "display_text") {
+        const q2 = await pool.query("UPDATE job_templates SET display_text = " + value + " WHERE id = (SELECT job_template_id FROM jobs WHERE id = " + id + ");");      
+        console.log("ud70");
+      }
+    }
+    console.log("ud99");
   } catch (error) {
     
     console.error('Error updating job:', error);
@@ -178,9 +198,6 @@ app.get("/update", async (req, res) => {
     res.status(500).json({ error: 'Failed to add job' });
   }  
 })
-
-
-
 
 app.get("/addtask", async (req, res) => {
   console.log(req.query);
@@ -200,8 +217,6 @@ app.get("/addtask", async (req, res) => {
   }
 
 });
-
-
 
 app.get("/addjob", async (req, res) => {
   // the following are the supported ways of adding a job...
@@ -225,43 +240,82 @@ app.get("/addjob", async (req, res) => {
     let newJobID;
     //add job and then document the relationship to the new job in job_process_flow
     if (precedence == "parent") {
-      // Add a single job as a placeholder.  You're looking at a job and you think you want to create a child job.  so use this functino to create it.  Then edit the new child job to fill out other details.
-      //get the job_template_id
-      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
-      console.log("updated template to include the new job.  job_template_id=" + q1.rows[0].id);
+      if (false) {
+        const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+        console.log("a10")
+        // Add a single job as a placeholder.  You're looking at a job and you think you want to create a child job.  so use this functino to create it.  Then edit the new child job to fill out other details.
+        //get the job_template_id
+        const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
+        console.log("updated template to include the new job.  job_template_id=" + q1.rows[0].id);
+        console.log("a11")
+        const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
+        console.log("a12")
+        newJobID = newJob.rows[0].id;
+        console.log("a13")
+        const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + newJobID + ", " + jobID + ") ;");
+        console.log("a14")
+        // console.log(productID);
+        // console.log(displayText);
+        // console.log(parentID);
+        // console.log(childID);
+        // console.log(reminderID);
+        // const q2 = await pool.query("INSERT INTO job_templates (product_id, display_text, reminder_id) VALUES ($1, $2, $3) RETURNING *;", [productID, 'Follow Up', 1]);     // this will return all the columns, not only the three specified
+      } else {
+        console.log ("a19   adding of parents has been retracted... no longer supported functionality")
+      }
 
-      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
-      newJobID = newJob.rows[0].id;
-      const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + newJobID + ", " + jobID + ") ;");
-      
     } else if (precedence == "child") {
-      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
+      console.log("a30 updated template to include the new job. " + jobID);
+      //console.log(req.query);
+      const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+      console.log(q4.rows);
+      console.log("a31 " + q4.rows[0].job_template_id);
+      let oldJobTemplateID = q4.rows[0].job_template_id;
+      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
+      console.log("a31   new job_tempalate created id = " + q1.rows[0].id);
+      console.log("a33" + "        UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID);
+      const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
+
+      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id) VALUES ($1, $2, $3) RETURNING id;", [title, 1, q1.rows[0].id]);
+      console.log("a34");
       newJobID = newJob.rows[0].id;
       const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
     } else if (precedence == "origin") {
+        console.log("a50")
         //pull down the build record.  What kind of build? garage or hay shed?
-        const q2 = await pool.query("SELECT product_id FROM build WHERE builds.id = $1", [buildID]) ;    
+        const q2 = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
         const productID = q2.rows[0].product_id        ;
+        console.log("a51 " + productID)
         let jobTemplateID;
         
         // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
         const q1 = await pool.query("SELECT job_templates.* FROM job_templates INNER JOIN builds ON job_templates.product_id = builds.product_id WHERE builds.id = $1 AND antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
+        console.log("a52")
         let jobTemplate;
         if (q1.rows.length === 0) {
+          console.log("a53")
           //console.log("No templates found for this product type.");
           try {
             // create a tempalte for this product.  The first template must have a NULL antecedent.  At the moment it has no children
             // The default title when there is no template is 'Follow Up'
+            console.log("a54")
             const q2 = await pool.query("INSERT INTO job_templates (product_id, display_text, reminder_id) VALUES ($1, $2, $3) RETURNING *;", [productID, 'Follow Up', 1]);     // this will return all the columns, not only the three specified
-            console.log(q2.rows[0]);
+            //console.log(q2.rows[0]);
             jobTemplateID = q2.rows[0].id;
             console.log("Template inserted: " + jobTemplateID);
+            jobTemplate = q2.rows[0];
+            console.log("a55")
           } catch (error) {
+            console.log("a56")
             console.error("15435 Error inserting into job_templates:", error);
           }
+        } else {
+          console.log("a60")
+          jobTemplate = q1.rows[0];
+          console.log("a61")
+          jobTemplateID = q1.rows[0].id;
+          console.log("a62")
         }
-        jobTemplate = q1.rows[0];
-        jobTemplateID = q1.rows[0].id;
         
 
 
@@ -277,7 +331,8 @@ app.get("/addjob", async (req, res) => {
         }
         
         if (newJobID) {
-          //await createDecendantsForJob(newJobID, pool);      // recursivle build out the build process based on the template");
+          console.log("a78");
+          await createDecendantsForJob(newJobID, pool);      // recursivle build out the build process based on the template");
         } else {
           console.log("3925789 process will fail because newJobID has not been set")
         }
@@ -299,13 +354,6 @@ app.get("/addjob", async (req, res) => {
   }
 
 });
-
-// app.get("/deleteJob", async (req, res) => {
-//   const job_id = req.query.job_id;
-//   const result = await pool.query("DELETE FROM jobs WHERE id = $1;", [job_id]);  
-//   console.log(result);
-// });
-
 
 app.get("/deleteJob", async (req, res) => {
   const client = await pool.connect();
@@ -332,7 +380,79 @@ app.get("/deleteJob", async (req, res) => {
   }
 });
 
+export async function createDecendantsForJob(jobID, pool) {
+  console.log("c11");   // Define the function to write a job to the database
+  console.log("createDecendantsForJob("+ jobID + ")")
+  try {
+      console.log("c12");
+      const q1 = await pool.query("SELECT * FROM  jobs WHERE id=$1;", [jobID]);      
+      const oldJob = q1.rows[0];
+      let newJobID;
+      const productID = oldJob.product_id;
+      //console.log("oldJob");
+      //console.log(oldJob);
+      console.log("                    INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = "+ "'"+ oldJob.job_template_id + "'" +") RETURNING id;")
+      console.log(productID);
+      console.log(oldJob.job_template_id);
+      console.log("c15");
+      const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
+      const newTemplate = q3.rows[0];
+      console.log("c16");
+      console.log(q3.rows);
+      if (q3.rowCount !== 0) {       //no more templates defined
+          console.log("c17");
+          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ") returning id")
+          console.log("c18");
+          console.log("Added " + q2.rows.length + " rows.");
+          const newJob = q2.rows[0];     // assumes only 1 child
+          console.log("c19");
+          if (q2.rowCount !== 0) {
+            console.log("c20");
+            newJobID = newJob.id
+            console.log("just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
+            //newJobID = newJob.rows[0].id;
+            console.log("c23");
+            const q3 = await pool.query("INSERT INTO job_process_flow (decendant_id, antecedent_id) VALUES (" + newJob.id + ", " + oldJob.id + ") ;");
+            console.log(" Added " + q3.rowCount + " rows to processflow. Added the relationship.");
+          }
 
+          console.log("c24");
+          if (q2.rowCount !== 0) {
+            console.log("c25");
+            newJobID = newJob.id ;
+            console.log("c30");
+            console.log("recursivly adding jobs for the new job("+newJobID +")" );
+            //console.log(newJob.rows);
+            await createDecendantsForJob(newJobID, pool);
+            console.log("c31");
+
+          } else {
+            console.log("c50");
+            return 1;
+          }
+      }
+      console.log("c88");
+    } catch (error) {
+      console.log("c99");
+      console.error('Error creating decendant for job:', error); // Log the error
+      //console.log(newJob);
+      throw new Error('Failed to add job'); // Throw a new error
+  }
+}
+
+
+
+
+
+
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
+
+
+
+//#region not in use
 
 // GET - Read operation
 app.get('/api/resource', readHandler);
@@ -345,17 +465,6 @@ app.put('/api/resource/:id', updateHandler);
 
 // DELETE - Delete operation
 app.delete('/api/resource/:id', deleteHandler);
-
-
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
-
-
-
-
-
 
 // Example handler function for reading data
 function readHandler(req, res) {
@@ -396,43 +505,8 @@ function deleteHandler(req, res) {
   res.json({ message: 'Deleting data from the database' });
 }
 
+//#endregion
 
-// Define the function to write a job to the database
-export async function createDecendantsForJob(jobID, pool) {
-  console.log("createDecendantsForJob("+ jobID + ")")
-  try {
-      const q1 = await pool.query("SELECT * FROM  jobs WHERE id=$1;", [jobID]);      
-      const oldJob = q1.rows[0];
-      let newJobID;
-      const productID = oldJob.product_id;
-      //console.log("oldJob");
-      //console.log(oldJob);
-      console.log("                    INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = "+ "'"+ oldJob.job_template_id + "'" +") RETURNING id;")
-      const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = $1 AND b.antecedent_array = $2) RETURNING id;", [productID, "'"+ oldJob.job_template_id + "'"]);  
-      console.log(" Added " + q2.rowCount + " rows.");
-      const newJob = q2.rows[0];     // assumes only 1 child
-      if (newJob.rowCount !== 0) {
-        newJobID = newJob.id
-        console.log("just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
-        //newJobID = newJob.rows[0].id;
-        const q3 = await pool.query("INSERT INTO job_process_flow (decendant_id, antecedent_id) VALUES (" + newJob.id + ", " + oldJob.id + ") ;");
-        console.log(" Added " + q3.rowCount + " rows to processflow. Added the relationship.");
-      }
 
-      if (newJob.rowCount !== 0) {
-        newJobID = newJob.rows[0].id ;
-        console.log("recursivly adding jobs for the new job("+newJobID +")" );
-        //console.log(newJob.rows);
-        await createDecendantsForJob(newJobID, pool);
-      } else {
-        return 1;
-      }
-      console.log("8");
-    } catch (error) {
-      console.error('Error creating decendant for job:', error); // Log the error
-      //console.log(newJob);
-      throw new Error('Failed to add job'); // Throw a new error
-  }
-}
 
 
