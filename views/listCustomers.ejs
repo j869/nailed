@@ -29,20 +29,26 @@
                 </h2>
                 <div id="stayOpen-collapseOne" class="accordion-collapse collapse show">
                     <div class="accordion-body">
-                        <% for (let i in data.open) { %>
-                        <form class="item" method="post" action="/updateCustomer/<%= data.open[i].id %>">
-                            <br><%= data.open[i].id %>
-                            <input type="text" name="fullName" value="<%= data.open[i].full_name %>">
-                            <input type="text" name="homeAddress" value="<%= data.open[i].home_address %>">
-                            <input type="text" name="primaryPhone" value="<%= data.open[i].primary_phone %>">
-                            <input type="text" name="primaryEmail" value="<%= data.open[i].primary_email %>">
-                            <input type="text" name="contactOther" value="<%= data.open[i].contact_other %>">
-                            <!-- <button class="update" type="submit" name="action" value="update">Update</button>
-                            <button class="update" type="submit" name="action" value="delete">Delete</button> -->
-                            <button class="update" type="submit" name="action" value="view">View</button>
-                            <!-- <button class="update" type="submit" name="action" value="edit">Edit</button> -->
-                        </form>
-                        <% } %>
+                        <table class="table">
+
+                            <tbody>
+                                <% for (let i in data.open) { %>
+                                <tr>
+                                    <td><%= data.open[i].id %></td>
+                                    <td><%= data.open[i].full_name %></td>
+                                    <td><%= data.open[i].home_address %></td>
+                                    <td><%= data.open[i].primary_phone %></td>
+                                    <td><%= data.open[i].primary_email %></td>
+                                    <td><%= data.open[i].contact_other %></td>
+                                    <td>
+                                        <form class="item" method="post" action="/updateCustomer/<%= data.open[i].id %>">
+                                            <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

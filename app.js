@@ -1,25 +1,20 @@
-//#region   middleware
+//#region imports
 import express from "express";
 import bodyParser from "body-parser";
+import axios from "axios";
 import pg from "pg";
-// import bcrypt from "bcrypt";
-// import passport from "passport";
-// import { Strategy } from "passport-local";
+import bcrypt from "bcrypt";
+import passport from "passport";
+import { Strategy } from "passport-local";
 import session from "express-session";
 import env from "dotenv";
 
-export const app = express();
-const port = 4000;
-//const saltRounds = 10;
+const app = express();
+const port = 3000;
+const API_URL = "http://localhost:4000";
+let baseURL = "";
+const saltRounds = 10;
 env.config();
-if (process.env.SESSION_SECRET) {
-  console.log('en1    npm middleware loaded ok');
-} else {
-  console.log('en9    you must run nodemon from Documents/nailed/  : ', process.cwd());
-  console.log('       rm -R node_modules');
-  console.log('       npm cache clean --force');
-  console.log('       npm i');
-}
 
 app.use(
   session({
@@ -30,483 +25,649 @@ app.use(
 );
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(express.json());    //// Middleware to parse JSON bodies
-// app.use(passport.initialize());
-// app.use(passport.session());
+app.use(passport.initialize());
+app.use(passport.session());
 
-const { Pool } = pg;
-export const pool = new Pool({
+const db = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
   database: process.env.PG_DATABASE,
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
 });
-//db.connect();
+db.connect();
+//#endregion
+
+app.get("/", (req, res) => {
+  res.render("home.ejs");
+});
+
+
+
+
+//#region customers
+app.get("/customer/:id", async (req, res) => {
+  const custID = parseInt(req.params.id);
+  if (req.isAuthenticated()) {
+    // const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    // res.render("editTask.ejs", {
+    //   siteContent : response.data, baseURL : baseURL
+    // });
+
+
+    try {
+      const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      let customer = result.rows;
+      if (customer.length !== 1) {        console.error("Error: Expected 1 row, but received " + customer.length + " rows.");      }
+
+      const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
+      let builds = qryBuilds.rows;
+
+      const qryProducts = await db.query("SELECT id, display_text FROM products ");
+      let products = qryProducts.rows;
+
+      // Render the search results page or handle them as needed
+      //res.render("searchResults.ejs", { results: searchResults });
+      res.render("customer.ejs", {
+        data : customer[0],
+        builds : builds,
+        products : products
+      });
+
+    } catch (err) {
+      console.error(err);
+      // Handle errors appropriately, perhaps render an error page
+      res.status(500).send("Internal Server Error");
+    }
+    
+
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/2/customers", async (req, res) => {
+  console.log("d1   ")
+  if (req.isAuthenticated()) {
+      const query = req.query.query || "";
+      try {
+          let allCustomers;
+          if (query) {
+              console.log("d2   ");
+              // If there is a search term, fetch matching customers and their builds
+              const customersResult = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+
+
+              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
+              // Merge customer and build data
+              allCustomers = customersResult.rows.map(customer => {
+                  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                  return {
+                      customer,
+                      builds
+                  };
+              });
+          } else {
+            console.log("d3   ");
+            // If there's no search term, fetch all customers and their builds
+              const customersResult = await db.query("SELECT * FROM customers");
+              customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
+                if (customer.follow_up) {
+                    customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
+                }
+              });
+              console.log("d31   ", customersResult.rows[0]);
+              const buildsResult = await db.query(`
+                                    SELECT 
+                                        b.id, 
+                                        b.customer_id, 
+                                        b.product_id, 
+                                        b.enquiry_date, 
+                                        b.job_id,
+                                        p.display_text AS product_description
+                                    FROM 
+                                        builds AS b
+                                    JOIN 
+                                        products AS p ON b.product_id = p.id
+                                    WHERE 
+                                        b.customer_id = ANY ($1)
+                                     `, [customersResult.rows.map(customer => customer.id)]);
+              console.log("d32    ", buildsResult.rows[0]);
+              // Merge customer and build data
+              allCustomers = customersResult.rows.map(customer => {
+                  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                  return {
+                      customer,
+                      builds
+                  };
+              });
+              console.log("d33    ");
+          }
+          
+          // Render the appropriate template based on the scenario
+          if (req.query.buildId) {
+              console.log("d6   ");
+
+              // If a build is clicked, render customer.ejs
+              const customerId = 2;  // Extract customer id from buildId, assuming buildId contains both customer and build ids;
+              // Fetch additional data for the selected build, e.g., jobs
+              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [req.query.buildId]);
+              // Render customer.ejs with customer, builds, and jobs data
+              res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
+          } else {
+              console.log("d7   ");
+              // If no specific build is clicked, render customers.ejs
+              res.render("2/customers.ejs", { tableData : allCustomers });
+          }
+      } catch (err) {
+          console.log("d8   ");
+          console.error(err);
+          res.status(500).send("Internal Server Error");
+      }
+  } else {
+      console.log("d9   ");
+      res.redirect("/login");
+  }
+});
+
+
+app.get("/3/customers", async (req, res) => {
+
+  if (req.isAuthenticated()) {
+    const query = req.query.query || "";     // runs when user logs in and returns all customers
+    try {
+      // Perform the search operation based on the query
+      // For example, you might want to search for customers with names matching the query
+      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      console.log("d1  ");
+
+      let allCustomers = result.rows;
+      let status = {};
+      let openCustomers = [];
+      let closedCustomers = [];
+      for (let i in result.rows) {
+        try {
+          status = JSON.parse(result.rows[i].current_status).category;
+        } catch (err) {
+          status = result.rows[i].current_status
+        }
+        if (status === "open") {
+          openCustomers.push(result.rows[i]);
+        } else {
+          closedCustomers.push(result.rows[i]);
+        }
+      }
+      allCustomers = {open : openCustomers, closed : closedCustomers};
+      console.log("d5   ", allCustomers);
+
+      // Render the search results page or handle them as needed
+      //res.render("searchResults.ejs", { results: searchResults });
+      res.render("2/customers.ejs", {
+        data : openCustomers
+      });
+
+    } catch (err) {
+      console.error(err);
+      // Handle errors appropriately, perhaps render an error page
+      res.status(500).send("Internal Server Error");
+    }
+  } else {
+    res.redirect("/login");
+  }    
+});
+
+app.get("/customers", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const query = req.query.query || "";     // runs when user logs in and returns all customers
+    try {
+      // Perform the search operation based on the query
+      // For example, you might want to search for customers with names matching the query
+      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      
+      let allCustomers = result.rows;
+      let status = {};
+      let openCustomers = [];
+      let closedCustomers = [];
+      for (let i in result.rows) {
+        try {
+          status = JSON.parse(result.rows[i].current_status).category;
+        } catch (err) {
+          status = result.rows[i].current_status
+        }
+        if (status === "open") {
+          openCustomers.push(result.rows[i]);
+        } else {
+          closedCustomers.push(result.rows[i]);
+        }
+      }
+      allCustomers = {open : openCustomers, closed : closedCustomers};
+      
+      // Render the search results page or handle them as needed
+      //res.render("searchResults.ejs", { results: searchResults });
+      res.render("listCustomers.ejs", {
+        data : allCustomers
+      });
+
+    } catch (err) {
+      console.error(err);
+      // Handle errors appropriately, perhaps render an error page
+      res.status(500).send("Internal Server Error");
+    }
+  } else {
+    res.redirect("/login");
+  }    
+});
+
+app.post("/addCustomer", async (req, res) => {
+  if (req.isAuthenticated()) {
+    try {
+    const currentTime = new Date(); // Get the current time
+    currentTime.setDate(currentTime.getDate() + 21); // Add 21 days
+    
+    const result = await db.query(
+      "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+      [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "open", currentTime]
+    );
+    const newCustomer = result.rows[0];
+  } catch (err) {
+    console.log(err);  
+  }  
+  res.redirect("/customers");
+}
+});
+
+app.post("/updateCustomer/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const action = req.body.action;     // did the user click delete, update, view, or
+    const userID = parseInt(req.params.id);
+    switch (action) {
+      case "update":
+            // a known fault is that this will not set non alphabetical characters {} " ' etc - you need to excape them for security reasons too
+            const updateSQL = "UPDATE customers SET     " +
+            "full_name='" + req.body.fullName + "', " +
+            "home_address='" + req.body.homeAddress + "', " +
+            "primary_phone='" + req.body.primaryPhone + "', " +
+            "primary_email='" + req.body.primaryEmail + "', " +
+            "contact_other='" + req.body.contactOther + "' " + 
+            "WHERE id=" + userID + " RETURNING *"    
+            try {
+              //  "UPDATE customers SET full_name='$1', primary_phone='$2', primary_email='$3', contact_other='$4', current_status='$5', contact_history='$6') WHERE id=$7 RETURNING *",
+              //  [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, null, req.body.contactHistory, 5]
+              const result = await db.query(updateSQL);
+              const updatedCustomer = result.rows[0];
+            } catch (err) {
+              console.error(err);
+              //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
+            }
+            res.redirect("/customer/" + userID);
+            break;
+      case "delete":
+            try {
+              const result = await db.query("DELETE FROM customers WHERE id=" + userID + " RETURNING 1" );
+              const result2 = await db.query("DELETE FROM builds WHERE customer_id =" + userID + " RETURNING 1" );
+            } catch (err) {
+              console.error(err);
+              //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
+            }
+            res.redirect("/customers");
+            break;
+      case "view":
+        
+        res.redirect("/customer/" + userID);
+        break;
+      case "edit":
+        res.redirect("/customer/" + userID);
+        break;
+      default:
+        console.error("This should never happen 2198442");
+        res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error              
+    }
+
+
+  } else {
+    res.redirect("/login");
+  }       
+});
 //#endregion
 
 
 
-app.get("/jobs/:id", async (req, res) => {
-  //const { username, email } = req.body;
-  const job_id = parseInt(req.params.id);
-  if (!job_id) {
-    console.error("43892783 Tried to get a job, but not given the Job_ID")
-  } else {
 
-    let data = {};
-    let result = {};
-    let vSQL = "";
 
+
+
+
+//#region builds
+
+app.post("/addBuild", async (req, res) => {
+  console.log(req.body);
+  console.log("AddBuild() on " + API_URL)
+  let productID = req.body.product_id;
+  
+  if (req.isAuthenticated()) {
     try {
-      result = await pool.query("SELECT * FROM jobs WHERE id = " + job_id + ";");        //'INSERT INTO users (username, email) VALUES ($1, $2) RETURNING *', [username, email]
-      const jobName = result.rows[0].display_text;
-      const jobText = result.rows[0].free_text;
-      const targetDate = result.rows[0].target_date;
-      const jobUser = "User(" + result.rows[0].user_id + ")"
+      const result = await db.query(
+        "INSERT INTO builds (customer_id, product_id, enquiry_date) VALUES ($1, $2, $3::timestamp) RETURNING *",
+        [req.body.customer_id, req.body.product_id, req.body.enquiry_date]
+      );
+      const newBuild = result.rows[0];    
 
-      vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
-      result = await pool.query(vSQL);        
-      const reminder = result.rows[0];
-      // if (result.rows.length === 0) {
-      //   reminder = { escalation1_interval: 7, escalation2_interval: 14 };      //default values for new records
-      // } else {
-      //   reminder = result.rows[0];
-      // }
+      //start workflow
+      console.log("adding the original job for the build(" + result.rows[0].id + ")");
+      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
+      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
 
-      let conversation = [];
-      vSQL = "SELECT id, display_name, message_text FROM conversations WHERE job_id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      for (let r in result.rows) {
-        let result2 = await pool.query("SELECT thumbnail, link FROM attachments WHERE conversation_id = " + result.rows[r].id + ";"); 
-        conversation.push( { display_name : result.rows[r].display_name, message_text : result.rows[r].message_text, attachment : result2.rows } )
-      }
-      
-      let job_antecedents = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      job_antecedents = result.rows;
-
-      let job_decendants = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      job_decendants = result.rows;
-
-      let task_antecedents = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      task_antecedents = result.rows;
-
-      let task_decendants = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      task_decendants = result.rows;
-
-      
-      let data = { 
-        job : {
-          id : job_id, 
-          display_text : jobName, 
-          display_name : jobUser, 
-          free_text : jobText, 
-          target_date : targetDate, 
-          reminder : reminder,      //{escalation1_interval : 7, escalation2_interval : 21},
-          conversation : conversation,
-          // [
-          //   {display_name : "John", message_text : "see attached pic", attachment : [{thumbnail : "https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png", link : "http://www.google.com"},]}, 
-          //   {display_name : "Nick", message_text : "John this is the ...", }, 
-          //   {display_name : "Owner", message_text : "when is it done?", }, ]
-          }, 
-        task_antecedents :  task_antecedents,
-        // [
-        //   {display_text : "Call Plumber", current_status : true, free_text : ""}, 
-        //   {display_text : "vook trencher", current_status : true, free_text : ""}, 
-        //   {display_text : "visit reece", current_status : true, free_text : ""}, 
-        // ],
-        task_decendants :  task_decendants,
-        // [
-        //   {display_text : "record pics", free_text : ""}, 
-        //   {display_text : "confirm plumber availability", free_text : ""}, 
-        //   {display_text : "call Bryan", free_text : ""}, ],
-        job_antecedents : job_antecedents, 
-        // [
-        //   {display_text : "Cladding", free_text : "supporting text"}, 
-        //   {display_text : "Roofing", free_text : "supporting text"}, ],
-        job_decendants : job_decendants,    //[{display_text : "Plumbing", free_text : "supporting text"},  ],
-      };
-      res.json(data);
-      //res.json(result.rows[0]);
-    } catch (error) {
-      console.error('Error reading job:', error);
-      res.status(500).json({ error: 'Failed to read job' });
-    }
-
-
-    // const post = data;
-    // if (!post) return res.status(404).json({ message: "Post not found" });
-    // res.json(post);
+      res.redirect("/jobs/" + response.data.id);
+          
+    } catch (err) {
+      console.log(err);  
+    }  
+    //res.redirect("/customer/" + req.body.customer_id);
   }
 });
 
-app.get("/jobDone/:id", async (req,res) => {
-  console.log(req.params);
-  const jobID = parseInt(req.params.id);
-  try {
-    //update table
-    const q = await pool.query("UPDATE jobs SET current_status = 'completed', completed_date = LOCALTIMESTAMP, completed_by = 'me' WHERE id = " + jobID + ";");      
-
-//recursivly check all previous jobs in the chain - and set them to completed
-// also check pre-tasks and mark them done
-// also check all tasks attached to previous jobs and set them done
-
-    if (q.rowCount == 1) {
-      res.status(201).json({msg : 'succesfully modified 1 record'});
-    }
-  } catch (error) {
-    console.error('Error marking job as done:', error);
-    res.status(500).json({ error: 'Failed to add job' });
-  }  
-})
-
-app.get("/update", async (req, res) => {
-  const table = req.query.table;
-  const column = req.query.column;
-  const value = req.query.value;
-  const id = req.query.id;
-  console.log("ud10");
-  try {
-    // put every database query into a try - catch block
-    //update table
-    const q = await pool.query("UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");      
-    if (q.rowCount == 1) {
-      res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud50");
-    }
-
-    if (table === "jobs") {
-      console.log("ud55 " + column);
-      if (column === "display_text") {
-        const q2 = await pool.query("UPDATE job_templates SET display_text = " + value + " WHERE id = (SELECT job_template_id FROM jobs WHERE id = " + id + ");");      
-        console.log("ud70");
-      }
-    }
-    console.log("ud99");
-  } catch (error) {
+app.post("/updateBuild/:id", async (req, res) => {
+  const buildID = parseInt(req.params.id);
+  const action = req.body.action;     // did the user click delete, update, view, or
+  if (req.isAuthenticated()) {
     
-    console.error('Error updating job:', error);
-    // return relevant status code at the end of every API call
-    res.status(500).json({ error: 'Failed to add job' });
-  }  
-})
+    switch (action) {
+      case "update":
+        console.log(action);
+        console.log(req.body);
+        console.log();
+        const updateSQL = "UPDATE builds SET     " +
+        "customer_id='" + req.body.customer_id + "', " +
+        "product_id='" + req.body.product_id + "', " +
+        "enquiry_date='" + req.body.enquiry_date.slice(0, 19).replace('T', ' ') + "' " +        // Format: YYYY-MM-DD HH:MM:SS
+        "WHERE id=" + buildID + " RETURNING *"    
+        console.log(updateSQL);
+        try {
+          const result = await db.query(updateSQL);
+          const updatedCustomer = result.rows[0];
+          console.log(updatedCustomer);
+        } catch (err) {
+          console.error(err);
+          res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
+        }
+        
+        res.redirect("/customer/" + req.body.customer_id);
+        break;
+      case "delete":
+        try {
+          const result = await db.query("DELETE FROM builds WHERE id=" + buildID + " RETURNING 1" );
+        } catch (err) {
+          console.error(err);
+          //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
+        }
+        res.redirect("/customer/" + req.body.customer_id);
+        break;
+      case "view":
+        const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
+        console.log("updateBuild/   case:view    job_id="+result.rows[0]);
+        res.redirect("/jobs/" + result.rows[0].job_id);
+        break;
+      default:
+        console.error("This should never happen 2198442");
+        res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error              
+    }
 
-app.get("/addtask", async (req, res) => {
-  console.log(req.query);
-  const job_id = req.query.job_id;
-  const precedence = req.query.precedence;
-  let vSQL = "";
 
-  try {
-    //add task
-    const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "') RETURNING id;");      
-    const newTaskID = newTask.rows[0].id;
-    res.status(201).json({newTaskID : newTaskID });
+  } else {
+    res.redirect("/login");
+  }       
+});
 
-  } catch (error) {
-    console.error('Error adding task:', error);
-    res.status(500).json({ error: 'Failed to add job' });
+//#endregion
+
+
+
+
+
+
+
+
+//#region jobs
+app.get("/jobs/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    //console.log("as2987");
+    //console.log(req.params.id);
+    const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    //console.log(response.data);
+    res.render("editTask.ejs", {
+    //res.render("jobs.ejs", {
+      siteContent : response.data, baseURL : baseURL
+    });
+  } else {
+    res.redirect("/login");
   }
+});
 
+app.get("/jobDone/:id", async (req, res) => {
+  const jobID = parseInt(req.params.id);
+  if (req.isAuthenticated()) {
+    const response = await axios.get(`${API_URL}/jobDone/${req.params.id}`);
+    res.redirect("/jobs/" + jobID);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/delJob", async (req, res) => {
+  if (req.isAuthenticated()) {
+    const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
+    res.redirect("/jobs/1");
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/addjob", async (req, res) => {
-  // the following are the supported ways of adding a job...
-  // parent: add a job and attach it as an antecedent of the job you're looking at
-  // child: add a decendant
-  // origin: add the first job on a build.  This triggers building out the entire process, based on the job_template table
-
-  const title = req.query.title || 'UNNAMED';
-  const precedence = req.query.precedence;
-  let buildID;
-  let jobID;
-  if (precedence == "origin") {
-    buildID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
+  if (req.isAuthenticated()) {
+    
+    //Add a single job as a placeholder for further user input (and the relationship)
+    const response = await axios.get(`${API_URL}/addjob?precedence=${req.query.type}&id=${req.query.jobnum}`);
+    res.redirect("/jobs/" + req.query.jobnum);
   } else {
-    jobID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
+    res.redirect("/login");
   }
-  //  no longer provided... its derived from the buildID record      const productID = req.query.product_id;
-  console.log("adding to job("+jobID+") for build(" + buildID + ") on " + precedence + " called " + title);
-
-  try {
-    let newJobID;
-    //add job and then document the relationship to the new job in job_process_flow
-    if (precedence == "parent") {
-      if (false) {
-        const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
-        console.log("a10")
-        // Add a single job as a placeholder.  You're looking at a job and you think you want to create a child job.  so use this functino to create it.  Then edit the new child job to fill out other details.
-        //get the job_template_id
-        const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
-        console.log("updated template to include the new job.  job_template_id=" + q1.rows[0].id);
-        console.log("a11")
-        const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
-        console.log("a12")
-        newJobID = newJob.rows[0].id;
-        console.log("a13")
-        const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + newJobID + ", " + jobID + ") ;");
-        console.log("a14")
-        // console.log(productID);
-        // console.log(displayText);
-        // console.log(parentID);
-        // console.log(childID);
-        // console.log(reminderID);
-        // const q2 = await pool.query("INSERT INTO job_templates (product_id, display_text, reminder_id) VALUES ($1, $2, $3) RETURNING *;", [productID, 'Follow Up', 1]);     // this will return all the columns, not only the three specified
-      } else {
-        console.log ("a19   adding of parents has been retracted... no longer supported functionality")
-      }
-
-    } else if (precedence == "child") {
-      console.log("a30 updated template to include the new job. " + jobID);
-      //console.log(req.query);
-      const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
-      console.log(q4.rows);
-      console.log("a31 " + q4.rows[0].job_template_id);
-      let oldJobTemplateID = q4.rows[0].job_template_id;
-      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
-      console.log("a31   new job_tempalate created id = " + q1.rows[0].id);
-      console.log("a33" + "        UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID);
-      const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
-
-      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id) VALUES ($1, $2, $3) RETURNING id;", [title, 1, q1.rows[0].id]);
-      console.log("a34");
-      newJobID = newJob.rows[0].id;
-      const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
-    } else if (precedence == "origin") {
-        console.log("a50")
-        //pull down the build record.  What kind of build? garage or hay shed?
-        const q2 = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
-        const productID = q2.rows[0].product_id        ;
-        console.log("a51 " + productID)
-        let jobTemplateID;
-        
-        // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
-        const q1 = await pool.query("SELECT job_templates.* FROM job_templates INNER JOIN builds ON job_templates.product_id = builds.product_id WHERE builds.id = $1 AND antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
-        console.log("a52")
-        let jobTemplate;
-        if (q1.rows.length === 0) {
-          console.log("a53")
-          //console.log("No templates found for this product type.");
-          try {
-            // create a tempalte for this product.  The first template must have a NULL antecedent.  At the moment it has no children
-            // The default title when there is no template is 'Follow Up'
-            console.log("a54")
-            const q2 = await pool.query("INSERT INTO job_templates (product_id, display_text, reminder_id) VALUES ($1, $2, $3) RETURNING *;", [productID, 'Follow Up', 1]);     // this will return all the columns, not only the three specified
-            //console.log(q2.rows[0]);
-            jobTemplateID = q2.rows[0].id;
-            console.log("Template inserted: " + jobTemplateID);
-            jobTemplate = q2.rows[0];
-            console.log("a55")
-          } catch (error) {
-            console.log("a56")
-            console.error("15435 Error inserting into job_templates:", error);
-          }
-        } else {
-          console.log("a60")
-          jobTemplate = q1.rows[0];
-          console.log("a61")
-          jobTemplateID = q1.rows[0].id;
-          console.log("a62")
-        }
-        
-
-
-
-
-        if (jobTemplateID) {
-          //If there is a template already then we have already returned it in q1...
-          console.log(jobTemplate);
-          //create the new job in the database from the parameters read from the tempalte, and link it to the build
-          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1]);
-          newJobID = q2.rows[0].id;
-          // No relationship to define because there is only on Job in the system for this build (at this point)     //const q3 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (null, " + newJobID + ") ;");             
-        }
-        
-        if (newJobID) {
-          console.log("a78");
-          await createDecendantsForJob(newJobID, pool);      // recursivle build out the build process based on the template");
-        } else {
-          console.log("3925789 process will fail because newJobID has not been set")
-        }
-        
-    } else {
-      console.error("trying to evaluate " + precedence + " but expecting 'parent', 'child'.");
-    }
-
-    //read relevant template
-    //apply reminder
-    // const reminder = await pool.query("INSERT INTO reminders (escalation1_interval, escalation3_interval, current_status) VALUES (7,14,'active') RETURNING id;;"); 
-    // const reminder_id = reminder.rows[0].id;
-    // API responce to let calling functino know that the job was completed successfully
-    res.status(201).json({ id: newJobID });
-
-  } catch (error) {
-    console.error('Error adding job:', error);
-    res.status(500).json({ error: 'Failed to add job' });
-  }
-
 });
 
-app.get("/deleteJob", async (req, res) => {
-  const client = await pool.connect();
+//#endregion
+
+
+
+
+
+
+
+
+
+//#region tasks
+
+app.get("/addtask", async (req, res) => {
+  let precedence;
+  if (req.isAuthenticated()) {
+    if (req.query.type == "parent") {
+      precedence = "pretask";
+    } else if (req.query.type == "child") {
+      precedence = "postask";
+    } else {
+      console.error("did not understand " + req.query.type)
+    }
+    const response = await axios.get(`${API_URL}/addtask?precedence=${precedence}&job_id=${req.query.jobnum}`);
+    res.redirect("/jobs/" + req.query.jobnum);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+
+
+
+
+
+
+//#region authentication
+
+app.get("/login", (req, res) => {
+  res.render("login.ejs");
+  baseURL = `${req.protocol}://${req.get('host')}`;
+});
+
+app.post("/login",
+  passport.authenticate("local", {
+    successRedirect: "/customers",
+    failureRedirect: "/login",
+  })
+);
+
+app.get("/register", (req, res) => {
+  res.render("register.ejs");
+  baseURL = `${req.protocol}://${req.get('host')}`;
+});
+
+app.post("/register", async (req, res) => {
+  const email = req.body.username;
+  const password = req.body.password;
   
   try {
-    await client.query('BEGIN'); // Start a transaction
-
-    const job_id = req.query.job_id;
-    const result = await client.query("DELETE FROM jobs WHERE id = $1 RETURNING *;", [job_id]);  
+    const checkResult = await db.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
     
-    // Check if rowCount is not equal to 1
-    if (result.rowCount !== 1) {
-      throw new Error("Failed to delete job");
-    }
 
-    await client.query('COMMIT'); // Commit the transaction
-    res.status(200).send("Job deleted successfully");
-  } catch (error) {
-    console.error("Error deleting job:", error);
-    await client.query('ROLLBACK'); // Rollback the transaction
-    res.status(500).send("Failed to delete job");
-  } finally {
-    client.release(); // Release the client back to the pool
+    if (checkResult.rows.length > 0) {
+      req.redirect("/login");
+    } else {
+      bcrypt.hash(password, saltRounds, async (err, hash) => {
+        if (err) {
+          console.error("Error hashing password:", err);
+        } else {
+            const result = await db.query(
+            "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING *",
+            [email, hash]
+          );
+          const user = result.rows[0];
+          req.login(user, (err) => {
+            res.redirect("/login");
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
-export async function createDecendantsForJob(jobID, pool) {
-  console.log("c11");   // Define the function to write a job to the database
-  console.log("createDecendantsForJob("+ jobID + ")")
-  try {
-      console.log("c12");
-      const q1 = await pool.query("SELECT * FROM  jobs WHERE id=$1;", [jobID]);      
-      const oldJob = q1.rows[0];
-      let newJobID;
-      const productID = oldJob.product_id;
-      //console.log("oldJob");
-      //console.log(oldJob);
-      console.log("                    INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = "+ "'"+ oldJob.job_template_id + "'" +") RETURNING id;")
-      console.log(productID);
-      console.log(oldJob.job_template_id);
-      console.log("c15");
-      const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
-      const newTemplate = q3.rows[0];
-      console.log("c16");
-      console.log(q3.rows);
-      if (q3.rowCount !== 0) {       //no more templates defined
-          console.log("c17");
-          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ") returning id")
-          console.log("c18");
-          console.log("Added " + q2.rows.length + " rows.");
-          const newJob = q2.rows[0];     // assumes only 1 child
-          console.log("c19");
-          if (q2.rowCount !== 0) {
-            console.log("c20");
-            newJobID = newJob.id
-            console.log("just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
-            //newJobID = newJob.rows[0].id;
-            console.log("c23");
-            const q3 = await pool.query("INSERT INTO job_process_flow (decendant_id, antecedent_id) VALUES (" + newJob.id + ", " + oldJob.id + ") ;");
-            console.log(" Added " + q3.rowCount + " rows to processflow. Added the relationship.");
-          }
+app.get("/logout", (req, res) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/");
+  });
+});
 
-          console.log("c24");
-          if (q2.rowCount !== 0) {
-            console.log("c25");
-            newJobID = newJob.id ;
-            console.log("c30");
-            console.log("recursivly adding jobs for the new job("+newJobID +")" );
-            //console.log(newJob.rows);
-            await createDecendantsForJob(newJobID, pool);
-            console.log("c31");
-
+passport.use(
+  "local",
+  new Strategy(async function verify(username, password, cb) {
+    try {
+      const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
+        username,
+      ]);
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const storedHashedPassword = user.password;
+        bcrypt.compare(password, storedHashedPassword, (err, valid) => {
+          if (err) {
+            console.error("Error comparing passwords:", err);
+            return cb(err);
           } else {
-            console.log("c50");
-            return 1;
+            if (valid) {
+              return cb(null, user);
+            } else {
+              return cb(null, false);
+            }
           }
+        });
+      } else {
+        return cb("Sorry, we do not recognise you as an active user of our system.");
+        // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
       }
-      console.log("c88");
-    } catch (error) {
-      console.log("c99");
-      console.error('Error creating decendant for job:', error); // Log the error
-      //console.log(newJob);
-      throw new Error('Failed to add job'); // Throw a new error
-  }
-}
+    } catch (err) {
+      console.error(err);
+    }
+  })
+);
 
+passport.serializeUser((user, cb) => {
+  cb(null, user);
+});
 
-
-
-
-
+passport.deserializeUser((user, cb) => {
+  cb(null, user);
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
 
+//#endregion
+
+
+
+
+
 
 
 //#region not in use
 
-// GET - Read operation
-app.get('/api/resource', readHandler);
+app.get("/update", async (req,res) => {
+  const fieldID = req.query.fieldID;
+  const newValue = req.query.newValue;         // open to SQL injection attacks unless user entered value has been cleaned
+  const rowID = req.query.whereID;
+  let table = "";
+  let columnName = "";
+  let value = "";
+  let q ;
 
-// POST - Create operation
-app.post('/api/resource', createHandler);
-
-// PUT - Update operation
-app.put('/api/resource/:id', updateHandler);
-
-// DELETE - Delete operation
-app.delete('/api/resource/:id', deleteHandler);
-
-// Example handler function for reading data
-function readHandler(req, res) {
-  // Implement logic to retrieve data from the database
-  // Return response with retrieved data
-  res.json({ message: 'Reading data from the database' });
-}
-
-// Example handler function for creating data
-function createHandler(req, res) {
-  const { table } = req.params; // Assuming you specify the table in the URL parameters
+  switch (fieldID) {
+    case "dueDate": 
+      table = "jobs";
+      columnName = "target_date"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "jobDesc":
+      table = "jobs";
+      columnName = "free_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "jobTitle":
+      table = "jobs";
+      columnName = "display_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "taskTitle":
+      table = "tasks";
+      columnName = "display_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
   
-  // Implement logic to create data in the specified table
-  // Access request body for data to be created (req.body)
-  // Execute the appropriate SQL query based on the specified table
-
-  // Example: Using PostgreSQL client library (e.g., pg)
-  pool.query(`INSERT INTO ${table} (column1, column2) VALUES ($1, $2)`, [value1, value2], (err, result) => {
-      if (err) {
-          // Handle error
-          return res.status(500).json({ error: 'Failed to create data' });
-      }
-      res.json({ message: 'Data created successfully' });
-  });
-}
-
-// Example handler function for updating data
-function updateHandler(req, res) {
-  // Implement logic to update data in the database
-  // Access request parameters for identifying data to be updated (req.params)
-  res.json({ message: 'Updating data in the database' });
-}
-
-// Example handler function for deleting data
-function deleteHandler(req, res) {
-  // Implement logic to delete data from the database
-  // Access request parameters for identifying data to be deleted (req.params)
-  res.json({ message: 'Deleting data from the database' });
-}
+  
+    case "test":
+      break
+    default:
+      console.error("Unknown field was edited: " + fieldID );
+  }
+})
 
 //#endregion
-
-
 
 
