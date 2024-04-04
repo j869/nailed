@@ -100,8 +100,7 @@
                                                         <tbody>
                                                     <% data.builds.forEach(function(build) { %>
                                                         <% if (build) { %>
-                                                            <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'" >
-                                                            <!-- tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild2" -->
+                                                            <tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild<%= build.id %>">
                                                                 <td><%= build.id %></td>
                                                                 <td><%= build.customer_id %></td>
                                                                 <td><%= build.product_id %></td>
@@ -109,7 +108,81 @@
                                                                 <td><%= build.enquiry_date %></td>
                                                                 <td><%= build.job_id %></td>
                                                             </tr>
+                                                            <tr>
+                                                                <td colspan="12" class="hiddenRow">
+                                                                    <div class="accordian-body collapse" id="collapseBuild<%= build.id %>">
 
+
+
+
+
+
+                                                                        <table class="table nested-table">
+                                                                            <thead>
+                                                                                <tr class="table-info">
+                                                                                    <th>ID</th>
+                                                                                    <th>Display Text</th>
+                                                                                    <th>Free Text</th>
+                                                                                    <th>Job Template ID</th>
+                                                                                    <th>User ID</th>
+                                                                                    <th>Role ID</th>
+                                                                                    <th>Build ID</th>
+                                                                                    <th>Product ID</th>
+                                                                                    <th>Reminder ID</th>
+                                                                                    <th>Conversation ID</th>
+                                                                                    <th>Target Date</th>
+                                                                                    <th>Created By</th>
+                                                                                    <th>Created Date</th>
+                                                                                    <th>Change Array</th>
+                                                                                    <th>Completed By</th>
+                                                                                    <th>Completed Date</th>
+                                                                                    <th>Current Status</th>
+                                                                                </tr>
+                                                                            </thead>                                                        
+                                                                            <tbody>
+                                                                        <% build.jobs.forEach(function(job) { %>
+                                                                            <% if (job) { %>
+                                                                                <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
+                                                                                    <td><%= job.id %></td>
+                                                                                    <td><%= job.display_text %></td>
+                                                                                    <td><%= job.free_text %></td>
+                                                                                    <td><%= job.job_template_id %></td>
+                                                                                    <td><%= job.user_id %></td>
+                                                                                    <td><%= job.role_id %></td>
+                                                                                    <td><%= job.build_id %></td>
+                                                                                    <td><%= job.product_id %></td>
+                                                                                    <td><%= job.reminder_id %></td>
+                                                                                    <td><%= job.conversation_id %></td>
+                                                                                    <td><%= job.target_date %></td>
+                                                                                    <td><%= job.created_by %></td>
+                                                                                    <td><%= job.created_date %></td>
+                                                                                    <td><%= job.change_array %></td>
+                                                                                    <td><%= job.completed_by %></td>
+                                                                                    <td><%= job.completed_date %></td>
+                                                                                    <td><%= job.current_status %></td>
+
+                                                                                </tr>
+                                                                                <tr>
+                                                                                    <td colspan="12" class="hiddenRow">
+                                                                                        <div class="accordian-body collapse" id="collapseJob<%= job.id %>">
+
+                                                                                            hi <%= job.id %>
+                                                                                        </div>
+                                                                                    </td>
+                                                                                </tr>
+                                                                            <% } %>
+                                                                        <% }); %>
+                                                                            </tbody>
+                                                                        </table>
+
+
+
+
+
+
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
                                                         <% } %>
                                                     <% }); %>
                                                         </tbody>

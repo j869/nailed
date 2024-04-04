@@ -44,45 +44,107 @@ app.get("/", (req, res) => {
 
 
 
+//#region Bryans Excel UX style
 
-//#region customers
-app.get("/customer/:id", async (req, res) => {
-  const custID = parseInt(req.params.id);
+app.get("/2/build/:id", async (req, res) => {
+  console.log("b1   ")
   if (req.isAuthenticated()) {
-    // const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
-    // res.render("editTask.ejs", {
-    //   siteContent : response.data, baseURL : baseURL
-    // });
+      const buildID = req.params.id || "";
+      try {
+          let allCustomers;
+          if (buildID) {
+              console.log("b2   ", buildID);
+              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [buildID]);
+              console.log("b21   ", jobsResult);
 
 
-    try {
-      const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
-      let customer = result.rows;
-      if (customer.length !== 1) {        console.error("Error: Expected 1 row, but received " + customer.length + " rows.");      }
+              console.log("b22   ")
+              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
+              console.log("b23   ", buildsResult.rows[0]);
+              const custID = buildsResult.rows[0].customer_id
 
-      const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
-      let builds = qryBuilds.rows;
+              // If there is a search term, fetch matching customers and their builds
+              console.log("b24   ", custID)
+              const customersResult = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+              console.log("b25   ", customersResult.rows[0])
 
-      const qryProducts = await db.query("SELECT id, display_text FROM products ");
-      let products = qryProducts.rows;
+              console.log("b26   ")
+              // Merge customer, build, and jobs data
+              allCustomers = customersResult.rows.map(customer => {
+                const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                const buildsWithJobs = builds.map(build => {
+                    const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
+                    return {
+                        ...build,
+                        jobs
+                    };
+                });
+                return {
+                    customer,
+                    builds: buildsWithJobs
+                };
+              });
+              console.log("b29   ")
+          } else {
+            console.log("b3   ");
+            // If there's no search term, fetch all customers and their builds
+              const customersResult = await db.query("SELECT * FROM customers");
+              customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
+                if (customer.follow_up) {
+                    customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
+                }
+              });
+              console.log("b31   ", customersResult.rows[0]);
+              const buildsResult = await db.query(`
+                                    SELECT 
+                                        b.id, 
+                                        b.customer_id, 
+                                        b.product_id, 
+                                        b.enquiry_date, 
+                                        b.job_id,
+                                        p.display_text AS product_description
+                                    FROM 
+                                        builds AS b
+                                    JOIN 
+                                        products AS p ON b.product_id = p.id
+                                    WHERE 
+                                        b.customer_id = ANY ($1)
+                                     `, [customersResult.rows.map(customer => customer.id)]);
+              console.log("b32    ", buildsResult.rows[0]);
+              // Merge customer and build data
+              allCustomers = customersResult.rows.map(customer => {
+                  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                  return {
+                      customer,
+                      builds
+                  };
+              });
+              console.log("b33    ");
+          }
+          
+          // Render the appropriate template based on the scenario
+          if (req.query.buildId) {
+              console.log("b6   ");
 
-      // Render the search results page or handle them as needed
-      //res.render("searchResults.ejs", { results: searchResults });
-      res.render("customer.ejs", {
-        data : customer[0],
-        builds : builds,
-        products : products
-      });
-
-    } catch (err) {
-      console.error(err);
-      // Handle errors appropriately, perhaps render an error page
-      res.status(500).send("Internal Server Error");
-    }
-    
-
+              // If a build is clicked, render customer.ejs
+              const customerId = 2;  // Extract customer id from buildId, assuming buildId contains both customer and build ids;
+              // Fetch additional data for the selected build, e.g., jobs
+              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [req.query.buildId]);
+              // Render customer.ejs with customer, builds, and jobs data
+              res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
+          } else {
+              console.log("b7   ");
+              // If no specific build is clicked, render customers.ejs
+              res.render("2/customer.ejs", { tableData : allCustomers });
+          }
+      } catch (err) {
+          console.log("b8   ");
+          console.error(err);
+          res.status(500).send("Internal Server Error");
+      }
   } else {
-    res.redirect("/login");
+      console.log("b9   ");
+      res.redirect("/login");
   }
 });
 
@@ -171,6 +233,12 @@ app.get("/2/customers", async (req, res) => {
 });
 
 
+
+//#endregion
+
+
+//#region customers
+
 app.get("/3/customers", async (req, res) => {
 
   if (req.isAuthenticated()) {
@@ -214,6 +282,46 @@ app.get("/3/customers", async (req, res) => {
   } else {
     res.redirect("/login");
   }    
+});
+
+app.get("/customer/:id", async (req, res) => {
+  const custID = parseInt(req.params.id);
+  if (req.isAuthenticated()) {
+    // const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    // res.render("editTask.ejs", {
+    //   siteContent : response.data, baseURL : baseURL
+    // });
+
+
+    try {
+      const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      let customer = result.rows;
+      if (customer.length !== 1) {        console.error("Error: Expected 1 row, but received " + customer.length + " rows.");      }
+
+      const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
+      let builds = qryBuilds.rows;
+
+      const qryProducts = await db.query("SELECT id, display_text FROM products ");
+      let products = qryProducts.rows;
+
+      // Render the search results page or handle them as needed
+      //res.render("searchResults.ejs", { results: searchResults });
+      res.render("customer.ejs", {
+        data : customer[0],
+        builds : builds,
+        products : products
+      });
+
+    } catch (err) {
+      console.error(err);
+      // Handle errors appropriately, perhaps render an error page
+      res.status(500).send("Internal Server Error");
+    }
+    
+
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/customers", async (req, res) => {
