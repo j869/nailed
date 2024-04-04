@@ -240,7 +240,7 @@ app.get("/2/customers", async (req, res) => {
 //#region customers
 
 app.get("/3/customers", async (req, res) => {
-
+  console.log("cc1  ");
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
@@ -287,10 +287,7 @@ app.get("/3/customers", async (req, res) => {
 app.get("/customer/:id", async (req, res) => {
   const custID = parseInt(req.params.id);
   if (req.isAuthenticated()) {
-    // const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
-    // res.render("editTask.ejs", {
-    //   siteContent : response.data, baseURL : baseURL
-    // });
+    console.log("c1   ", custID);
 
 
     try {
@@ -325,6 +322,7 @@ app.get("/customer/:id", async (req, res) => {
 });
 
 app.get("/customers", async (req, res) => {
+  console.log("a1  ");
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
@@ -448,8 +446,8 @@ app.post("/updateCustomer/:id", async (req, res) => {
 //#region builds
 
 app.post("/addBuild", async (req, res) => {
-  console.log(req.body);
-  console.log("AddBuild() on " + API_URL)
+  console.log("e1    ", req.body);
+  console.log("e2    AddBuild() on " + API_URL)
   let productID = req.body.product_id;
   
   if (req.isAuthenticated()) {
@@ -461,7 +459,7 @@ app.post("/addBuild", async (req, res) => {
       const newBuild = result.rows[0];    
 
       //start workflow
-      console.log("adding the original job for the build(" + result.rows[0].id + ")");
+      console.log("e3    adding the original job for the build(" + result.rows[0].id + ")");
       const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
 
@@ -476,7 +474,9 @@ app.post("/addBuild", async (req, res) => {
 
 app.post("/updateBuild/:id", async (req, res) => {
   const buildID = parseInt(req.params.id);
+  console.log("f1    ", buildID);
   const action = req.body.action;     // did the user click delete, update, view, or
+  console.log("f2    ", action);
   if (req.isAuthenticated()) {
     
     switch (action) {
@@ -512,11 +512,11 @@ app.post("/updateBuild/:id", async (req, res) => {
         break;
       case "view":
         const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
-        console.log("updateBuild/   case:view    job_id="+result.rows[0]);
+        console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
         res.redirect("/jobs/" + result.rows[0].job_id);
         break;
       default:
-        console.error("This should never happen 2198442");
+        console.error("f8    This should never happen 2198442");
         res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error              
     }
 
@@ -531,14 +531,14 @@ app.post("/updateBuild/:id", async (req, res) => {
 
 
 
-
+//test
 
 
 
 //#region jobs
 app.get("/jobs/:id", async (req, res) => {
   if (req.isAuthenticated()) {
-    //console.log("as2987");
+    console.log("g1    as2987");
     //console.log(req.params.id);
     const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
     //console.log(response.data);
@@ -552,6 +552,7 @@ app.get("/jobs/:id", async (req, res) => {
 });
 
 app.get("/jobDone/:id", async (req, res) => {
+  console.log("h1    ");
   const jobID = parseInt(req.params.id);
   if (req.isAuthenticated()) {
     const response = await axios.get(`${API_URL}/jobDone/${req.params.id}`);
@@ -562,6 +563,7 @@ app.get("/jobDone/:id", async (req, res) => {
 });
 
 app.get("/delJob", async (req, res) => {
+  console.log("i1    ");
   if (req.isAuthenticated()) {
     const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
     res.redirect("/jobs/1");
@@ -571,6 +573,7 @@ app.get("/delJob", async (req, res) => {
 });
 
 app.get("/addjob", async (req, res) => {
+  console.log("j1    ");
   if (req.isAuthenticated()) {
     
     //Add a single job as a placeholder for further user input (and the relationship)
