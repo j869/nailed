@@ -55,8 +55,11 @@ app.get("/2/build/:id", async (req, res) => {
           if (buildID) {
               console.log("b2   ", buildID);
               const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [buildID]);
-              console.log("b21   ", jobsResult);
+              console.log("b21   ", jobsResult.rows);
 
+              const jobIDArray = jobsResult.rows.map(job => job.id);
+              console.log("b215    ", jobIDArray)
+              const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1)", [jobIDArray]);
 
               console.log("b22   ")
               const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
@@ -74,16 +77,25 @@ app.get("/2/build/:id", async (req, res) => {
                 const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
                 const buildsWithJobs = builds.map(build => {
                     const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
+                    const jobsWithTasks = jobs.map(job => {
+                        const tasks = tasksResult.rows.filter(task => task.job_id === job.id);
+                        return {
+                            ...job,
+                            tasks
+                        };
+                    });
                     return {
                         ...build,
-                        jobs
+                        jobs: jobsWithTasks
                     };
                 });
                 return {
                     customer,
                     builds: buildsWithJobs
                 };
-              });
+            });
+            
+
               console.log("b29   ")
           } else {
             console.log("b3   ");
@@ -541,12 +553,15 @@ app.get("/jobs/:id", async (req, res) => {
     console.log("g1    as2987");
     //console.log(req.params.id);
     const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    console.log("g2  ");
     //console.log(response.data);
     res.render("editTask.ejs", {
     //res.render("jobs.ejs", {
       siteContent : response.data, baseURL : baseURL
     });
+    console.log("g9  ");
   } else {
+    console.log("g8  ");
     res.redirect("/login");
   }
 });

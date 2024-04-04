@@ -176,14 +176,14 @@ app.get("/update", async (req, res) => {
   const column = req.query.column;
   const value = req.query.value;
   const id = req.query.id;
-  console.log("ud10");
+  console.log("ud10   " + "UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");
   try {
     // put every database query into a try - catch block
     //update table
     const q = await pool.query("UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud50");
+      console.log("ud50     ", q.rowCount);
     }
 
     if (table === "jobs") {
@@ -203,13 +203,14 @@ app.get("/update", async (req, res) => {
 })
 
 app.get("/addtask", async (req, res) => {
-  console.log(req.query);
+  console.log("t1    ", req.query);
   const job_id = req.query.job_id;
   const precedence = req.query.precedence;
   let vSQL = "";
 
   try {
     //add task
+    console.log("t2    ");
     const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "') RETURNING id;");      
     const newTaskID = newTask.rows[0].id;
     res.status(201).json({newTaskID : newTaskID });
@@ -219,6 +220,7 @@ app.get("/addtask", async (req, res) => {
     res.status(500).json({ error: 'Failed to add job' });
   }
 
+  console.log("t9    ");
 });
 
 app.get("/addjob", async (req, res) => {
@@ -400,8 +402,17 @@ export async function createDecendantsForJob(jobID, pool) {
       console.log("c15");
       const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
       const newTemplate = q3.rows[0];
-      console.log("c16");
-      console.log(q3.rows);
+      console.log("c16    ", q3.rows);
+
+      const q4 = await pool.query(`
+      INSERT INTO tasks (display_text, free_text, job_id, current_status, owner_id, precedence)
+      SELECT display_text, free_text, ${jobID}, 'pending', owner_id, precedence
+      FROM task_templates
+      WHERE job_template_id = ${oldJob.job_template_id};`
+      );      
+
+      console.log("c165   ", q4.rowCount);
+
       if (q3.rowCount !== 0) {       //no more templates defined
           console.log("c17");
           const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ") returning id")
@@ -412,11 +423,15 @@ export async function createDecendantsForJob(jobID, pool) {
           if (q2.rowCount !== 0) {
             console.log("c20");
             newJobID = newJob.id
-            console.log("just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
+            console.log("c21   just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
             //newJobID = newJob.rows[0].id;
             console.log("c23");
             const q3 = await pool.query("INSERT INTO job_process_flow (decendant_id, antecedent_id) VALUES (" + newJob.id + ", " + oldJob.id + ") ;");
-            console.log(" Added " + q3.rowCount + " rows to processflow. Added the relationship.");
+            console.log("c235   Added " + q3.rowCount + " rows to processflow. Added the relationship.");
+
+            //const q4 = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "') RETURNING id;");      
+
+
           }
 
           console.log("c24");
