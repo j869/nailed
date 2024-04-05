@@ -71,13 +71,14 @@ VALUES
     (1, 1, 1, 'Erecting', NULL, 2, 3, 1),
     (1, 1, 1, 'Plumbing', NULL, 3, NULL, 1);
 
+--delme
 
 drop table task_templates;
 CREATE TABLE task_templates
 (
     id SERIAL PRIMARY KEY,
     job_template_id INTEGER,  
-    precedence VARCHAR(15) ,     --    pretask, postask, concurrent -1, 0 or 1.... is this task relevent before, during or after completion of the main job?
+    precedence VARCHAR(15) ,     --     pretask, postask, concurrent -1, 0 or 1.... is this task relevent before, during or after completion of the main job?
     display_text VARCHAR(127),
     free_text TEXT,
     owner_id INTEGER   --  if the current user owns the task they can archive or confirm the applicability.  Is it really necessary to call the plumber after you finish a trench?   Bryan can exert some control over the process by adding a task himself
