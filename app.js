@@ -62,13 +62,30 @@ app.get("/2/build/:id", async (req, res) => {
               const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1)", [jobIDArray]);
 
               console.log("b22   ")
-              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
-              console.log("b23   ", buildsResult.rows[0]);
+              // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
+              // console.log("b23   ", buildsResult.rows[0]);
+              const buildsResult = await db.query(`
+                                    SELECT 
+                                        b.id, 
+                                        b.customer_id, 
+                                        b.product_id, 
+                                        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
+                                        b.job_id,
+                                        p.display_text AS product_description
+                                    FROM 
+                                        builds AS b
+                                    JOIN 
+                                        products AS p ON b.product_id = p.id
+                                    WHERE 
+                                        b.id = $1
+                                     `, [buildID]);
+              console.log("b23    ", buildsResult.rows[0]);
+
               const custID = buildsResult.rows[0].customer_id
 
               // If there is a search term, fetch matching customers and their builds
               console.log("b24   ", custID)
-              const customersResult = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1", [custID]);
               console.log("b25   ", customersResult.rows[0])
 
               console.log("b26   ")
@@ -100,19 +117,19 @@ app.get("/2/build/:id", async (req, res) => {
           } else {
             console.log("b3   ");
             // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT * FROM customers");
-              customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
-                if (customer.follow_up) {
-                    customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
-                }
-              });
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers");
+              // customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
+              //   if (customer.follow_up) {
+              //       customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
+              //   }
+              // });
               console.log("b31   ", customersResult.rows[0]);
               const buildsResult = await db.query(`
                                     SELECT 
                                         b.id, 
                                         b.customer_id, 
                                         b.product_id, 
-                                        b.enquiry_date, 
+                                        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') AS enquiry_date , 
                                         b.job_id,
                                         p.display_text AS product_description
                                     FROM 
@@ -169,7 +186,7 @@ app.get("/2/customers", async (req, res) => {
           if (query) {
               console.log("d2   ");
               // If there is a search term, fetch matching customers and their builds
-              const customersResult = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
 
 
               const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
@@ -184,7 +201,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
             console.log("d3   ");
             // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT * FROM customers");
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers");
               customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
                 if (customer.follow_up) {
                     customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
@@ -196,7 +213,7 @@ app.get("/2/customers", async (req, res) => {
                                         b.id, 
                                         b.customer_id, 
                                         b.product_id, 
-                                        b.enquiry_date, 
+                                        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date , 
                                         b.job_id,
                                         p.display_text AS product_description
                                     FROM 
