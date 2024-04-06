@@ -10,6 +10,8 @@ CREATE TABLE users
     system_access_type VARCHAR(127)
 );
 
+--#region  not yet implemented
+
 drop table roles;
 create table roles
 (
@@ -19,6 +21,59 @@ create table roles
     escalation_user_id INTEGER
 );
 
+
+
+drop table conversations;
+CREATE TABLE conversations
+(
+    id SERIAL PRIMARY KEY,
+    display_name VARCHAR(15),
+    person_id VARCHAR(15),        -- OPTIONAL if you have a link to the user table, or the customer table you can put it here
+    message_text TEXT,
+    has_attachment VARCHAR(127),           -- defaults to 0.  stores the quantity of attachments and (perhaps) what kind of attachment
+    visibility VARCHAR(15),            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
+    job_id INTEGER,          -- link conversation back to the relevant job
+    post_date TIMESTAMP      -- order conversation by this
+);
+
+
+
+drop table attachments;
+CREATE TABLE attachments
+(
+    id SERIAL PRIMARY KEY,
+    thumbnail bytea,     -- images and video are stored in a seperate database for performance reasons
+    link VARCHAR(1023),
+    conversation_id INTEGER
+);
+
+--#endregion
+
+
+
+
+--#region builds
+drop table builds;
+CREATE TABLE builds
+(
+    id SERIAL PRIMARY KEY,
+    customer_id INTEGER,      --one customer, many builds
+    product_id INTEGER,
+	enquiry_date TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
+    job_id INTEGER              -- the currently active job in progress
+);
+drop table products;    -- behaves as the build_templates table
+CREATE TABLE products   --  What if the build is not a 6x6 garage? you need a different process
+(
+    id SERIAL PRIMARY KEY,
+    display_text VARCHAR(127)     -- american barn, garaport
+);
+--#endregion
+
+
+
+
+--#region jobs
 
 drop table jobs;
 CREATE TABLE jobs
@@ -42,13 +97,7 @@ CREATE TABLE jobs
     current_status VARCHAR(127)       -- active, pending, completed
 );
 
-drop table job_process_flow;
-CREATE TABLE job_process_flow
-(
-    id SERIAL PRIMARY KEY,
-    antecedent_id INTEGER,     --job_id relating to the parent job
-    decendant_id INTEGER        -- job_id relating to the child job
-);
+
 
 drop table job_templates;
 CREATE TABLE job_templates
@@ -71,8 +120,33 @@ VALUES
     (1, 1, 1, 'Erecting', NULL, 2, 3, 1),
     (1, 1, 1, 'Plumbing', NULL, 3, NULL, 1);
 
---delme
 
+drop table job_process_flow;
+CREATE TABLE job_process_flow
+(
+    id SERIAL PRIMARY KEY,
+    antecedent_id INTEGER,     --job_id relating to the parent job
+    decendant_id INTEGER        -- job_id relating to the child job
+);
+
+--#endregion
+
+
+
+
+--#region tasks
+
+drop table tasks;
+CREATE TABLE tasks    -- would this be better named activities??    -- a very large table
+(
+    id SERIAL PRIMARY KEY,
+    job_id INTEGER,
+    precedence varchar(15)    -- is it a pre task or a post task
+    display_text VARCHAR(127),
+    free_text TEXT,
+    current_status VARCHAR(127),       -- tentitive/pending: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
+    owner_id INTEGER,     -- if Bryan assigns a task to a job, you need bryan to remove it
+);
 drop table task_templates;
 CREATE TABLE task_templates
 (
@@ -81,9 +155,9 @@ CREATE TABLE task_templates
     precedence VARCHAR(15) ,     --     pretask, postask, concurrent -1, 0 or 1.... is this task relevent before, during or after completion of the main job?
     display_text VARCHAR(127),
     free_text TEXT,
+    current_status VARCHAR(127),     -- default status    
     owner_id INTEGER   --  if the current user owns the task they can archive or confirm the applicability.  Is it really necessary to call the plumber after you finish a trench?   Bryan can exert some control over the process by adding a task himself
 );
-
 delete from task_templates;
 INSERT INTO public.task_templates(job_template_id, precedence, display_text, free_text, owner_id)
 VALUES (1, 'pretask', 'check site issues', NULL, 1),
@@ -119,42 +193,26 @@ VALUES (1, 'pretask', 'check site issues', NULL, 1),
        (4, 'postask', 'confirm final certificate is issued', NULL, 1),
        (4, 'postask', 'advise accounts to invoice', NULL, 1);
 
+--#endregion
 
-drop table tasks;
-CREATE TABLE tasks    -- would this be better named activities??    -- a very large table
-(
+
+
+--#region reminders
+
+DROP TABLE IF EXISTS public.reminders;
+CREATE TABLE public.reminders (
     id SERIAL PRIMARY KEY,
-    display_text VARCHAR(127),
-    free_text TEXT,
-    job_id INTEGER,
-    current_status VARCHAR(127),       -- tentitive: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
-    owner_id INTEGER,     -- if Bryan assigns a task to a job, you need bryan to remove it
-    precedence varchar(15)    -- is it a pre task or a post task
+    escalation1_interval VARCHAR(127),
+    escalation2_interval VARCHAR(127),
+    escalation3_interval VARCHAR(127),
+    definition_object TEXT,
+    current_status VARCHAR(127),
+    created_by INTEGER,
+    trigger VARCHAR(127),
+    medium VARCHAR(127),
+    change_log TEXT,
+    task_id INTEGER
 );
-
-drop table conversations;
-CREATE TABLE conversations
-(
-    id SERIAL PRIMARY KEY,
-    display_name VARCHAR(15),
-    person_id VARCHAR(15),        -- OPTIONAL if you have a link to the user table, or the customer table you can put it here
-    message_text TEXT,
-    has_attachment VARCHAR(127),           -- defaults to 0.  stores the quantity of attachments and (perhaps) what kind of attachment
-    visibility VARCHAR(15),            -- I want everyone to see when the customer isnt happy, site-plans, etc... but only myself to see when we're discussing price
-    job_id INTEGER,          -- link conversation back to the relevant job
-    post_date TIMESTAMP      -- order conversation by this
-);
-
-drop table attachments;
-CREATE TABLE attachments
-(
-    id SERIAL PRIMARY KEY,
-    thumbnail bytea,     -- images and video are stored in a seperate database for performance reasons
-    link VARCHAR(1023),
-    conversation_id INTEGER
-);
-
-
 
 drop table reminders;
 CREATE TABLE reminders
@@ -163,11 +221,64 @@ CREATE TABLE reminders
     escalation1_interval VARCHAR(127),
     escalation2_interval VARCHAR(127),
     escalation3_interval VARCHAR(127),
-    definition_object TEXT,     -- added because I wasn't sure how I need to define the reminder
+    trigger VARCHAR(127);    -- event: reminder is triggered by a task or job in the build,    -- time: specify an exact time + date to send the message,  
+    medium VARCHAR(127),   -- email, text message, or work_sheet: daily task list of everything they have to do today.
+    definition_object TEXT,     -- nature of the trigger including which jobID or taskID it relates to, any meta_data regarding how it is sent, escallation sequence, etc
     current_status VARCHAR(127),      -- reminder definitions are purged after the job is completed
+    created_by INTEGER    -- which function() created the record... I think this field is unnecessary
+);
+drop table reminder_templates;
+CREATE TABLE reminder_templates
+(
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(127),    
+    body VARCHAR(511),   
+    "trigger" VARCHAR(127),  
+    medium VARCHAR(127),   
+    current_status VARCHAR(127),   
+    task_template_id INTEGER,
     created_by INTEGER    -- FK user_id... why? is this so that the reminder can't be deleted... I think this field is unnecessary
 );
-insert into reminders (escalation1_interval, escalation2_interval, current_status, created_by) VALUES (7,14,'active',1);
+INSERT INTO reminder_templates (task_template_id, title, body, medium, "trigger", current_status, created_by)
+VALUES
+(1, 'Site Visit Reminder', 'Schedule a site visit to confirm the suitability of the site for the project activities', 'work_sheet', 'saleDate+14', 'pending', 1),
+(1, 'Site Visit Reminder', 'Schedule a site visit to confirm the suitability of the site for the project activities', 'work_sheet', 'taskID(2) - 1', 'pending', 1),
+(2, 'Site Visit Reminder', 'Schedule a site visit to confirm the suitability of the site for the project activities', 'work_sheet', 'date + 0', 'pending', 1),
+(3, 'Contractor Selection Deadline', 'Finalize the selection of the contractor for the project', 'work_sheet', 'taskID(10) - 14', 'pending', 1),
+(4, 'Procurement Review', 'Review available purchasing options and finalize procurement decisions', 'work_sheet', 'jobID(2) - 7', 'pending', 1),
+(5, 'Concrete Delivery Confirmation', 'Confirm the delivery schedule with the concretor', 'work_sheet', 'taskID(10) - 1', 'pending', 1),
+(6, 'Set Slant Date', '', 'work_sheet', 'taskID(5) + 1', 'pending', 1),
+(7, 'Contact Home Dringer to Louise Commencement', '', 'work_sheet', 'taskID(6) + 1', 'pending', 1),
+(8, 'Start Confirmed with Contractor', '', 'work_sheet', 'taskID(7) + 1', 'pending', 1),
+(9, 'Measure Set Out and Slab', '', 'work_sheet', 'taskID(8) + 1', 'pending', 1),
+(10, 'Concrete Pouring Reminder', 'FYI only - Schedule the pouring of concrete at the site', 'work_sheet', 'date - 2', 'pending', 1),
+(11, 'Invoicing Reminder', 'Send a reminder to the accounts department to generate invoices for completed tasks', 'work_sheet', 'monthEnd - 7', 'pending', 1),
+(12, 'Select Contractor', '', 'work_sheet', 'taskID(11) + 1', 'pending', 1),
+(13, 'Issue Purchase Order', '', 'work_sheet', 'taskID(12) + 1', 'pending', 1),
+(14, 'Call up Erector - Slab Pour Day', '', 'work_sheet', 'taskID(13) + 1', 'pending', 1),
+(15, 'Set Start Date - 7 Days After Slab Pour', '', 'work_sheet', 'taskID(14) + 1', 'pending', 1),
+(16, 'Contact Home Owner to Advise Erecting Commencement Date', '', 'work_sheet', 'taskID(15) + 1', 'pending', 1),
+(17, 'Start Confirmed with Erector', '', 'work_sheet', 'taskID(16) + 1', 'pending', 1),
+(18, 'Confirm Ename Elected', '', 'work_sheet', 'taskID(17) + 1', 'pending', 1),
+(19, 'Check Frame', '', 'work_sheet', 'taskID(18) + 1', 'pending', 1),
+(20, 'Confirm Cladding Complete', '', 'work_sheet', 'taskID(19) + 1', 'pending', 1),
+(21, 'Check Cladding', '', 'work_sheet', 'taskID(20) + 1', 'pending', 1),
+(22, 'Advise Accounts to Invoice', '', 'work_sheet', 'taskID(21) + 1', 'pending', 1),
+(23, 'Establish Stormwater Connection Point', '', 'work_sheet', 'taskID(22) + 1', 'pending', 1),
+(24, 'Select Plumber', '', 'work_sheet', 'taskID(23) + 1', 'pending', 1),
+(25, 'Book Trencher', '', 'work_sheet', 'taskID(24) + 1', 'pending', 1),
+(26, 'Issue Purchase Order from Plumber', '', 'work_sheet', 'taskID(25) + 1', 'pending', 1),
+(27, 'Confirm Trenching Book', '', 'work_sheet', 'taskID(26) + 1', 'pending', 1),
+(28, 'Call up Plumber', '', 'work_sheet', 'taskID(27) + 1', 'pending', 1),
+(29, 'Confirm Stormwater Installed', '', 'work_sheet', 'taskID(28) + 1', 'pending', 1),
+(30, 'Book Final Inspection by Building Surveyor', '', 'work_sheet', 'taskID(29) + 1', 'pending', 1),
+(31, 'Confirm Final Certificate Is Issued', '', 'work_sheet', 'taskID(30) + 1', 'pending', 1);
+
+
+--#endregion
+
+
+
 
 -- John discussed key requirements with Bryan, Alex, and Amandah on 12Feb
 -- For future action:
@@ -185,16 +296,7 @@ CREATE TABLE customers
     follow_up TIMESTAMP               -- date to next contact the customer, otherwise null
 );
 
-drop table builds;
-CREATE TABLE builds
-(
-    id SERIAL PRIMARY KEY,
-    customer_id INTEGER,      --one customer, many builds
-    product_id INTEGER,
-	enquiry_date TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
-    job_id INTEGER              -- the currently active job in progress
-);
-insert
+
 drop table product_templates;      -- old name for table products
 -- CREATE TABLE product_templates
 -- (
@@ -202,12 +304,6 @@ drop table product_templates;      -- old name for table products
 --     display_text VARCHAR(127)     -- american barn, garaport
 -- );
 
-drop table products;
-CREATE TABLE products   --  What if the build is not a 6x6 garage? you need a different process
-(
-    id SERIAL PRIMARY KEY,
-    display_text VARCHAR(127)     -- american barn, garaport
-);
 
 
 

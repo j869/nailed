@@ -223,6 +223,137 @@ app.get("/addtask", async (req, res) => {
   console.log("t9    ");
 });
 
+
+
+app.post("/taskComplete", async (req, res) => {
+    try {
+        console.log("ta1   ", req.body);
+        const taskID = req.body.taskId;
+        const status = req.body.status;    //string 'true' or 'false'
+
+        // Fetch the current status of the task from the database
+        const result = await pool.query("SELECT current_status FROM tasks WHERE id = $1", [taskID]);
+        const currentStatus = result.rows[0].current_status;
+
+        // Update logic based on currentStatus and status values
+        let newStatus;
+        if (status === 'true') {
+            // if (currentStatus === null || currentStatus === 'pending') {
+            //     newStatus = 'active';
+            // } else if (currentStatus === 'active') {
+            //     newStatus = 'complete';
+            // }
+            newStatus = 'complete';
+        } else {
+            // If status is not 'true', keep the current status unchanged
+            newStatus = 'pending';
+        }
+
+        // Update the tasks table in your database
+        const updateResult = await pool.query("UPDATE tasks SET current_status = $1 WHERE id = $2", [newStatus, taskID]);
+
+        // Check if the update was successful
+        if (updateResult.rowCount === 1) {
+            console.log(`ta9   Task ${taskID} status updated to ${newStatus}`);
+            res.status(200).json({ message: `Task ${taskID} status updated to ${newStatus}` });
+        } else {
+            console.log(`ta8     Task ${taskID} not found or status not updated`);
+            res.status(404).json({ error: `Task ${taskID} not found or status not updated` });
+        }
+    } catch (error) {
+        console.error("ta84     Error updating task status:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+
+app.post("/jobComplete", async (req, res) => {
+  try {
+      console.log("tb1   ", req.body);
+      const jobID = req.body.jobId;
+      const status = req.body.status;    //string 'true' or 'false'
+
+      // Fetch the current status of the job from the database
+      const result = await pool.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
+      const currentStatus = result.rows[0].current_status;
+
+      // Update logic based on currentStatus and status values
+      let newStatus;
+      if (status === 'true') {
+          // if (currentStatus === null || currentStatus === 'pending') {
+          //     newStatus = 'active';
+          // } else if (currentStatus === 'active') {
+          //     newStatus = 'complete';
+          // }
+          newStatus = 'complete';
+      } else {
+          // If status is not 'true', keep the current status unchanged
+          newStatus = 'pending';
+      }
+
+      // Update the jobs table in your database
+      const updateResult = await pool.query("UPDATE jobs SET current_status = $1 WHERE id = $2", [newStatus, jobID]);
+
+      // Check if the update was successful
+      if (updateResult.rowCount === 1) {
+          console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
+          res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
+      } else {
+          console.log(`tb8     job ${jobID} not found or status not updated`);
+          res.status(404).json({ error: `job ${jobID} not found or status not updated` });
+      }
+  } catch (error) {
+      console.error("tb84     Error updating job status:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+app.post("/buildComplete", async (req, res) => {
+  try {
+      console.log("tc1   ", req.body);
+      const buildID = req.body.buildId;
+      const status = req.body.status;    //string 'true' or 'false'
+
+      // Fetch the current status of the build from the database
+      const result = await pool.query("SELECT current_status FROM builds WHERE id = $1", [buildID]);
+      const currentStatus = result.rows[0].current_status;
+
+      // Update logic based on currentStatus and status values
+      let newStatus;
+      if (status === 'true') {
+          // if (currentStatus === null || currentStatus === 'pending') {
+          //     newStatus = 'active';
+          // } else if (currentStatus === 'active') {
+          //     newStatus = 'complete';
+          // }
+          newStatus = 'complete';
+      } else {
+          // If status is not 'true', keep the current status unchanged
+          newStatus = 'pending';
+      }
+
+      // Update the builds table in your database
+      const updateResult = await pool.query("UPDATE builds SET current_status = $1 WHERE id = $2", [newStatus, buildID]);
+
+      // Check if the update was successful
+      if (updateResult.rowCount === 1) {
+          console.log(`tc9   build ${buildID} status updated to ${newStatus}`);
+          res.status(200).json({ message: `build ${buildID} status updated to ${newStatus}` });
+      } else {
+          console.log(`tc8     build ${buildID} not found or status not updated`);
+          res.status(404).json({ error: `build ${buildID} not found or status not updated` });
+      }
+  } catch (error) {
+      console.error("tc84     Error updating build status:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+
+
+
 app.get("/addjob", async (req, res) => {
   // the following are the supported ways of adding a job...
   // parent: add a job and attach it as an antecedent of the job you're looking at
@@ -394,8 +525,8 @@ export async function createDecendantsForJob(jobID, pool) {
       const oldJob = q1.rows[0];
       let newJobID;
       const productID = oldJob.product_id;
-      //console.log("oldJob");
-      //console.log(oldJob);
+
+      // JOBS  -----  read jobs from template file 
       console.log("                    INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = "+ "'"+ oldJob.job_template_id + "'" +") RETURNING id;")
       console.log("c05   ", productID);
       console.log("c06    ", oldJob.rows);
@@ -404,45 +535,135 @@ export async function createDecendantsForJob(jobID, pool) {
       const newTemplate = q3.rows[0];
       console.log("c16    ", q3.rows);
 
+      // TASKS   ------- read tasks from template file
       const q4 = await pool.query(`
-      INSERT INTO tasks (display_text, free_text, job_id, current_status, owner_id, precedence)
-      SELECT display_text, free_text, ${jobID}, 'pending', owner_id, precedence
-      FROM task_templates
-      WHERE job_template_id = ${oldJob.job_template_id};`
+                                      INSERT INTO tasks (display_text, free_text, job_id, current_status, owned_by, task_template_id, precedence)
+                                      SELECT display_text, free_text, ${jobID}, 'pending', owned_by, id, precedence
+                                      FROM task_templates
+                                      WHERE job_template_id = ${oldJob.job_template_id} RETURNING id, task_template_id;`
       );      
+      console.log("c165   ", q4.rows);
 
-      console.log("c165   ", q4.rowCount);
+
+      // REMINDERS   ------- read from template table
+      q4.rows.forEach(async (task) => {
+        console.log("c166 : " + task.id + " -> " + task.task_template_id);
+        let q5
+        try {
+            q5 = await pool.query(`
+                INSERT INTO reminders (
+                    escalation1_interval,
+                    escalation2_interval,
+                    escalation3_interval,
+                    definition_object,
+                    title,
+                    body,
+                    current_status,
+                    "trigger",
+                    medium,
+                    created_by,
+                    task_id
+                )
+                SELECT 
+                    null, 
+                    null, 
+                    null, 
+                    null, 
+                    rt.title,
+                    rt.body,
+                    'pending',           -- Default status
+                    rt."trigger",
+                    rt.medium,
+                    1,                   -- Assuming a default creator
+                    ${task.id}
+                FROM 
+                    task_templates t
+                JOIN 
+                    reminder_templates rt ON t.id = rt.task_template_id
+                WHERE
+                    rt.task_template_id = ($1)
+                RETURNING * ;
+            `, [task.task_template_id]);
+
+        console.log("c167   ", q5.rows[0]);
+        let reminderID = q5.rows[0].id
+        let reminderTemplateID= q5.rows[0].template_id
+        const triggerTemplate = q5.rows[0].trigger;     // example taskID(10)
+        console.log("c171    ", triggerTemplate);
+        try {
+            // Extracting table, column, value, and modifier using regular expressions
+            const match = triggerTemplate.match(/^(\w+)ID\((\d+)\)(\s*([+-]\s*\d+))?/);
+            if (match) {
+                const table = match[1] + "s"; // Adding "s" to the table name to make it plural
+                const column = "ID"; // Assuming the column is always "ID"
+                const value = match[2]; // Extracting the value
+                const modifier = match[4] ? parseInt(match[4].replace(/\s+/g, '')) : 0; // Extracting and parsing the modifier, defaulting to 0 if not provided
+
+                console.log("c175   Table:", table);
+                console.log("c176   Column:", column);
+                console.log("c177   Value:", value);
+                console.log("c178   Modifier:", modifier);
+
+                // const q6 = await pool.query(`SELECT * FROM tasks WHERE id = ($1);`, [task.id]);      
+                // console.log("c21   ", q6.rows);
+          
+          
+                // // modify trigger definition for specific task
+                // const q7 = await pool.query(`UPDATE reminders SET trigger = ($1) WHERE id = ($2);`, [newTrigger, reminderID]);      
+                // console.log("c22   ", q4.rows);
+
+              } else {
+                console.error("c88    Invalid triggerTemplate format:", triggerTemplate);
+            }
+
+
+
+    
+          } catch {
+            console.error("c180   Couldnt interpret trigger code:", triggerTemplate);
+
+          }
+
+        } catch (error) {
+          console.error("Error occurred insert database:", error);
+      }
+
+
+      });    //looping through tasks
+
+     
+
+
 
       if (q3.rowCount !== 0) {       //no more templates defined
-          console.log("c17");
           const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ") returning id")
-          console.log("c18");
+          console.log("c40");
           console.log("Added " + q2.rows.length + " rows.");
           const newJob = q2.rows[0];     // assumes only 1 child
-          console.log("c19");
+          console.log("c41");
           if (q2.rowCount !== 0) {
-            console.log("c20");
+            console.log("c42");
             newJobID = newJob.id
-            console.log("c21   just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
+            console.log("c43   just inserted a new job("+ newJobID +"). We will now mark it as a decendant of job("+ oldJob.id +"). "  );
             //newJobID = newJob.rows[0].id;
-            console.log("c23");
+            console.log("c44");
             const q3 = await pool.query("INSERT INTO job_process_flow (decendant_id, antecedent_id) VALUES (" + newJob.id + ", " + oldJob.id + ") ;");
-            console.log("c235   Added " + q3.rowCount + " rows to processflow. Added the relationship.");
+            console.log("c45   Added " + q3.rowCount + " rows to processflow. Added the relationship.");
 
             //const q4 = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "') RETURNING id;");      
 
 
           }
 
-          console.log("c24");
+          console.log("c46");
           if (q2.rowCount !== 0) {
-            console.log("c25");
+            console.log("c47");
             newJobID = newJob.id ;
-            console.log("c30");
+            console.log("c48");
             console.log("recursivly adding jobs for the new job("+newJobID +")" );
             //console.log(newJob.rows);
             await createDecendantsForJob(newJobID, pool);
-            console.log("c31");
+            console.log("c49");
 
           } else {
             console.log("c50");

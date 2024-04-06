@@ -54,12 +54,17 @@ app.get("/2/build/:id", async (req, res) => {
           let allCustomers;
           if (buildID) {
               console.log("b2   ", buildID);
-              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [buildID]);
+              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1 order by id", [buildID]);
               console.log("b21   ", jobsResult.rows);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
               console.log("b215    ", jobIDArray)
-              const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1)", [jobIDArray]);
+              const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
+
+              const taskIDArray = tasksResult.rows.map(task => task.id);
+              console.log("b217    ", taskIDArray)
+              const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
+              
 
               console.log("b22   ")
               // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
@@ -71,6 +76,7 @@ app.get("/2/build/:id", async (req, res) => {
                                         b.product_id, 
                                         TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
                                         b.job_id,
+                                        b.current_status,
                                         p.display_text AS product_description
                                     FROM 
                                         builds AS b
@@ -78,6 +84,8 @@ app.get("/2/build/:id", async (req, res) => {
                                         products AS p ON b.product_id = p.id
                                     WHERE 
                                         b.id = $1
+                                    ORDER BY
+                                        b.id
                                      `, [buildID]);
               console.log("b23    ", buildsResult.rows[0]);
 
@@ -85,7 +93,7 @@ app.get("/2/build/:id", async (req, res) => {
 
               // If there is a search term, fetch matching customers and their builds
               console.log("b24   ", custID)
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1", [custID]);
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
               console.log("b25   ", customersResult.rows[0])
 
               console.log("b26   ")
@@ -96,9 +104,16 @@ app.get("/2/build/:id", async (req, res) => {
                     const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
                     const jobsWithTasks = jobs.map(job => {
                         const tasks = tasksResult.rows.filter(task => task.job_id === job.id);
+                        const tasksWithReminders = tasks.map(task => {
+                            const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
+                            return {
+                                ...task,
+                                reminders: remindersForTask
+                            };
+                        });
                         return {
                             ...job,
-                            tasks
+                            tasks: tasksWithReminders
                         };
                     });
                     return {
@@ -131,6 +146,7 @@ app.get("/2/build/:id", async (req, res) => {
                                         b.product_id, 
                                         TO_CHAR(b.enquiry_date, 'DD-Mon-YY') AS enquiry_date , 
                                         b.job_id,
+                                        b.current_status,
                                         p.display_text AS product_description
                                     FROM 
                                         builds AS b
@@ -189,7 +205,7 @@ app.get("/2/customers", async (req, res) => {
               const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
 
 
-              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
+              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
               // Merge customer and build data
               allCustomers = customersResult.rows.map(customer => {
                   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
@@ -215,6 +231,7 @@ app.get("/2/customers", async (req, res) => {
                                         b.product_id, 
                                         TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date , 
                                         b.job_id,
+                                        b.current_status,
                                         p.display_text AS product_description
                                     FROM 
                                         builds AS b
