@@ -344,7 +344,7 @@
                 console.log("a3   ", isChecked);
                 // Send API request to update task status
                 $.ajax({
-                    url: 'http://localhost:4000/taskComplete', 
+                    url: '<%= locals.baseUrl %>/taskComplete', 
                     method: 'POST', 
                     data: {
                         taskId: taskId,
@@ -374,7 +374,7 @@
                 console.log("b3   ", isChecked);
                 // Send API request to update job status
                 $.ajax({
-                    url: 'http://localhost:4000/jobComplete', 
+                    url: '<%= locals.baseUrl %>/jobComplete', 
                     method: 'POST', 
                     data: {
                         jobId: jobId,
@@ -404,7 +404,7 @@
                 console.log("c3   ", isChecked);
                 // Send API request to update build status
                 $.ajax({
-                    url: 'http://localhost:4000/buildComplete', 
+                    url: '<%= locals.baseUrl %>/buildComplete', 
                     method: 'POST', 
                     data: {
                         buildId: buildId,

@@ -265,7 +265,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
               console.log("d7   ");
               // If no specific build is clicked, render customers.ejs
-              res.render("2/customers.ejs", { tableData : allCustomers });
+              res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.BASE_URL });
           }
       } catch (err) {
           console.log("d8   ");
