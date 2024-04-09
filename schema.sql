@@ -221,7 +221,7 @@ CREATE TABLE reminders (
     body VARCHAR(511),  
     current_status VARCHAR(127),
     created_by INTEGER,
-    trigger VARCHAR(127),
+    trigger TEXT,
     medium VARCHAR(127),
     change_log TEXT,
     task_id INTEGER,
@@ -312,3 +312,11 @@ drop table product_templates;      -- old name for table products
 
 
 
+DROP TABLE IF EXISTS worksheets;
+CREATE TABLE worksheets (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255),
+    description TEXT,
+    user_id INTEGER,
+    date DATE
+);
