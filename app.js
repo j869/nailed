@@ -188,9 +188,9 @@ app.get("/2/build/:id", async (req, res) => {
               // Render customer.ejs with customer, builds, and jobs data
               res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
           } else {
-              console.log("b7   ");
+              console.log("b7   ", process.env.API_URL);
               // If no specific build is clicked, render customers.ejs
-              res.render("2/customer.ejs", { tableData : allCustomers, baseUrl : API_URL });
+              res.render("2/customer.ejs", { tableData : allCustomers, baseUrl : process.env.API_URL });
           }
       } catch (err) {
           console.log("b8   ");
