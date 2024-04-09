@@ -59,14 +59,17 @@ CREATE TABLE builds
     id SERIAL PRIMARY KEY,
     customer_id INTEGER,      --one customer, many builds
     product_id INTEGER,
-	enquiry_date TIMESTAMP,             -- the active enquiry.. reminder in 2 weeks...  otherwise value should be null
-    job_id INTEGER              -- the currently active job in progress
+	enquiry_date TIMESTAMP,             -- the start date.. sets the reminder schedule...  otherwise value should be null
+    job_id INTEGER,              -- the currently active job in progress
+    current_status VARCHAR(127),
+    change_log TEXT
 );
 drop table products;    -- behaves as the build_templates table
 CREATE TABLE products   --  What if the build is not a 6x6 garage? you need a different process
 (
     id SERIAL PRIMARY KEY,
-    display_text VARCHAR(127)     -- american barn, garaport
+    display_text VARCHAR(127),     -- american barn, garaport
+    change_log TEXT
 );
 --#endregion
 
@@ -94,7 +97,8 @@ CREATE TABLE jobs
     change_array TEXT,      -- who changed it, when, and what did they change?  Excludes changes to the notes, excludes adding to the conversation... Task definition type datapoints only (i.e due date, person responsible, job name, etc)
     completed_by VARCHAR(127),     -- who clicked the 'done' button, and (maybe) which machine were they using?
     completed_date TIMESTAMP,
-    current_status VARCHAR(127)       -- active, pending, completed
+    current_status VARCHAR(127),       -- active, pending, completed
+    change_log TEXT
 );
 
 
@@ -110,7 +114,8 @@ CREATE TABLE job_templates
     free_text TEXT,                 -- prepopulate the jobs.free_text field with this value. bryan can use this to add reminders, every time someone does this task. i.e. 'garaports must be RHS and bolted!'
     antecedent_array VARCHAR(127),       --links to job_templates.id                 applied when a customer is created, and will create a process-flow of the build process
     decendant_array VARCHAR(127),        --links to the job_templates.id             to be used recursivly to create the process-flow
-    reminder_id INTEGER   -- what reminder schedule is normally used for this job
+    reminder_id INTEGER,   -- what reminder schedule is normally used for this job
+    change_log TEXT
 );
 delete from job_templates;
 INSERT INTO job_templates(user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) 
@@ -145,7 +150,16 @@ CREATE TABLE tasks    -- would this be better named activities??    -- a very la
     display_text VARCHAR(127),
     free_text TEXT,
     current_status VARCHAR(127),       -- tentitive/pending: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
-    owner_id INTEGER,     -- if Bryan assigns a task to a job, you need bryan to remove it
+    owned_by INTEGER,     -- if Bryan assigns a task to a job, you need bryan to remove it
+    user_date TIMESTAMP,
+    target_date TIMESTAMP,
+    completed_date TIMESTAMP,
+    completed_by INTEGER,
+    completed_comment INTEGER,
+    change_log TEXT,
+    task_template_id INTEGER,
+    task_id INTEGER
+
 );
 drop table task_templates;
 CREATE TABLE task_templates
@@ -156,7 +170,8 @@ CREATE TABLE task_templates
     display_text VARCHAR(127),
     free_text TEXT,
     current_status VARCHAR(127),     -- default status    
-    owner_id INTEGER   --  if the current user owns the task they can archive or confirm the applicability.  Is it really necessary to call the plumber after you finish a trench?   Bryan can exert some control over the process by adding a task himself
+    owned_by INTEGER,   --  if the current user owns the task they can archive or confirm the applicability.  Is it really necessary to call the plumber after you finish a trench?   Bryan can exert some control over the process by adding a task himself
+    change_log TEXT
 );
 delete from task_templates;
 INSERT INTO public.task_templates(job_template_id, precedence, display_text, free_text, owner_id)
@@ -199,35 +214,25 @@ VALUES (1, 'pretask', 'check site issues', NULL, 1),
 
 --#region reminders
 
-DROP TABLE IF EXISTS public.reminders;
-CREATE TABLE public.reminders (
+DROP TABLE IF EXISTS reminders;
+CREATE TABLE reminders (
     id SERIAL PRIMARY KEY,
-    escalation1_interval VARCHAR(127),
-    escalation2_interval VARCHAR(127),
-    escalation3_interval VARCHAR(127),
-    definition_object TEXT,
+    title VARCHAR(127),    
+    body VARCHAR(511),  
     current_status VARCHAR(127),
     created_by INTEGER,
     trigger VARCHAR(127),
     medium VARCHAR(127),
     change_log TEXT,
-    task_id INTEGER
-);
-
-drop table reminders;
-CREATE TABLE reminders
-(
-    id SERIAL PRIMARY KEY,
+    task_id INTEGER,
     escalation1_interval VARCHAR(127),
     escalation2_interval VARCHAR(127),
     escalation3_interval VARCHAR(127),
-    trigger VARCHAR(127);    -- event: reminder is triggered by a task or job in the build,    -- time: specify an exact time + date to send the message,  
-    medium VARCHAR(127),   -- email, text message, or work_sheet: daily task list of everything they have to do today.
-    definition_object TEXT,     -- nature of the trigger including which jobID or taskID it relates to, any meta_data regarding how it is sent, escallation sequence, etc
-    current_status VARCHAR(127),      -- reminder definitions are purged after the job is completed
-    created_by INTEGER    -- which function() created the record... I think this field is unnecessary
+    definition_object TEXT,
+    change_log TEXT
 );
-drop table reminder_templates;
+
+
 CREATE TABLE reminder_templates
 (
     id SERIAL PRIMARY KEY,

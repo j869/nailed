@@ -38,8 +38,18 @@ const db = new pg.Client({
 db.connect();
 //#endregion
 
-app.get("/", (req, res) => {
-  res.render("home.ejs");
+app.get("/", async (req, res) => {
+
+  if (req.user) {
+    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = 1 order by id");
+
+    res.render("home.ejs", {data : q1.rows});
+
+  } else {
+    res.render("home.ejs");
+
+  }
+
 });
 
 
@@ -180,7 +190,7 @@ app.get("/2/build/:id", async (req, res) => {
           } else {
               console.log("b7   ");
               // If no specific build is clicked, render customers.ejs
-              res.render("2/customer.ejs", { tableData : allCustomers });
+              res.render("2/customer.ejs", { tableData : allCustomers, baseUrl : API_URL });
           }
       } catch (err) {
           console.log("b8   ");
@@ -265,7 +275,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
               console.log("d7   ");
               // If no specific build is clicked, render customers.ejs
-              res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.BASE_URL });
+              res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.API_URL });
           }
       } catch (err) {
           console.log("d8   ");
@@ -679,7 +689,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/customers",
+    successRedirect: "/",
     failureRedirect: "/login",
   })
 );

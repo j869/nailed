@@ -7,8 +7,34 @@
     <h1 class="display-3">Tracker</h1>
     <p class="lead">Building by Bryan Customer Relationship Management</p>
     <hr>
-    <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
-    <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+
+    <% if (locals.data) { %>
+    <div class="container">
+      <table class="table">
+
+        <tbody>
+            <% for (let i in data) { %>
+            <tr>
+                <td><%= data[i].id %></td>
+                <td><%= data[i].title %></td>
+                <td><%= data[i].user_id %></td>
+                <% const build_id = data[i].title.slice(-3); %>
+                <td><%= build_id %></td>
+                <td>
+                    <form class="item" method="get" action="/2/build/<%= build_id %>">
+                        <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
+                    </form>
+                </td>
+            </tr>
+            <% } %>
+        </tbody>
+    </table>
+    </div>
+    <% } else { %>
+      <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
+      <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
+  
+    <% } %>
 
   </div>
 </div>

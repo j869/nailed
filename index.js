@@ -47,6 +47,13 @@ export const pool = new Pool({
 //db.connect();
 //#endregion
 
+// Add middleware to set CORS headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
 
 
 
@@ -237,20 +244,29 @@ app.post("/taskComplete", async (req, res) => {
 
         // Update logic based on currentStatus and status values
         let newStatus;
+        let newCompleteDate;
+        let newCompleteBy;
         if (status === 'true') {
+            console.log("ta2");
             // if (currentStatus === null || currentStatus === 'pending') {
             //     newStatus = 'active';
             // } else if (currentStatus === 'active') {
             //     newStatus = 'complete';
             // }
             newStatus = 'complete';
+            newCompleteDate = new Date();
+            //newCompleteBy = req.user.id || 1;
         } else {
-            // If status is not 'true', keep the current status unchanged
+          console.log("ta3");
+          // If status is not 'true', keep the current status unchanged
             newStatus = 'pending';
+            newCompleteDate = null;
+            //newCompleteBy = req.user.id || 1;
         }
 
         // Update the tasks table in your database
-        const updateResult = await pool.query("UPDATE tasks SET current_status = $1 WHERE id = $2", [newStatus, taskID]);
+        const updateResult = await pool.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE id = $2", [newStatus, taskID, newCompleteDate, 1]);
+        console.log("ta4");
 
         // Check if the update was successful
         if (updateResult.rowCount === 1) {
@@ -279,6 +295,7 @@ app.post("/jobComplete", async (req, res) => {
 
       // Update logic based on currentStatus and status values
       let newStatus;
+      
       if (status === 'true') {
           // if (currentStatus === null || currentStatus === 'pending') {
           //     newStatus = 'active';
@@ -286,9 +303,11 @@ app.post("/jobComplete", async (req, res) => {
           //     newStatus = 'complete';
           // }
           newStatus = 'complete';
+
       } else {
           // If status is not 'true', keep the current status unchanged
           newStatus = 'pending';
+
       }
 
       // Update the jobs table in your database
