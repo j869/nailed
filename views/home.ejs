@@ -15,13 +15,12 @@
         <tbody>
             <% for (let i in data) { %>
             <tr>
-                <td><%= data[i].id %></td>
+                <td><%= data[i].task_id %></td>
+                <td><%= data[i].customer_name %></td>
+                <td><%= data[i].customer_address %></td>
                 <td><%= data[i].title %></td>
-                <td><%= data[i].user_id %></td>
-                <% const build_id = data[i].title.slice(-3); %>
-                <td><%= build_id %></td>
                 <td>
-                    <form class="item" method="get" action="/2/build/<%= build_id %>">
+                    <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
                         <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
                     </form>
                 </td>

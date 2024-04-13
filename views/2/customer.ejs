@@ -196,6 +196,14 @@
                                                                                                                         <th>Owner ID</th>
                                                                                                                         <th>Precedence</th>
                                                                                                                         <th>Current Status</th> 
+                                                                                                                        <th>User Date</th>
+                                                                                                                        <th>Target Date</th>
+                                                                                                                        <th>Completed Date</th>
+                                                                                                                        <th>Completed By</th>
+                                                                                                                        <th>Completed Comment</th>
+                                                                                                                        <th>Task Template ID</th>
+                                                                                                                        <th>Change Log</th>
+                                                                                                                        <th>Actions</th>
                                                                                                                     </tr>
                                                                                                                 </thead>                                                        
                                                                                                                 <tbody>
@@ -206,13 +214,21 @@
                                                                                                                                 <td><%= task.display_text %></td>
                                                                                                                                 <td><%= task.free_text %></td>
                                                                                                                                 <td><%= task.job_id %></td>
-                                                                                                                                <td><%= task.owner_id %></td>
+                                                                                                                                <td><%= task.owned_by %></td>
                                                                                                                                 <td><%= task.precedence %></td>
+                                                                                                                                <td><%= task.current_status %></td>
+                                                                                                                                <td><%= task.user_date ? task.user_date.toLocaleDateString() : '' %></td>
+                                                                                                                                <td><%= task.target_date ? task.target_date.strftime('%Y-%m-%d') : '' %></td>
+                                                                                                                                <td><%= task.completed_date ? new Date(task.completed_date).toLocaleDateString() : '' %></td>
+                                                                                                                                <td><%= task.completed_by %></td>
+                                                                                                                                <td><%= task.completed_comment %></td>
+                                                                                                                                <td><%= task.task_template_id %></td>
+                                                                                                                                <td><%= task.change_log %></td>
                                                                                                                                 <td>
                                                                                                                                     <div class="form-check">
                                                                                                                                         <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= task.id %>" data-task-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                        <label class="form-check-label" for="taskComplete<%= task.id %>"></label>
-                                                                                                                                        <%= task.current_status %>       
+                                                                                                                                        <label class="form-check-label" for="taskComplete<%= task.id %>">Done</label>
+                                                                                                                                        
                                                                                                                                     </div>
                                                                                                                                 
                                                                                                                                 </td>       

@@ -8,6 +8,7 @@ import passport from "passport";
 import { Strategy } from "passport-local";
 import session from "express-session";
 import env from "dotenv";
+import { main }  from './trigger2.js';
 
 const app = express();
 const port = 3000;
@@ -38,12 +39,44 @@ const db = new pg.Client({
 db.connect();
 //#endregion
 
+
 app.get("/", async (req, res) => {
+  console.log("ws1");
 
   if (req.user) {
-    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = 1 order by id");
+    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = 1 ORDER BY id");
+    console.log("ws2", q1.rows);
 
-    res.render("home.ejs", {data : q1.rows});
+    // Parse the JSON data and extract task_id, build_id, and job_id for each object
+    const parsedData = [];
+    for (const row of q1.rows) {
+      const description = JSON.parse(row.description);
+
+      // Perform a database query to fetch customer information
+      console.log("ws3   ", description)
+      const q2 = await db.query("SELECT customers.id, customers.full_name, customers.home_address FROM builds left join customers on builds.customer_id = customers.id WHERE builds.id = $1", [description.build_id]);
+
+      // Extract customer name and address from the database result
+      const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
+      const { full_name, home_address } = customerInfo;
+
+      // Add customer name and address to the parsed data
+      const rowData = {
+        ...row,
+        task_id: description.task_id,
+        build_id: description.build_id,
+        job_id: description.job_id,
+        customer_name: full_name,
+        customer_address: home_address
+      };
+      parsedData.push(rowData);
+    }
+
+    
+    main();     // trigger worksheet update from trigger2.js
+
+    // Pass the parsed data to the template
+    res.render("home.ejs", { data: parsedData });
 
   } else {
     res.render("home.ejs");
@@ -51,6 +84,7 @@ app.get("/", async (req, res) => {
   }
 
 });
+
 
 
 

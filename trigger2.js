@@ -1,4 +1,4 @@
-// trigger.js
+// trigger2.cjs
 import pg from "pg";
 import env from "dotenv";
 
@@ -148,44 +148,13 @@ async function handleTrigger(triggerData) {
 
 
     await getNextTasks();
-    process.exit(0);
-
-
-    await startNewBuilds();
 
 
 
-    try {
-      // Fetch the first 10 reminders
-      const q1 = await pool.query("SELECT * FROM reminders LIMIT 2;");
-      
-      // Loop through the fetched reminders
-      let trigger = {};
-      for (const reminder of q1.rows) {
-          console.log("re5    ");  //Reminder trigger:", reminder.trigger);
-          trigger = JSON.parse(`{"table":"tasks","column":"ID","value":"2","modifier":"+1"}`)
-          await handleTrigger(trigger);
-      }
-  
-      //console.log("re55      ", );
-  
-      
-      const q2 = await pool.query(`
-        INSERT INTO worksheets (title, description, user_id, date)
-        VALUES ('Example Title', 'Example Description', 123, '2024-04-08');
-      `);
-      
-      console.log("re9    Inserted into worksheets");
-    } catch (error) {
-      console.error("re8   Error:", error.message);
-    } finally {
-      // Close the pool to end the script
-      await pool.end();
-      process.exit(0);
-    }
   }
   
 
-main();
 
 
+
+  export { main }; // Exporting `main` as a named export
