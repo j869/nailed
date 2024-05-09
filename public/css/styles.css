@@ -1,6 +1,6 @@
 
 body {
-  background-color: #E8ECEF;
+  background-color: #ffffff;
 }
 
 .centered {
@@ -15,3 +15,6 @@ body {
   background-color: #000;
 }
 
+.nav .nav-item {
+  color: white
+}

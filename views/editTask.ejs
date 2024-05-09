@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 Previous Task(s) was completed <div class="editable" id="dueDate" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.target_date %></div> (x days ago)
-<div class="d-flex flex-row">
+<div class=" ">
     <% for (let pre in siteContent.job_antecedents) { %>
         <div class="card w-100">
             <div class="card-body">

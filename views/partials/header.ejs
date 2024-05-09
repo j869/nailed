@@ -40,12 +40,28 @@
 
 </head>
 
+  <div class="bg-dark">
+    <header class="d-flex justify-content-center py-3">
+      <ul class="nav nav-pills">
+        <li class="nav-item"><a href="/" class="nav-link link-light">Home</a></li>
+        <li class="nav-item"><a href="/customers" class="nav-link link-light">Customers</a></li>
+        <li class="nav-item"><a href="/2/customers" class="nav-link link-light">Customers2</a></li>
+        <li class="nav-item"><a href="/jobs/1" class="nav-link link-light">Tasks</a></li>
+        <li class="nav-item"><a href="/logout" class="nav-link link-light">Log Out</a></li>
+      </ul>
+      <!-- Search Bar -->
+      <form class="form-inline" action="/2/customers" method="get">
+        <div class="row">
+            <div class="col">
+                <input class="form-control mr-sm-2" type="text" name="query" placeholder="Search" aria-label="Search">
+            </div>
+            <div class="col">
+                <button class="btn btn-outline-light my-2 my-sm-0" type="submit">Search</button>
+            </div>
+        </div>
+    </form>
+    </header>
+  </div>
 
-
-<body>
-  <a class="btn btn-light btn-sm" href="/" role="button">Home</a>
-  <a class="btn btn-light btn-sm" href="/customers" role="button">Customers</a>
-  <a class="btn btn-light btn-sm" href="/2/customers" role="button">Customers2</a>
-  <a class="btn btn-light btn-sm" href="/jobs/1" role="button">Tasks</a>
-  <a class="btn btn-light btn-sm" href="/logout" role="button">Log Out</a>
+ <body>
   

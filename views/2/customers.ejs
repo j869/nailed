@@ -1,58 +1,16 @@
 <%- include('../partials/header') %>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Form</title>
 
-    <style>
-        body {
-            padding-top: 50px;
-        }
-
-        .hiddenRow {
-            padding: 0 !important;
-        }
-
-        /* Add additional indentation for nested tables */
-        .nested-table {
-            margin-left: 20px; /* Adjust the indentation level as needed */
-        }
-
-        /* Second level of indentation */
-        .double-nested-table {
-            margin-left: 40px; /* Adjust the indentation level as needed */
-        }        
-    </style>
-
-</head>
-<body>
-
-<div class="container">
-    <!-- Search Bar -->
-    <form class="form-inline" action="/2/customers" method="get">
-        <div class="row">
-            <div class="col">
-                <input class="form-control mr-sm-2" type="text" name="query" placeholder="Search" aria-label="Search">
-            </div>
-            <div class="col">
-                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-            </div>
-        </div>
-    </form>
+    <div class="jumbotron text-center">
+        <div class="container">
+            <h1 class="display-3">Customers</h1>
 
 
-    <div class="container">
-        <div class="col-md-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    Customers
-                </div>
-                <div class="panel-body">
-                    <table class="table table-condensed ">
-                        <thead>
+            <br>
+            <hr><br>
+            <div class="panel-body">
+                <table class="table table-condensed ">
+                    <thead>
                         <tr class="table-primary">
                             <th scope="col">ID</th>
                             <th scope="col">Full Name</th>
@@ -63,82 +21,109 @@
                             <th scope="col">Current Status</th>
                             <th scope="col">Follow-up Date</th>
                         </tr>
-                        </thead>
+                    </thead>
 
-                        <tbody>
-                            <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
-                                <% locals.tableData.forEach(function(data) { %>
-                                    <% if (data.customer) { %>
-                                        <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>" >
-                                            <td><%= data.customer.id %></td>
-                                            <td><%= data.customer.full_name %></td>
-                                            <td><%= data.customer.home_address %></td>
-                                            <td><%= data.customer.primary_phone %></td>
-                                            <td><%= data.customer.primary_email %></td>
-                                            <td><%= data.customer.contact_other %></td>
-                                            <td><%= data.customer.current_status %></td>
-                                            <td><%= data.customer.follow_up %></td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="12" class="hiddenRow">
-                                                <div class="accordian-body collapse" id="collapseCust<%= data.customer.id %>">
-
-
-
-
-                                                    <table class="table nested-table">
-                                                        <thead>
-                                                            <tr class="table-secondary">
-                                                                <th>ID</th>
-                                                                <th>Customer ID</th>
-                                                                <th>Product ID</th>
-                                                                <th>Product Description</th>
-                                                                <th>Enquiry Date</th>
-                                                                <th>Job ID</th>
-                                                            </tr>
-                                                        </thead>                                                        
-                                                        <tbody>
-                                                    <% data.builds.forEach(function(build) { %>
-                                                        <% if (build) { %>
-                                                            <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'" >
-                                                            <!-- tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild2" -->
-                                                                <td><%= build.id %></td>
-                                                                <td><%= build.customer_id %></td>
-                                                                <td><%= build.product_id %></td>
-                                                                <td><%= build.product_description %></td>
-                                                                <td><%= build.enquiry_date %></td>
-                                                                <td><%= build.job_id %></td>
-                                                            </tr>
-
-                                                        <% } %>
-                                                    <% }); %>
-                                                        </tbody>
-                                                    </table>
+                    <tbody>
+                        <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
+                            <% locals.tableData.forEach(function(data) { %>
+                                <% if (data.customer) { %>
+                                    <tr class="accordion-toggle table-primary" data-toggle="collapse"
+                                        data-target="#collapseCust<%= data.customer.id %>">
+                                        <td>
+                                            <%= data.customer.id %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.full_name %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.home_address %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.primary_phone %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.primary_email %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.contact_other %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.current_status %>
+                                        </td>
+                                        <td>
+                                            <%= data.customer.follow_up %>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="12" class="hiddenRow">
+                                            <div class="accordian-body collapse"
+                                                id="collapseCust<%= data.customer.id %>">
 
 
 
-                                               
-                                                </div>
-                                            </td>
-                                        </tr>
+
+                                                <table class="table nested-table">
+                                                    <thead>
+                                                        <tr class="table-secondary">
+                                                            <th>ID</th>
+                                                            <th>Customer ID</th>
+                                                            <th>Product ID</th>
+                                                            <th>Product Description</th>
+                                                            <th>Enquiry Date</th>
+                                                            <th>Job ID</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <% data.builds.forEach(function(build) { %>
+                                                            <% if (build) { %>
+                                                                <tr class="accordion-toggle table-secondary"
+                                                                    onclick="window.location.href = '/2/build/<%= build.id %>'">
+                                                                    <!-- tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild2" -->
+                                                                    <td>
+                                                                        <%= build.id %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= build.customer_id %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= build.product_id %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= build.product_description %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= build.enquiry_date %>
+                                                                    </td>
+                                                                    <td>
+                                                                        <%= build.job_id %>
+                                                                    </td>
+                                                                </tr>
+
+                                                                <% } %>
+                                                                    <% }); %>
+                                                    </tbody>
+                                                </table>
+
+
+
+
+                                            </div>
+                                        </td>
+                                    </tr>
                                     <% } %>
-                                <% }); %>
-                            <% } %>
-                            
+                                        <% }); %>
+                                            <% } %>
 
 
-                        </tbody>
-                    </table>
-                </div>
 
+                    </tbody>
+                </table>
             </div>
-
         </div>
     </div>
 
-</div>
+    </body>
 
-</body>
-</html>
+    </html>
 
-<%- include('../partials/footer') %>
+    <%- include('../partials/footer') %>
