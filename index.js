@@ -218,7 +218,7 @@ app.get("/addtask", async (req, res) => {
   try {
     //add task
     console.log("t2    ");
-    const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "') RETURNING id;");      
+    const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence, sort_order) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "', 't2') RETURNING id;");      
     const newTaskID = newTask.rows[0].id;
     res.status(201).json({newTaskID : newTaskID });
 
@@ -284,7 +284,6 @@ app.get("/addjob", async (req, res) => {
       console.log("a30 updated template to include the new job. " + jobID);
       //console.log(req.query);
       const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
-      console.log(q4.rows);
       console.log("a31 " + q4.rows[0].job_template_id);
       let oldJobTemplateID = q4.rows[0].job_template_id;
       const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
@@ -292,7 +291,7 @@ app.get("/addjob", async (req, res) => {
       console.log("a33" + "        UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID);
       const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
 
-      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id) VALUES ($1, $2, $3) RETURNING id;", [title, 1, q1.rows[0].id]);
+      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order) VALUES ($1, $2, $3, $4) RETURNING id;", [title, 1, q1.rows[0].id, 'a34']);
       console.log("a34");
       newJobID = newJob.rows[0].id;
       const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
@@ -339,9 +338,9 @@ app.get("/addjob", async (req, res) => {
 
         if (jobTemplateID) {
           //If there is a template already then we have already returned it in q1...
-          console.log(jobTemplate);
+          console.log("a70     ", jobTemplate);
           //create the new job in the database from the parameters read from the tempalte, and link it to the build
-          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1]);
+          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1, 'a70']);
           newJobID = q2.rows[0].id;
           // No relationship to define because there is only on Job in the system for this build (at this point)     //const q3 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (null, " + newJobID + ") ;");             
         }
@@ -407,9 +406,8 @@ export async function createDecendantsForJob(jobID, pool) {
       const productID = oldJob.product_id;
 
       // JOBS  -----  read jobs from template file 
-      console.log("                    INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id)  (SELECT b.display_text, b.reminder_id, b.id, b.product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = "+ "'"+ oldJob.job_template_id + "'" +") RETURNING id;")
-      console.log("c05   ", productID);
-      console.log("c06    ", oldJob.rows);
+      console.log("c13   ", productID);
+      console.log("c14    ", oldJob.rows);
       console.log("c15");
       const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
       const newTemplate = q3.rows[0];
@@ -417,8 +415,8 @@ export async function createDecendantsForJob(jobID, pool) {
 
       // TASKS   ------- read tasks from template file
       const q4 = await pool.query(`
-                                      INSERT INTO tasks (display_text, free_text, job_id, current_status, owned_by, task_template_id, precedence)
-                                      SELECT display_text, free_text, ${jobID}, 'pending', owned_by, id, precedence
+                                      INSERT INTO tasks (display_text, free_text, job_id, current_status, owned_by, task_template_id, precedence, sort_order)
+                                      SELECT display_text, free_text, ${jobID}, 'pending', owned_by, id, precedence, sort_order
                                       FROM task_templates
                                       WHERE job_template_id = ${oldJob.job_template_id} RETURNING id, task_template_id;`
       );      
@@ -516,7 +514,7 @@ export async function createDecendantsForJob(jobID, pool) {
 
 
       if (q3.rowCount !== 0) {       //no more templates defined
-          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ") returning id")
+          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id, sort_order) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ", 'c40') returning id")
           console.log("c40");
           console.log("Added " + q2.rows.length + " rows.");
           const newJob = q2.rows[0];     // assumes only 1 child

@@ -1,12 +1,8 @@
 <%- include('partials/header') %>
 
-
-<div class="jumbotron centered">
+  <h2>Current Tasks</h2>
   <div class="container">
-    <i class="fas fa-key fa-6x"></i>
-    <h1 class="display-3">Tracker</h1>
-    <p class="lead">Building by Bryan Customer Relationship Management</p>
-    <hr>
+
 
     <% if (locals.data) { %>
     <div class="container">
@@ -30,12 +26,17 @@
     </table>
     </div>
     <% } else { %>
+      <i class="fas fa-key fa-6x"></i>
+      <h1 class="display-3">Tracker</h1>
+      <p class="lead">Building by Bryan Customer Relationship Management</p>
+      <hr>
+
       <a class="btn btn-light btn-lg" href="/register" role="button">Register</a>
       <a class="btn btn-dark btn-lg" href="/login" role="button">Login</a>
   
     <% } %>
 
   </div>
-</div>
+
 
 <%- include('partials/footer') %>

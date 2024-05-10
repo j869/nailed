@@ -174,39 +174,45 @@ CREATE TABLE task_templates
     change_log TEXT
 );
 delete from task_templates;
-INSERT INTO public.task_templates(job_template_id, precedence, display_text, free_text, owner_id)
-VALUES (1, 'pretask', 'check site issues', NULL, 1),
-       (1, 'pretask', 'confirm siting', NULL, 1),
-       (2, 'pretask', 'select contractor', NULL, 1),
-       (2, 'pretask', 'issue purchasing options', NULL, 1),
-       (2, 'pretask', 'call up VP concretor', NULL, 1),
-       (2, 'pretask', 'set slant date', NULL, 1),
-       (2, 'pretask', 'contact home dringer to louise commencement', NULL, 1),
-       (2, 'pretask', 'start confirmed with contractor', NULL, 1),
-       (2, 'pretask', 'measure set out and slab', NULL, 1),
-       (2, 'pretask', 'concrete poured', NULL, 1),
-       (2, 'postask', 'advise accounts to invoice', NULL, 1),
-       (3, 'pretask', 'select contractor', NULL, 1),
-       (3, 'pretask', 'issue purchase order', NULL, 1),
-       (3, 'pretask', 'call up erector - slab pour day', NULL, 1),
-       (3, 'pretask', 'set start date - 7 days after slab pour', NULL, 1),
-       (3, 'pretask', 'contact home owner to advise erecting commencement date', NULL, 1),
-       (3, 'pretask', 'start confirmed with erector', NULL, 1),
-       (3, 'pretask', 'confirm ename ealected', NULL, 1),
-       (3, 'pretask', 'check frame', NULL, 1),
-       (3, 'pretask', 'confirm cladding complete', NULL, 1),
-       (3, 'pretask', 'check cladding', NULL, 1),
-       (3, 'postask', 'advise accounts to invoice', NULL, 1),
-       (4, 'pretask', 'establish stormwater connection point', NULL, 1),
-       (4, 'pretask', 'select plumber', NULL, 1),
-       (4, 'pretask', 'book trencher', NULL, 1),
-       (4, 'pretask', 'issue purchase order from plumber', NULL, 1),
-       (4, 'pretask', 'confirm trencing book', NULL, 1),
-       (4, 'pretask', 'call up plumber', NULL, 1),
-       (4, 'pretask', 'confirm stormwater installed', NULL, 1),
-       (4, 'postask', 'book final inspection by building surveyor', NULL, 1),
-       (4, 'postask', 'confirm final certificate is issued', NULL, 1),
-       (4, 'postask', 'advise accounts to invoice', NULL, 1);
+INSERT INTO public.task_templates(job_template_id, precedence, display_text, free_text, owned_by, sort_order)
+VALUES 
+(1, 'pretask', 'Check site issues', NULL, 1, '1.10'),
+(1, 'pretask', 'Confirm siting', NULL, 1, '1.20'),
+(2, 'pretask', 'Select contractor', 'Enter name here:', 1, '2.10'),
+(2, 'pretask', 'Issue purchase order', NULL, 1, '2.20'),
+(2, 'pretask', 'Call up concretor', NULL, 1, '2.30'),
+(2, 'pretask', 'Set start date', NULL, 1, '2.40'),
+(2, 'pretask', 'Planned pour date', 'Planned date: ', 1, '2.45'),
+(2, 'pretask', 'Contact home owner to advise commencement', NULL, 1, '2.50'),
+(2, 'pretask', 'Start confirmed with contractor', NULL, 1, '2.60'),
+(2, 'pretask', 'Measure set out and slab', NULL, 1, '2.70'),
+(2, 'pretask', 'Concrete poured', NULL, 1, '2.80'),
+(2, 'postask', 'Advise accounts to invoice', NULL, 1, '2.90'),
+(3, 'pretask', 'Select contractor', 'Contractor name: ', 1, '3.10'),
+(3, 'pretask', 'Confirm delivery date', 'Delivery date: ', 1, '3.15'),
+(3, 'pretask', 'Issue purchase order', NULL, 1, '3.20'),
+(3, 'pretask', 'Call up erector - slab pour day', NULL, 1, '3.30'),
+(3, 'pretask', 'Set start date - 7 days after slab pour', NULL, 1, '3.40'),
+(3, 'pretask', 'Contact home owner to advise erecting commencement date', NULL, 1, '3.50'),
+(3, 'pretask', 'Start confirmed with erector', NULL, 1, '3.60'),
+(3, 'pretask', 'Confirm frame erected', NULL, 1, '3.70'),
+(3, 'pretask', 'Check frame', NULL, 1, '3.75'),
+(3, 'postask', 'Advise accounts to Invoice frame', NULL, 1, '3.80'),
+(3, 'pretask', 'Confirm cladding complete', NULL, 1, '3.85'),
+(3, 'pretask', 'Check cladding', NULL, 1, '3.90'),
+(3, 'postask', 'Advise accounts to invoice', NULL, 1, '3.95'),
+(4, 'pretask', 'Establish stormwater connection point', NULL, 1, '4.10'),
+(4, 'pretask', 'Select plumber', NULL, 1, '4.20'),
+(4, 'pretask', 'Book trencher', NULL, 1, '4.30'),
+(4, 'pretask', 'Issue Purchase order for plumber', NULL, 1, '4.40'),
+(4, 'pretask', 'Confirm trenching day set', 'Date: ', 1, '4.50'),
+(4, 'pretask', 'Confirm plumber booked to start', 'Date: ', 1, '4.60'),
+(4, 'pretask', 'Confirm trenching done', NULL, 1, '4.65'),
+(4, 'pretask', 'Confirm plumber start', 'Date: ', 1, '4.70'),
+(4, 'pretask', 'Confirm stormwater installed', NULL, 1, '4.75'),
+(4, 'postask', 'Book final inspection by building surveyor', NULL, 1, '4.80'),
+(4, 'postask', 'Confirm final certificate is issued', NULL, 1, '4.85'),
+(4, 'postask', 'Advise accounts to invoice', NULL, 1, '4.90');
 
 --#endregion
 
@@ -320,3 +326,36 @@ CREATE TABLE worksheets (
     user_id INTEGER,
     date DATE
 );
+
+
+
+
+
+
+CREATE OR REPLACE VIEW combined_tasks AS
+SELECT
+    b.id as build_id,
+	b.enquiry_date as build_start,
+	b.product_id as build_product,
+    j.id as job_id,
+	j.display_text as job_text,
+	j.target_date as job_target,
+	j.completed_date as job_completed,
+	j.current_status as job_status,
+    t.id as task_id,
+	t.display_text as task_text,
+	t.target_date as task_target,
+	t.completed_date as task_completed,
+	t.current_status as task_status
+FROM builds b
+LEFT JOIN jobs j ON j.build_id = b.id
+LEFT JOIN tasks t ON t.job_id = j.id
+order by t.job_id, j.build_id;
+
+
+
+--#region  not yet implemented
+
+
+
+--#endregion

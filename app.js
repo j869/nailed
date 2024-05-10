@@ -141,35 +141,45 @@ app.get("/2/build/:id", async (req, res) => {
               console.log("b25   ", customersResult.rows[0])
 
               console.log("b26   ")
-              // Merge customer, build, and jobs data
-              allCustomers = customersResult.rows.map(customer => {
-                const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-                const buildsWithJobs = builds.map(build => {
-                    const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
-                    const jobsWithTasks = jobs.map(job => {
-                        const tasks = tasksResult.rows.filter(task => task.job_id === job.id);
-                        const tasksWithReminders = tasks.map(task => {
-                            const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
-                            return {
-                                ...task,
-                                reminders: remindersForTask
-                            };
-                        });
-                        return {
-                            ...job,
-                            tasks: tasksWithReminders
-                        };
-                    });
-                    return {
-                        ...build,
-                        jobs: jobsWithTasks
-                    };
-                });
-                return {
-                    customer,
-                    builds: buildsWithJobs
-                };
-            });
+// Merge customer, build, and jobs data
+// Sort tasks by sort_order
+const sortedTasks = tasksResult.rows.sort((a, b) => {
+  if (a.sort_order === null) return -1; // Treat null as a lower value
+  if (b.sort_order === null) return 1;  // Treat null as a lower value
+  return a.sort_order.localeCompare(b.sort_order);
+});
+
+// Map through customers
+allCustomers = customersResult.rows.map(customer => {
+  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+  const buildsWithJobs = builds.map(build => {
+    const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
+    const jobsWithTasks = jobs.map(job => {
+      const tasks = sortedTasks.filter(task => task.job_id === job.id); // Use sortedTasks for sorting tasks
+      const tasksWithReminders = tasks.map(task => {
+        const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
+        return {
+          ...task,
+          reminders: remindersForTask
+        };
+      });
+      return {
+        ...job,
+        tasks: tasksWithReminders
+      };
+    });
+    return {
+      ...build,
+      jobs: jobsWithTasks
+    };
+  });
+  return {
+    customer,
+    builds: buildsWithJobs
+  };
+});
+
+
             
 
               console.log("b29   ")
@@ -969,9 +979,11 @@ app.listen(port, () => {
 //#region not in use
 
 app.get("/update", async (req,res) => {
+  console.log("ufg1     "	)
   const fieldID = req.query.fieldID;
   const newValue = req.query.newValue;         // open to SQL injection attacks unless user entered value has been cleaned
   const rowID = req.query.whereID;
+  console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
   let table = "";
   let columnName = "";
   let value = "";
@@ -990,6 +1002,12 @@ app.get("/update", async (req,res) => {
       value = "'" + newValue + "'";
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
+    case "taskDesc":
+      table = "tasks";
+      columnName = "free_text"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;      
     case "jobTitle":
       table = "jobs";
       columnName = "display_text"
@@ -1003,11 +1021,23 @@ app.get("/update", async (req,res) => {
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
   
-  
-    case "test":
+    case "taskOrder":
+      table = "tasks";
+      columnName = "sort_order"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "taskPerson":
+      table = "tasks";
+      columnName = "completed_by_person"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+
+      case "test":
       break
     default:
-      console.error("Unknown field was edited: " + fieldID );
+      console.error("ufg8    Unknown field was edited: " + fieldID );
   }
 })
 
