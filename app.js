@@ -623,8 +623,13 @@ try {
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
+        console.log("tb71      ")  
+        // update the status of all child tasks 
+        const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
+        console.log("tb72      ")  
         console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
         res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
+
     } else {
         console.log(`tb8     job ${jobID} not found or status not updated`);
         res.status(404).json({ error: `job ${jobID} not found or status not updated` });

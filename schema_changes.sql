@@ -77,3 +77,109 @@ VALUES
 (4, 'postask', 'Book final inspection by building surveyor', NULL, 1, '4.80'),
 (4, 'postask', 'Confirm final certificate is issued', NULL, 1, '4.85'),
 (4, 'postask', 'Advise accounts to invoice', NULL, 1, '4.90');
+
+
+
+
+-- Insert data into job_templates table with primary key starting at 5 for "Quotes" category
+INSERT INTO job_templates ( user_id, role_id, product_id, display_text, antecedent_array, decendant_array, reminder_id, sort_order)
+VALUES 
+    ( 1, 1, 1, 'Quotes', 2, 2, 1, '05'),
+    ( 1, 1, 1, 'Feeling good quotes', 2, 2, 1, '06'),
+    ( 1, 1, 1, 'Pre Deposit', 2, 2, 1, '07'),
+    ( 1, 1, 1, 'Deposit', 2, 2, 1, '08'),
+    ( 1, 1, 1, 'Distribute information', 2, 2, 1, '09'),
+    ( 1, 1, 1, 'Pre-Permit', 2, 2, 1, '10'),
+    ( 1, 1, 1, 'Planning Permit', 2, 2, 1, '11'),
+    ( 1, 1, 1, 'Building Permit', 2, 2, 1, '12'),
+    ( 1, 1, 1, 'Owner doing own Permit', 2, 2, 1, '13'),
+    ( 1, 1, 1, 'Kit ordered into Production', 2, 2, 1, '14'),
+    ( 1, 1, 1, 'Kit Delivery date set', 2, 2, 1, '15');
+    ( 1, 1, 1, 'Document Preparation', 2, 2, 1, '10b'),
+
+
+-- Insert data into task_templates table with foreign key reference to job_templates table
+delete from task_templates where job_template_id > 5;
+INSERT INTO task_templates (job_template_id, display_text, sort_order, precedence, owned_by, free_text)
+VALUES 
+    (6, 'Quote sent date', '01', 'pretask', 1, NULL),
+    (6, '3 day follow up – received quote check', '02', 'pretask', 1, NULL),
+    (6, 'Site visit requested', '03', 'pretask', 1, NULL),
+    (6, '14 days later follow up', '04', 'pretask', 1, NULL),
+    (6, '21 days later follow up', '05', 'pretask', 1, NULL),
+    (6, 'Monthly thereafter follow up (1)', '06', 'pretask', 1, NULL),
+    (6, 'Monthly thereafter follow up (2)', '06', 'pretask', 1, NULL),
+    (6, 'Final Monthly follow up', '06', 'pretask', 1, NULL),
+
+    --Feeling good quotes
+    (7, 'Set follow up date', '01', 'pretask', 1, NULL),
+    (7, 'Set follow up schedule', '02', 'pretask', 1, NULL),
+
+    -- Pre Deposit
+    (8, 'Site inspection', '01', 'pretask', 1, NULL),
+    (8, 'Requotes', '02', 'pretask', 1, NULL),
+
+    --Deposit
+    (9, 'Deposit date', '10', 'pretask', 1, NULL),
+    (9, 'Distribute information', '20', 'pretask', 1, NULL),
+    (9, 'Building permit admin', '30', 'pretask', 1, NULL),
+    (9, 'Builder', '40', 'pretask', 1, 'Date: '),
+
+
+    -- Pre-Permit
+    (11, 'Customer quote review / provided', '10', 'pretask', 1, NULL),
+    (11, 'Customer quote sent', '20', 'pretask', 1, NULL),
+    (11, 'Customer acceptance prepped', '30', 'pretask', 1, NULL),
+    (11, 'Customer signed acceptance', '40', 'pretask', 1, 'Date: '),
+    (11, 'Customer invoiced PP and BP dep', '50', 'pretask', 1, 'Date: '),
+    (11, 'Payment received', '60', 'pretask', 1, 'Date: '),
+
+
+    --Planning Permit
+    (12, 'Design Site plan', '01', 'pretask', 1, NULL),
+    (12, 'Planning permit application submitted', '01', 'pretask', 1, 'Date: '),
+    (12, 'Planning permit fee paid', '02', 'pretask', 1, 'Date: '),
+    (12, 'Planning permit contact', '03', 'pretask', 1, 'Name: '),
+    (12, 'Follow up schedule', '07', 'pretask', 1, NULL),
+    (12, 'Planning permit issued', '09', 'pretask', 1, 'Date: '),
+
+    --Building Permit
+    (13, 'Design Site plan', '01', 'pretask', 1, NULL),
+    (13, 'Signed Building Surveyor appointed', '02', 'pretask', 1, NULL),
+    (13, 'Building Permit application submitted date', '03', 'pretask', 1, NULL),
+    (13, 'RFI received', '04', 'pretask', 1, NULL),
+    (13, 'RFI action required 1', '05a', 'pretask', 1, NULL),
+    (13, 'RFI action required 2', '05b', 'pretask', 1, NULL),
+    (13, 'RFI action required 3', '05c', 'pretask', 1, NULL),
+    (13, 'RFI responded', '06', 'pretask', 1, NULL),
+    (13, 'Building Surveyor Invoice received', '07', 'pretask', 1, NULL),
+    (13, 'Balance of BP to be invoiced or not required', '08', 'pretask', 1, '2 tick options not yet included: Yes or No'),
+    (13, 'Building Surveyor Invoice paid', '09', 'pretask', 1, 'Date: '),
+    (13, 'Permit issued date', '10', 'pretask', 1, 'Date: '),
+    (13, 'Permit Number', '11', 'pretask', 1, 'Enter permit number: '),
+
+    --Owner doing own Permit
+    (14, 'Set follow up schedules weekly, fortnightly, monthly', '01', 'pretask', 1, NULL),
+    (14, 'Sent Engineering', '02', 'pretask', 1, 'Date: '),
+    (14, 'Sent Elevations', '03', 'pretask', 1, 'Date: '),
+    (14, 'Permit issued', '01', 'pretask', 1, 'Date: '),
+    (14, 'Permit Number', '02', 'pretask', 1, 'Enter permit number: '),
+    (15, 'Confirm kit ordered', '01', 'pretask', 1, NULL),
+    (16, 'Delivery date set', '02', 'pretask', 1, NULL),
+
+    -- Document preparation
+    (17, 'Title / POS', '012', 'pretask', 1, NULL),
+    (17, 'Covenants', '013', 'pretask', 1, NULL),
+    (17, 'BAL rating / BMO', '014', 'pretask', 1, NULL),
+    (17, 'Planning permit if required', '015', 'pretask', 1, NULL),
+    (17, 'Proposed site plan', '016', 'pretask', 1, NULL),
+    (17, 'Sewer plan', '017', 'pretask', 1, NULL),
+    (17, 'LPOD', '018', 'pretask', 1, NULL),
+    (17, 'RBP selected', '019', 'pretask', 1, NULL),
+    (17, 'Kit quote', '110', 'pretask', 1, NULL),
+    (17, 'Construction quote', '111', 'pretask', 1, NULL),
+    (17, 'Draft Site plan sent to design', '112', 'pretask', 1, NULL),
+    (17, 'Site plan returned from design', '113', 'pretask', 1, NULL),
+    (17, 'Engineering', '114', 'pretask', 16, NULL);
+
+    
