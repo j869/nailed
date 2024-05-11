@@ -195,12 +195,12 @@
                                                                                                                     <tr class="">
                                                                                                                         <th>Num</th>
                                                                                                                         <th class="display-text-column">Display Text</th>
-                                                                                                                        <th>Free Text</th>
                                                                                                                         <th>Target Date</th>
-                                                                                                                        <th>Completed Date</th>
+                                                                                                                        <th>Contact Date</th>
                                                                                                                         <th>Completed By</th>
                                                                                                                         <th>Change Log</th>
                                                                                                                         <th>Actions</th>
+                                                                                                                        <th>Free Text</th>
                                                                                                                     </tr>
                                                                                                                 </thead>                                                        
                                                                                                                 <tbody>
@@ -209,7 +209,6 @@
                                                                                                                             <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= task.id %>" >
                                                                                                                                 <td class="editable" contenteditable="true" id="taskOrder" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskTitle" data-record-id="<%= task.id %>"><%= task.display_text %></td>
-                                                                                                                                <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"><%= task.free_text %></td>
                                                                                                                                 <td><%= task.target_date ? task.target_date.strftime('%Y-%m-%d') : '' %></td>
                                                                                                                                 <td><%= task.completed_date ? formatDate(new Date(task.completed_date)) : '' %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskPerson" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
@@ -222,6 +221,7 @@
                                                                                                                                     </div>
                                                                                                                                 
                                                                                                                                 </td>       
+                                                                                                                                <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"><%= task.free_text %></td>
                                                                                                                             </tr>
                                                                                                                             <tr>
                                                                                                                                 <td colspan="12" class="hiddenRow">
