@@ -4,20 +4,19 @@
     <div class="jumbotron text-center">
         <div class="container">
             <h1 class="display-3">Customers</h1>
-
-
             <br>
             <hr><br>
             <div class="panel-body">
+
+
                 <table class="table table-condensed ">
                     <thead>
                         <tr class="table-primary">
-                            <th scope="col">ID</th>
+                            <th scope="col">ENum</th>
                             <th scope="col">Full Name</th>
                             <th scope="col">Home Address</th>
                             <th scope="col">Primary Phone</th>
                             <th scope="col">Primary Email</th>
-                            <th scope="col">Other Contact Information</th>
                             <th scope="col">Current Status</th>
                             <th scope="col">Follow-up Date</th>
                         </tr>
@@ -27,47 +26,23 @@
                         <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
                             <% locals.tableData.forEach(function(data) { %>
                                 <% if (data.customer) { %>
-                                    <tr class="accordion-toggle table-primary" data-toggle="collapse"
-                                        data-target="#collapseCust<%= data.customer.id %>">
-                                        <td>
-                                            <%= data.customer.id %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.full_name %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.home_address %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.primary_phone %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.primary_email %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.contact_other %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.current_status %>
-                                        </td>
-                                        <td>
-                                            <%= data.customer.follow_up %>
-                                        </td>
+                                    <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
+                                        <td class="editable" contenteditable="true" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
+                                        <td class="editable" contenteditable="true" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
+                                        <td class="editable" contenteditable="true" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
+                                        <td class="editable" contenteditable="true" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
+                                        <td class="editable" contenteditable="true" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
+                                        <td class="editable" contenteditable="true" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
+                                        <td><%= data.customer.follow_up %></td>
                                     </tr>
                                     <tr>
                                         <td colspan="12" class="hiddenRow">
                                             <div class="accordian-body collapse"
                                                 id="collapseCust<%= data.customer.id %>">
-
-
-
-
                                                 <table class="table nested-table">
                                                     <thead>
                                                         <tr class="table-secondary">
                                                             <th>ID</th>
-                                                            <th>Customer ID</th>
-                                                            <th>Product ID</th>
                                                             <th>Product Description</th>
                                                             <th>Enquiry Date</th>
                                                             <th>Job ID</th>
@@ -76,54 +51,71 @@
                                                     <tbody>
                                                         <% data.builds.forEach(function(build) { %>
                                                             <% if (build) { %>
-                                                                <tr class="accordion-toggle table-secondary"
-                                                                    onclick="window.location.href = '/2/build/<%= build.id %>'">
-                                                                    <!-- tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild2" -->
-                                                                    <td>
-                                                                        <%= build.id %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= build.customer_id %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= build.product_id %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= build.product_description %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= build.enquiry_date %>
-                                                                    </td>
-                                                                    <td>
-                                                                        <%= build.job_id %>
-                                                                    </td>
+                                                                <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'">
+                                                                    <td><%= build.id %></td>
+                                                                    <td><%= build.product_description %></td>
+                                                                    <td><%= build.enquiry_date %></td>
+                                                                    <td><%= build.job_id %></td>
                                                                 </tr>
-
-                                                                <% } %>
-                                                                    <% }); %>
+                                                            <% } %>
+                                                        <% }); %>
                                                     </tbody>
                                                 </table>
-
-
-
-
                                             </div>
                                         </td>
                                     </tr>
-                                    <% } %>
-                                        <% }); %>
-                                            <% } %>
-
-
-
+                                <% } %>
+                            <% }); %>
+                        <% } %>
                     </tbody>
                 </table>
+
+
+
+
+
             </div>
         </div>
     </div>
 
-    </body>
 
-    </html>
+    
 
-    <%- include('../partials/footer') %>
+
+<script>
+    //add listener to all editable fields.  When field changes, notify the database
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("d1   " )
+        const editableElements = document.querySelectorAll('.editable');
+        editableElements.forEach(function(element) {
+            element.addEventListener('dblclick', function(event) {
+                console.log("d2   ")
+                event.preventDefault();    // Prevent default behavior
+                event.target.contentEditable = true;  // Make the element editable
+                event.target.focus();    // Set focus to the element
+            });
+            element.addEventListener('blur', function(event) {
+                console.log("d3   ")
+                // When the element loses focus, save the updated value
+                const newValue = event.target.textContent;
+                const fieldID = event.target.id;
+                const recordID = event.target.getAttribute('data-record-id');
+                // Make an HTTP GET request to the server to update the database
+                console.log("d4   ", fieldID, newValue, recordID)
+                fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+        });
+    });
+</script>
+
+<%- include('../partials/footer') %>

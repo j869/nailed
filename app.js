@@ -262,12 +262,14 @@ app.get("/2/customers", async (req, res) => {
               const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
               // Merge customer and build data
               allCustomers = customersResult.rows.map(customer => {
-                  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-                  return {
-                      customer,
-                      builds
-                  };
+                const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                return {
+                    customer,
+                    builds
+                };
               });
+
+
           } else {
             console.log("d3   ");
             // If there's no search term, fetch all customers and their builds
@@ -319,6 +321,16 @@ app.get("/2/customers", async (req, res) => {
           } else {
               console.log("d7   ");
               // If no specific build is clicked, render customers.ejs
+              // Grouping customers by current_status
+              const groupedCustomers = allCustomers.reduce((acc, customer) => {
+                const status = customer.customer.current_status;
+                if (!acc[status]) {
+                    acc[status] = [];
+                }
+                acc[status].push(customer);
+                return acc;
+              }, {});
+              console.log("d71   ", allCustomers);
               res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.API_URL });
           }
       } catch (err) {
@@ -986,7 +998,7 @@ app.listen(port, () => {
 app.get("/update", async (req,res) => {
   console.log("ufg1     "	)
   const fieldID = req.query.fieldID;
-  const newValue = req.query.newValue;         // open to SQL injection attacks unless user entered value has been cleaned
+  const newValue = req.query.newValue.trim();     // open to SQL injection attacks unless user entered value has been cleaned
   const rowID = req.query.whereID;
   console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
   let table = "";
@@ -1039,6 +1051,44 @@ app.get("/update", async (req,res) => {
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
 
+    case "otherContact":
+      table = "customers";
+      columnName = "contact_other"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "contactStatus":
+      table = "customers";
+      columnName = "current_status"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+  
+    case "contactName":
+      table = "customers";
+      columnName = "full_name"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "contactAddress":
+      table = "customers";
+      columnName = "home_address"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "contactPhone":
+      table = "customers";
+      columnName = "primary_phone"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "contactEmail":
+      table = "customers";
+      columnName = "primary_email"
+      value = "'" + newValue + "'";
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+  
       case "test":
       break
     default:

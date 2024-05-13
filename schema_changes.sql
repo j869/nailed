@@ -1,5 +1,23 @@
 
 
+
+delete from products where display_text <> 'Garage';
+
+
+ALTER TABLE builds
+ADD COLUMN enum VARCHAR(31);
+
+
+
+
+
+
+
+
+
+
+--#region chages already added to prod 
+
 -- add a column so we can move tasks around in the UI
 
 ALTER TABLE jobs
@@ -183,3 +201,4 @@ VALUES
     (17, 'Engineering', '114', 'pretask', 16, NULL);
 
     
+    --#endregion
