@@ -32,10 +32,6 @@
                         <label for="contactOther">Contact Other:</label>
                         <input type="text" id="contactOther" name="contactOther" value="<%= data.contact_other %>">
                     </div>
-                    <!-- <div>
-                        <label for="contactHistory">Contact History:</label>
-                        <input type="text" id="contactHistory" name="contactHistory" value="<%= data.contact_history %>">
-                    </div> -->
                     <div>
                         <label for="currentStatus">Current Status:</label>
                         <input type="text" id="currentStatus" name="currentStatus" value="<%= data.current_status %>" disabled>
@@ -48,8 +44,8 @@
                         } %>
                         <input type="datetime-local" id="followUp" name="followUp" value="<%= followUp %>">
                     </div>            
-                    <button class="update" type="submit" name="action" value="update">Update</button>
-                    <button class="update" type="submit" name="action" value="delete">Delete</button>
+                    <button class="update" type="submit" name="action" value="update">Update Customer</button>
+                    <button class="update" type="submit" name="action" value="delete">Delete Customer</button>
                 </form>
             <% } %>
 
@@ -83,9 +79,9 @@
                                         <input type="datetime-local" name="enquiry_date" value="<%= builds[i].enquiry_date.toISOString().substring(0, 16) %>">
                                     </td>
                                     <td>
-                                        <button class="btn btn-light" type="submit" name="action" value="update">Update</button>
-                                        <button class="btn btn-light" type="submit" name="action" value="delete">Delete</button>
-                                        <button class="btn btn-light" type="submit" name="action" value="view">View</button>
+                                        <button class="btn btn-light" type="submit" name="action" value="update">Update Site</button>
+                                        <button class="btn btn-light" type="submit" name="action" value="delete">Delete Site</button>
+                                        <button class="btn btn-light" type="submit" name="action" value="view">View Site</button>
                                         
                                     </td>
                                 </form>                       
