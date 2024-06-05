@@ -258,7 +258,7 @@ app.get("/2/customers", async (req, res) => {
               // If there is a search term, fetch matching customers and their builds
               //const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
               const customersResult = await db.query(
-                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR primary_email ILIKE $1 OR current_status = $2",
+                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR primary_email ILIKE $1 OR contact_other ILIKE $1 OR current_status = $2 ORDER BY contact_other asc",
                 [`%${query}%`, query]
               );
               const customerIds = customersResult.rows.map(customer => parseInt(customer.id, 10));
@@ -273,6 +273,7 @@ app.get("/2/customers", async (req, res) => {
                   // console.log("d22   ", buildsResult.rowCount);
 
                   // Merge customer and build data
+                  console.log("d211    ", customerIds)
                   allCustomers = customersResult.rows.map(customer => {
                     const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
                     return {
@@ -289,7 +290,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
             console.log("d3   ");
             // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers");
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers order by contact_other asc" );
               customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
                 if (customer.follow_up) {
                     customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
