@@ -256,19 +256,35 @@ app.get("/2/customers", async (req, res) => {
           if (query) {
               console.log("d2   ");
               // If there is a search term, fetch matching customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+              //const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+              const customersResult = await db.query(
+                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR current_status = $2",
+                [`%${query}%`, query]
+              );
+              const customerIds = customersResult.rows.map(customer => parseInt(customer.id, 10));
+              console.log("d21  ", customersResult.rowCount, customerIds);
 
+              if (customerIds.length > 0) {
+                  const placeholders = customerIds.map((_, index) => `$${index + 1}`).join(', ');
+                  const buildsQuery = `SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN (${placeholders})`;
+                  const buildsResult = await db.query(buildsQuery, customerIds);
+                  console.log("d22   ", buildsResult.rowCount);
+                  // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => parseInt(customer.id, 10))]);
+                  // console.log("d22   ", buildsResult.rowCount);
 
-              const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => customer.id)]);
-              // Merge customer and build data
-              allCustomers = customersResult.rows.map(customer => {
-                const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-                return {
-                    customer,
-                    builds
-                };
-              });
-
+                  // Merge customer and build data
+                  allCustomers = customersResult.rows.map(customer => {
+                    const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+                    return {
+                        customer,
+                        builds
+                    };
+                  });
+                  console.log("d23   ", allCustomers.rowCount);
+                } else {
+                  console.log("d24   No customers found");
+                  allCustomers = [];
+                }
 
           } else {
             console.log("d3   ");

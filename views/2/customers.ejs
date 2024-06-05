@@ -3,7 +3,11 @@
 
     <div class="jumbotron text-center">
         <div class="container">
-            <h1 class="display-3">Customers</h1>
+            <!-- Search form -->
+            <form action="/2/customers" method="get">
+                <input type="text" name="query" placeholder="Search for customers...">
+                <button type="submit">Search</button>
+            </form>
             <br>
             <hr><br>
             <div class="panel-body">
