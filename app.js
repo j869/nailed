@@ -906,7 +906,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/",
+    successRedirect: "/2/customers",
     failureRedirect: "/login",
   })
 );
