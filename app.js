@@ -457,7 +457,7 @@ app.get("/customers", async (req, res) => {
     try {
       // Perform the search operation based on the query
       // For example, you might want to search for customers with names matching the query
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1 ", [`%${query}%`]);
       
       let allCustomers = result.rows;
       let status = {};
@@ -469,10 +469,11 @@ app.get("/customers", async (req, res) => {
         } catch (err) {
           status = result.rows[i].current_status
         }
-        if (status === "open") {
-          openCustomers.push(result.rows[i]);
-        } else {
+        console.log("a5   ", status, i);
+        if (status === "closed") {
           closedCustomers.push(result.rows[i]);
+        } else {
+          openCustomers.push(result.rows[i]);
         }
       }
       allCustomers = {open : openCustomers, closed : closedCustomers};
