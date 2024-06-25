@@ -258,8 +258,8 @@ app.get("/2/customers", async (req, res) => {
               // If there is a search term, fetch matching customers and their builds
               //const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
               const customersResult = await db.query(
-                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR primary_email ILIKE $1 OR contact_other ILIKE $1 OR current_status = $2 ORDER BY contact_other asc",
-                [`%${query}%`, query]
+                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR primary_email ILIKE $1 OR contact_other ILIKE $1 OR current_status ILIKE $1 ORDER BY contact_other asc",
+                [`%${query}%`]
               );
               const customerIds = customersResult.rows.map(customer => parseInt(customer.id, 10));
               console.log("d21  ", customersResult.rowCount, customerIds);
