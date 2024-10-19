@@ -41,11 +41,12 @@ db.connect();
 
 
 app.get("/", async (req, res) => {
-  console.log("ws1");
+  console.log("ws1", req.user);
 
   if (req.user) {
-    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = 1 ORDER BY id");
-    console.log("ws2", q1.rows);
+    console.log("ws21", req.user.id);
+    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = " + req.user.id + " ORDER BY id");
+    console.log("ws22", q1.rows);
 
     // Parse the JSON data and extract task_id, build_id, and job_id for each object
     const parsedData = [];

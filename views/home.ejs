@@ -16,6 +16,13 @@
                 <td><%= data[i].customer_address %></td>
                 <td><%= data[i].title %></td>
                 <td>
+                  <select name="person" disabled>
+                    <option value="1" <%= data[i].user_id == 1 ? 'selected' : '' %>>John</option>
+                    <option value="2" <%= data[i].user_id == 2 ? 'selected' : '' %>>Alex</option>
+
+                  </select>
+                </td>
+                <td>
                     <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
                         <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
                     </form>
