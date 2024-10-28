@@ -1216,25 +1216,42 @@ app.get("/update", async (req,res) => {
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "daytaskPerson":
-      table = "worksheets";
-      columnName = "user_id"
-      value = "" + newValue + "";
-      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      table = "tasks";
-      columnName = "owned_by"
-      let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1 ", [rowID]);
-      let task_id = 0;
-      if (q2.rows.length > 0) {
-        const description = q2.rows[0].description;
-        const parsedDescription = JSON.parse(description);
-        task_id = parsedDescription.task_id;
-        console.log("ufg787     Task ID:", task_id);
-      }      
-      value = "" + newValue + "";
-      console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
-      let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
-
+        const client = new Client(/* connection config */);
+        await client.connect();
+        
+        try {
+            await client.query('BEGIN'); // Start transaction
+    
+            table = "worksheets";
+            columnName = "user_id";
+            value = "" + newValue + "";
+            console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+            let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+            
+            // Execute q2 to retrieve the task_id
+            let q2 = await client.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
+            let task_id = 0;
+            if (q2.rows.length > 0) {
+                const description = q2.rows[0].description;
+                const parsedDescription = JSON.parse(description);
+                task_id = parsedDescription.task_id;
+                console.log("ufg787     Task ID:", task_id);
+            }
+            
+            table = "tasks";
+            columnName = "owned_by";
+            value = "" + newValue + "";
+            console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+            let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+            
+            await client.query('COMMIT'); // Commit transaction
+    
+        } catch (error) {
+            await client.query('ROLLBACK'); // Rollback on error
+            console.error("Transaction failed:", error);
+        } finally {
+            await client.end();
+        }
 
 
       break;
