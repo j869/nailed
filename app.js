@@ -1212,7 +1212,7 @@ app.get("/update", async (req,res) => {
       table = "worksheets";
       columnName = "title"
       value = "'" + newValue + "'";
-      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "daytaskPerson":
@@ -1220,7 +1220,23 @@ app.get("/update", async (req,res) => {
       columnName = "user_id"
       value = "" + newValue + "";
       console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      table = "tasks";
+      columnName = "owned_by"
+      let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1 ", [rowID]);
+      let task_id = 0;
+      if (q2.rows.length > 0) {
+        const description = q2.rows[0].description;
+        const parsedDescription = JSON.parse(description);
+        task_id = parsedDescription.task_id;
+        console.log("ufg787     Task ID:", task_id);
+      }      
+      value = "" + newValue + "";
+      console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+      let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+
+
+
       break;
     case "daytaskDate":
       table = "worksheets";

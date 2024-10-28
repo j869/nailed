@@ -131,7 +131,7 @@ async function handleTrigger(triggerData) {
                 const q2 = await pool.query(`
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
-              `, ["Build("+build.id+") " + task.task_text, task, 1, formattedDate]);
+              `, ["Build("+build.id+") " + task.task_text, task, task.user_id, formattedDate]);
             }
         }
     } catch (error) {
