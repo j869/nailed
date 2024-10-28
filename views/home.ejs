@@ -165,8 +165,9 @@
                 var isChecked = $(this).prop('checked');
                 console.log("a3   ", isChecked);
                 // Send API request to update task status
+                <% let bURL = (typeof data !== 'undefined' && data.baseURL) ? data.baseURL : '' %>
                 $.ajax({
-                    url: '<%= baseURL %>/taskComplete', 
+                    url: '<%= bURL %>/taskComplete', 
                     method: 'POST', 
                     data: {
                         taskId: taskId,
