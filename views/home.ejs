@@ -17,7 +17,7 @@
             <tr>
                 <td>
                     <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
-                        <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
+                        <button class="update btn btn-primary" type="submit" name="action" value="view" <%= data[i].customer_name ? "" : "disabled" %>>View</button>
                     </form>
                 </td>
                 <td><%= data[i].id %></td>
@@ -26,7 +26,7 @@
                 <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= data[i].id %>"><%= data[i].title %></td>
                 <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= data[i].id %>"><%= data[i].user_id %></td>
                 <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= data[i].id %>"><%= data[i].formatted_date %></td>
-                <td><label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)"> Done</label></td>
+                <td><label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)" <%= data[i].customer_name ? "disabled" : "" %>> Done</label></td>
             </tr>
             <% } %>
         </tbody>
