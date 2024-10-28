@@ -1216,11 +1216,8 @@ app.get("/update", async (req,res) => {
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "daytaskPerson":
-        const client = new Client(/* connection config */);
-        await client.connect();
-        
         try {
-            await client.query('BEGIN'); // Start transaction
+            await db.query('BEGIN'); // Start transaction
     
             table = "worksheets";
             columnName = "user_id";
@@ -1229,7 +1226,7 @@ app.get("/update", async (req,res) => {
             let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
             
             // Execute q2 to retrieve the task_id
-            let q2 = await client.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
+            let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
             let task_id = 0;
             if (q2.rows.length > 0) {
                 const description = q2.rows[0].description;
@@ -1244,13 +1241,11 @@ app.get("/update", async (req,res) => {
             console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
             let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
             
-            await client.query('COMMIT'); // Commit transaction
+            await db.query('COMMIT'); // Commit transaction
     
         } catch (error) {
-            await client.query('ROLLBACK'); // Rollback on error
+            await db.query('ROLLBACK'); // Rollback on error
             console.error("Transaction failed:", error);
-        } finally {
-            await client.end();
         }
 
 
