@@ -102,7 +102,7 @@ async function handleTrigger(triggerData) {
     console.log("gnt11  ")
     try {
         //rebuild user_id = 1 worksheet
-        const q1 = await pool.query(`DELETE FROM worksheets WHERE user_id = 1;`);
+        const q1 = await pool.query(`DELETE FROM worksheets ;`);
 
         const buildQuery = await pool.query("SELECT * FROM builds;");
         const builds = buildQuery.rows;
@@ -124,10 +124,14 @@ async function handleTrigger(triggerData) {
             if (task) {
                 console.log("gnt51  ")
 
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const formattedDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+
                 const q2 = await pool.query(`
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
-              `, ["Build("+build.id+") " + task.task_text, task, 1, '2024-04-09']);
+              `, ["Build("+build.id+") " + task.task_text, task, 1, formattedDate]);
             }
         }
     } catch (error) {

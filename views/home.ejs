@@ -1,5 +1,8 @@
 <%- include('partials/header') %>
 
+    <!-- use for API calls when we want to set status to compelte -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
+
   <h2>Current Tasks</h2>
   <div class="container">
 
@@ -8,7 +11,7 @@
       <button onclick="updateView(view - 1)">Previous</button>
       <button onclick="updateView(0)">Today</button>
       <button onclick="updateView(view + 1)">Next</button>
-      
+
     <div class="container">
       <table class="table">
 
@@ -26,7 +29,21 @@
                 <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= data[i].id %>"><%= data[i].title %></td>
                 <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= data[i].id %>"><%= data[i].user_id %></td>
                 <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= data[i].id %>"><%= data[i].formatted_date %></td>
-                <td><label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)" <%= data[i].customer_name ? "disabled" : "" %>> Done</label></td>
+                <td>
+                  <% if (data[i].customer_name == null) { %>
+                    <label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)"> Done</label>
+                  <% } else { %>
+                    <% let task_id = 55; %>
+                    <% let task_current_status = 'pending'; %>
+                      <div class="form-check">
+                      <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= data[i].task_id %>" data-task-id="<%= data[i].task_id %>" 
+                        <% if (data[i].task_status === 'complete') { %> checked <% } %>
+                      > 
+                      <label class="form-check-label" for="taskComplete<%= data[i].task_id %>">Done</label>
+                    </div>
+                  <% } %>
+                </td>
+
             </tr>
             <% } %>
         </tbody>
@@ -41,7 +58,7 @@
       </div>
       <div>
         <label for="taskPerson">Person:</label>
-        <input type="number" id="taskPerson" name="person" value="<%= data[0].user_id %>" required>
+        <input type="number" id="taskPerson" name="person" value="<%= user_id %>" required>
       </div>
       <div>
         <label for="taskDate">Date:</label>
@@ -63,6 +80,10 @@
 
   </div>
 
+  <form class="item" method="get" action="/daytaskUpdate">
+    <button class="update btn btn-primary" type="submit" name="action" value="view" style="float: right;">Update Table</button>
+  </form>
+  
 
 
   <script>
@@ -131,6 +152,37 @@
           console.error("Error updating checkbox:", error); // Handle errors
         }
       }
+
+
+      $(document).ready(function() {
+            console.log("a1   ");
+            // Add click event listener to the checkbox with class 'task-checkbox'
+            $('.task-checkbox').click(function() {
+                // Get the task ID from the data attribute
+                var taskId = $(this).data('task-id');
+                console.log("a2   ", taskId);
+                // Determine if checkbox is checked
+                var isChecked = $(this).prop('checked');
+                console.log("a3   ", isChecked);
+                // Send API request to update task status
+                $.ajax({
+                    url: 'http://localhost:3000/taskComplete', 
+                    method: 'POST', 
+                    data: {
+                        taskId: taskId,
+                        status: isChecked
+                    },
+                    success: function(response) {
+                        // Handle success response if needed
+                        console.log('a9    Task status updated successfully');
+                    },
+                    error: function(xhr, status, error) {
+                        // Handle error response if needed
+                        console.error('a8    Error updating task status:', error);
+                    }
+                });
+            });
+        });
 
 </script>
 

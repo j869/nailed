@@ -100,6 +100,7 @@ app.get("/", async (req, res) => {
       const rowData = {
         ...row,
         task_id: null,
+        task_status: null,
         build_id: null,
         job_id: null,
         customer_name: null,
@@ -118,9 +119,9 @@ app.get("/", async (req, res) => {
         const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
         const { full_name, home_address } = customerInfo;
 
-
         // Update rowData with the extracted values
         rowData.task_id = description.task_id;
+        rowData.task_status = description.task_status;
         rowData.build_id = description.build_id;
         rowData.job_id = description.job_id;
         rowData.customer_name = full_name;
@@ -131,10 +132,9 @@ app.get("/", async (req, res) => {
       // Push the rowData to parsedData
       parsedData.push(rowData);
     }
-    //main();     // trigger worksheet update from trigger2.js
 
     // Pass the parsed data to the template
-    res.render("home.ejs", { view: iViewDay, data: parsedData });
+    res.render("home.ejs", { view: iViewDay, user_id: req.user.id, data: parsedData });
 
   } else {
     res.render("home.ejs");
@@ -144,6 +144,14 @@ app.get("/", async (req, res) => {
 });
 
 
+
+app.get("/daytaskUpdate", (req, res) => {
+  console.log("dup1    ");
+  main();
+
+  res.redirect("/") ;
+})
+    //main();     // trigger worksheet update from trigger2.js
 
 
 //#region Bryans Excel UX style
@@ -667,6 +675,7 @@ app.post("/taskComplete", async (req, res) => {
       // Check if the update was successful
       if (updateResult.rowCount === 1) {
           console.log(`ta9   Task ${taskID} status updated to ${newStatus}`);
+          const q4 = await db.query(`DELETE FROM worksheets WHERE description LIKE '%' || '"task_id":' || $1 || ',' || '%'`,[taskID]);
           res.status(200).json({ message: `Task ${taskID} status updated to ${newStatus}` });
       } else {
           console.log(`ta8     Task ${taskID} not found or status not updated`);
@@ -1072,9 +1081,29 @@ app.get("/dtDone", async (req, res) => {
   const { id, done } = req.query; // Destructure id and done from request body
 
   try {
-    const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-    console.log("dtd3    deleted: ", q2.rowCount)
-    
+    const q1 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
+    console.log("dtd2    ", q1.rows);
+
+    if (q1.rows.description == null) {
+      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+      console.log("dtd3    deleted: ", q2.rowCount)
+    } else {
+      console.log("dtd4    ");
+      // const fieldID = 'current_status';
+      // const newValue = 'complete';
+      // const recordID = id;
+
+      // const response = await fetch('/taskComplete', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   body: JSON.stringify({ taskId: 1, status: 'true' })
+      // });
+      
+      res.redirect("/") ;
+    }
+
     res.status(200).json({ message: "Checkbox status updated" }); // Return a response
   } catch (error) {
     console.error("Error updating checkbox:", error);
