@@ -178,6 +178,13 @@ app.get("/jobDone/:id", async (req,res) => {
   }  
 })
 
+// app.get("/daytaskComplete", async (req, res) => {
+//   console.log("dte1");
+//   const q1 = await pool.query("DELETE FROM worksheet where ID = $1", [req.query.id]);
+//   console.log ("dte9    ", q1) ;
+// })
+
+
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;

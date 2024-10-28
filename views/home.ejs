@@ -3,35 +3,53 @@
   <h2>Current Tasks</h2>
   <div class="container">
 
-
     <% if (locals.data) { %>
+      <% let view = locals.data.view || 0; %>
+      <button onclick="updateView(view - 1)">Previous</button>
+      <button onclick="updateView(0)">Today</button>
+      <button onclick="updateView(view + 1)">Next</button>
+      
     <div class="container">
       <table class="table">
 
         <tbody>
             <% for (let i in data) { %>
             <tr>
-                <td><%= data[i].task_id %></td>
-                <td><%= data[i].customer_name %></td>
-                <td><%= data[i].customer_address %></td>
-                <td><%= data[i].title %></td>
-                <td>
-                  <select name="person" disabled>
-                    <option value="1" <%= data[i].user_id == 1 ? 'selected' : '' %>>John</option>
-                    <option value="2" <%= data[i].user_id == 2 ? 'selected' : '' %>>Alex</option>
-
-                  </select>
-                </td>
                 <td>
                     <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
                         <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
                     </form>
                 </td>
+                <td><%= data[i].id %></td>
+                <td><%= data[i].customer_name %></td>
+                <td><%= data[i].customer_address %></td>
+                <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= data[i].id %>"><%= data[i].title %></td>
+                <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= data[i].id %>"><%= data[i].user_id %></td>
+                <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= data[i].id %>"><%= data[i].formatted_date %></td>
+                <td><label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)"> Done</label></td>
             </tr>
             <% } %>
         </tbody>
     </table>
     </div>
+
+    <h3>Add New Task</h3>
+    <form method="POST" action="/">
+      <div>
+        <label for="taskTitle">Title:</label>
+        <input type="text" id="taskTitle" name="title" required>
+      </div>
+      <div>
+        <label for="taskPerson">Person:</label>
+        <input type="number" id="taskPerson" name="person" value="<%= data[0].user_id %>" required>
+      </div>
+      <div>
+        <label for="taskDate">Date:</label>
+        <input type="date" id="taskDate" name="date" required>
+      </div>
+      <button type="submit" class="btn btn-success">Add Task</button>
+    </form>
+
     <% } else { %>
       <i class="fas fa-key fa-6x"></i>
       <h1 class="display-3">Tracker</h1>
@@ -45,5 +63,75 @@
 
   </div>
 
+
+
+  <script>
+    //set 'add reminder' date = todays date
+    document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
+
+    //add listener to all editable fields.  When field changes, notify the database
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("d1   " )
+        const editableElements = document.querySelectorAll('.editable');
+        editableElements.forEach(function(element) {
+            element.addEventListener('dblclick', function(event) {
+                console.log("d2   ")
+                event.preventDefault();    // Prevent default behavior
+                event.target.contentEditable = true;  // Make the element editable
+                event.target.focus();    // Set focus to the element
+            });
+            element.addEventListener('blur', function(event) {
+                console.log("d3   ")
+                // When the element loses focus, save the updated value
+                const newValue = event.target.textContent;
+                const fieldID = event.target.id;
+                const recordID = event.target.getAttribute('data-record-id');
+                // Make an HTTP GET request to the server to update the database
+                console.log("d4   ", fieldID, newValue, recordID)
+                fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            });
+        });
+    });
+
+
+    const view = <%= (typeof view !== 'undefined' ? view : 0) %>;// Capture the current view from EJS
+    function updateView(newView) {
+      // Get the current URL
+      const url = new URL(window.location.href);
+
+      // Update the 'view' parameter
+      url.searchParams.set('view', newView);
+
+      // Reload the page with the updated URL
+      window.location.href = url.toString();
+    }
+
+
+      async function handleCheckboxChange(checkbox) {
+        console.log('dtd1  '); // Debugging log
+        const recordId = checkbox.getAttribute('data-record-id'); // Get the record ID
+        const isChecked = checkbox.checked; // Get the checkbox state
+        console.log('dtd2    ', recordId);
+        console.log('dtd3    ', isChecked);
+        try {
+          fetch(`/dtDone?id=${recordId}&done=${isChecked}}`)
+
+
+        } catch (error) {
+          console.error("Error updating checkbox:", error); // Handle errors
+        }
+      }
+
+</script>
 
 <%- include('partials/footer') %>

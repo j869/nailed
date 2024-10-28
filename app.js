@@ -40,44 +40,101 @@ db.connect();
 //#endregion
 
 
+
+
+app.post("/", async (req, res) => {
+  console.log("wb1   ", req.body);
+
+  const { title, person, date } = req.body;
+  const nullDesc = {
+    "build_id": 0,
+    "build_start": "2024-06-24T23:00:00.000Z",
+    "build_product": 1,
+    "job_id": 8,
+    "job_text": "Follow Up",
+    "job_target": null,
+    "job_completed": null,
+    "job_status": null,
+    "task_id": 92,
+    "task_text": "Design Site plan",
+    "task_target": null,
+    "task_completed": null,
+    "task_status": "pending"
+  }
+  
+  const q2 = await db.query("INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4) RETURNING id", [title, null, person, date]);
+  console.log("wb7    ", q2.data);
+
+  res.redirect("/") ;
+
+})
+
 app.get("/", async (req, res) => {
-  console.log("ws1", req.user);
+  console.log("ws1     ");
 
   if (req.user) {
-    console.log("ws21", req.user.id);
-    const q1 = await db.query("SELECT * FROM worksheets WHERE user_id = " + req.user.id + " ORDER BY id");
-    console.log("ws22", q1.rows);
+    console.log("ws21     current logged in user: ", req.user.id);
+    const iViewDay = parseInt(req.query.view) || 0;
+    console.log("ws22     view: ", req.query.view);
+    let q1SQL = "";
+    let q1Params = [req.user.id];
+    if (iViewDay == 0) {
+      q1SQL = "SELECT * FROM worksheets WHERE user_id = $1 AND date <= NOW()::date ORDER BY id";
+    } else {
+      q1SQL = "SELECT * FROM worksheets WHERE user_id = $1 AND date = (NOW()::date + $2 * INTERVAL '1 day') ORDER BY id"
+      q1Params.push(iViewDay);
+    } 
+    const q1 = await db.query(q1SQL, q1Params);    
+    console.log("ws25    rows", q1.rowCount);
 
     // Parse the JSON data and extract task_id, build_id, and job_id for each object
     const parsedData = [];
     for (const row of q1.rows) {
-      const description = JSON.parse(row.description);
+      const description = JSON.parse(row.description || null); // Parse as null if row.description is empty or not valid
 
-      // Perform a database query to fetch customer information
-      console.log("ws3   ", description)
-      const q2 = await db.query("SELECT customers.id, customers.full_name, customers.home_address FROM builds left join customers on builds.customer_id = customers.id WHERE builds.id = $1", [description.build_id]);
-
-      // Extract customer name and address from the database result
-      const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
-      const { full_name, home_address } = customerInfo;
-
-      // Add customer name and address to the parsed data
+      // Format date to yyyy-mm-dd
+      const dateObj = new Date(row.date);
+      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      
+      // Create the base rowData object
       const rowData = {
         ...row,
-        task_id: description.task_id,
-        build_id: description.build_id,
-        job_id: description.job_id,
-        customer_name: full_name,
-        customer_address: home_address
+        task_id: null,
+        build_id: null,
+        job_id: null,
+        customer_name: null,
+        customer_address: null,
+        formatted_date: formattedDate,
       };
+
+      if (description) {
+        // Perform a database query to fetch customer information
+        const q2 = await db.query(
+          "SELECT customers.id, customers.full_name, customers.home_address FROM builds LEFT JOIN customers ON builds.customer_id = customers.id WHERE builds.id = $1",
+          [description.build_id]
+        );
+
+        // Extract customer name and address from the database result
+        const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
+        const { full_name, home_address } = customerInfo;
+
+
+        // Update rowData with the extracted values
+        rowData.task_id = description.task_id;
+        rowData.build_id = description.build_id;
+        rowData.job_id = description.job_id;
+        rowData.customer_name = full_name;
+        rowData.customer_address = home_address;
+        rowData.formatted_date = formattedDate;
+      }
+
+      // Push the rowData to parsedData
       parsedData.push(rowData);
     }
-
-    
-    main();     // trigger worksheet update from trigger2.js
+    //main();     // trigger worksheet update from trigger2.js
 
     // Pass the parsed data to the template
-    res.render("home.ejs", { data: parsedData });
+    res.render("home.ejs", { view: iViewDay, data: parsedData });
 
   } else {
     res.render("home.ejs");
@@ -1010,9 +1067,23 @@ app.listen(port, () => {
 
 
 
+app.get("/dtDone", async (req, res) => {
+  console.log("dtd1   ", req.query); // Log the incoming request body
+  const { id, done } = req.query; // Destructure id and done from request body
 
+  try {
+    const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    console.log("dtd3    deleted: ", q2.rowCount)
+    
+    res.status(200).json({ message: "Checkbox status updated" }); // Return a response
+  } catch (error) {
+    console.error("Error updating checkbox:", error);
+    
+    // Send an error response
+    res.status(500).json({ error: "Failed to update checkbox" }); // Return error status
+  }
+});
 
-//#region not in use
 
 app.get("/update", async (req,res) => {
   console.log("ufg1     "	)
@@ -1107,13 +1178,45 @@ app.get("/update", async (req,res) => {
       value = "'" + newValue + "'";
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
-  
-      case "test":
-      break
+
+    case "daytaskTitle":
+      table = "worksheets";
+      columnName = "title"
+      value = "'" + newValue + "'";
+      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "daytaskPerson":
+      table = "worksheets";
+      columnName = "user_id"
+      value = "" + newValue + "";
+      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "daytaskDate":
+      table = "worksheets";
+      columnName = "date"
+      value = "'" + newValue + "'";
+      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;
+    case "daytaskArchive":
+      table = "worksheets";
+      columnName = "archive"
+      value = (newValue == 1) ? true : false;
+      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      break;      
+
     default:
       console.error("ufg8    Unknown field was edited: " + fieldID );
   }
 })
+
+
+
+
+//#region not in use
 
 //#endregion
 
