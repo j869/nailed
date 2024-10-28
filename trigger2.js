@@ -102,7 +102,7 @@ async function handleTrigger(triggerData) {
     console.log("gnt11  ")
     try {
         //rebuild user_id = 1 worksheet
-        const q1 = await pool.query(`DELETE FROM worksheets ;`);
+        const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
 
         const buildQuery = await pool.query("SELECT * FROM builds;");
         const builds = buildQuery.rows;
