@@ -166,7 +166,7 @@
                 console.log("a3   ", isChecked);
                 // Send API request to update task status
                 $.ajax({
-                    url: 'http://localhost:3000/taskComplete', 
+                    url: '<%= baseURL %>/taskComplete', 
                     method: 'POST', 
                     data: {
                         taskId: taskId,

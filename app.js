@@ -134,7 +134,7 @@ app.get("/", async (req, res) => {
     }
 
     // Pass the parsed data to the template
-    res.render("home.ejs", { view: iViewDay, user_id: req.user.id, data: parsedData });
+    res.render("home.ejs", { baseURL: process.env.BASE_URL, view: iViewDay, user_id: req.user.id, data: parsedData });
 
   } else {
     res.render("home.ejs");
