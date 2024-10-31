@@ -112,7 +112,7 @@ async function handleTrigger(triggerData) {
             console.log("gnt31  build_id: ", build.id)
             
             // Query to get a list of builds
-            const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1 order by sort_order asc;", [build.id]);
+            const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1 order by job_sort, task_sort;", [build.id]);
             const tasks = combiTasks.rows;
             console.log("gnt33  returned ", combiTasks.rowCount);
 
