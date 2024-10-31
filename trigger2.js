@@ -109,16 +109,16 @@ async function handleTrigger(triggerData) {
 
         // Loop through each build
         for (const build of builds) {
-            console.log("gnt31  ")
+            console.log("gnt31  build_id: ", build.id)
             
             // Query to get a list of builds
             const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1 order by sort_order asc;", [build.id]);
             const tasks = combiTasks.rows;
-            console.log("gnt33  ")
+            console.log("gnt33  returned ", combiTasks.rowCount);
 
             // Get the first incomplete task for the current build
             const task = tasks[0];
-            console.log("gnt34  ", task)
+            console.log("gnt34  task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.sort_order);
             
             // Add the task to the work schedule
             if (task) {
