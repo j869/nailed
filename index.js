@@ -73,7 +73,7 @@ app.get("/jobs/:id", async (req, res) => {
       const jobName = result.rows[0].display_text;
       const jobText = result.rows[0].free_text;
       const targetDate = result.rows[0].target_date;
-      const jobUser = "User(" + result.rows[0].user_id + ")"
+      const jobUser = "" + result.rows[0].user_id + ""
 
       vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
       result = await pool.query(vSQL);        

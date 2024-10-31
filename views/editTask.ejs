@@ -96,7 +96,10 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                         <% } %>
                     </ul>   
                 </div>  
-
+                <div>
+                    Person Responsible
+                    <h5 class="card-title"><div class="editable" id="jobOwner" contenteditable="true" data-record-id="<%= siteContent.job.id  %>"><%= siteContent.job.display_name %></div></h5>
+                </div>
 
                 <!-- SLIDER  -->
                 <!-- https://stackoverflow.com/questions/65875721/ho-can-i-add-two-values-in-bootstrap-range-slider -->
@@ -172,25 +175,7 @@ Next Task
 
 
 <script>
-        // manage the reminder widget
-        const setLabel = (lbl, val) => {
-            const label = $(`#slider-${lbl}-label`);
-            label.text(val);
-            const slider = $(`#slider-div .${lbl}-slider-handle`);
-            const rect = slider[0].getBoundingClientRect();
-            label.offset({
-                top: rect.top - 30,
-                left: rect.left
-            });
-        }
-        const setLabels = (values) => {
-            setLabel("min", values[0]);
-            setLabel("max", values[1]);
-        }
-        $('#ex2').slider().on('slide', function (ev) {
-            setLabels(ev.value);
-        });
-        setLabels($('#ex2').attr("data-value").split(","));
+ 
 
 
         //add listener to all editable fields.  When field changes, notify the database
@@ -204,10 +189,12 @@ Next Task
                 });
                 element.addEventListener('blur', function(event) {
                     // When the element loses focus, save the updated value
+                    console.log('a1   ');
                     const newValue = event.target.textContent;
                     const fieldID = event.target.id;
                     const recordID = event.target.getAttribute('data-record-id');
                     // Make an HTTP GET request to the server to update the database
+                    console.log('a5   ');
                     fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
                         .then(response => {
                             if (response.ok) {
@@ -219,6 +206,8 @@ Next Task
                         .catch(error => {
                             console.error('Error:', error);
                         });
+                    console.log('a9   ');
+
                 });
             });
         });

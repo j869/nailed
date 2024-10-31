@@ -1138,6 +1138,19 @@ app.get("/update", async (req,res) => {
       value = "'" + newValue + "'";
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
+    case "jobOwner":
+        table = "jobs";
+        columnName = "user_id";
+        value = "'" + newValue + "'";
+        // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
+        console.log('ufg00050');
+        const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
+        console.log('ufg00051');
+        const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
+        console.log('ufg00052');
+            
+        break;
     case "taskDesc":
       table = "tasks";
       columnName = "free_text"
