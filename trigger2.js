@@ -127,11 +127,12 @@ async function handleTrigger(triggerData) {
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 const formattedDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-
+                const targetDate = task.task_target ? task.task_target : formattedDate;
+                
                 const q2 = await pool.query(`
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
-              `, ["Build("+build.id+") " + task.task_text, task, task.user_id, formattedDate]);
+              `, ["Build("+build.id+") " + task.task_text, task, task.user_id, targetDate]);
             }
         }
     } catch (error) {

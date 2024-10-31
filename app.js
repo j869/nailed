@@ -1267,8 +1267,28 @@ app.get("/update", async (req,res) => {
       table = "worksheets";
       columnName = "date"
       value = "'" + newValue + "'";
-      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+      // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
+      console.log('ufg00076');
+      const a1 = await db.query("UPDATE worksheets SET date = " + value + " WHERE id = " + rowID + ";");      
+      console.log('ufg00077');
+      const a2 = await db.query("SELECT description FROM worksheets WHERE id = " + rowID + ";");      
+      if (a2.rows.length > 0 && a2.rows[0].description !== null) {
+        try {
+              const descriptionJson = JSON.parse(a2.rows[0].description);
+              const taskId = descriptionJson.task_id;
+              console.log("ufg00071   Task ID:", taskId);
+              const a3 = await db.query("UPDATE tasks SET target_date = " + value + " WHERE id = " + taskId + ";");      
+              console.log('ufg00079');
+          } catch (error) {
+              console.error("ufg00078 Error parsing JSON:", error);
+          }
+      } else {
+          console.log("ufg00072  Description is null or no record found, breaking out.");
+      }      
+                
+
       break;
     case "daytaskArchive":
       table = "worksheets";
