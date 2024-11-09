@@ -188,13 +188,15 @@ app.get("/jobDone/:id", async (req,res) => {
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
-  const value = req.query.value;
+  let value = req.query.value;
+  console.log("ud01    ", value);
+  //value = value.replace(/%/g,"_");
   const id = req.query.id;
   console.log("ud10   " + "UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");
   try {
     // put every database query into a try - catch block
     //update table
-    const q = await pool.query("UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");      
+    const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
       console.log("ud50     ", q.rowCount);

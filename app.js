@@ -1117,7 +1117,7 @@ app.get("/dtDone", async (req, res) => {
 app.get("/update", async (req,res) => {
   console.log("ufg1     "	)
   const fieldID = req.query.fieldID;
-  const newValue = req.query.newValue.trim();     // open to SQL injection attacks unless user entered value has been cleaned
+  const newValue = (req.query.newValue || '');   
   const rowID = req.query.whereID;
   console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
   let table = "";
@@ -1129,13 +1129,13 @@ app.get("/update", async (req,res) => {
     case "dueDate": 
       table = "jobs";
       columnName = "target_date"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "jobDesc":
       table = "jobs";
       columnName = "free_text"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "jobOwner":
@@ -1154,77 +1154,77 @@ app.get("/update", async (req,res) => {
     case "taskDesc":
       table = "tasks";
       columnName = "free_text"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;      
     case "jobTitle":
       table = "jobs";
       columnName = "display_text"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "taskTitle":
       table = "tasks";
       columnName = "display_text"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
   
     case "taskOrder":
       table = "tasks";
       columnName = "sort_order"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "taskPerson":
       table = "tasks";
       columnName = "completed_by_person"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
 
     case "otherContact":
       table = "customers";
       columnName = "contact_other"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactStatus":
       table = "customers";
       columnName = "current_status"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
   
     case "contactName":
       table = "customers";
       columnName = "full_name"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactAddress":
       table = "customers";
       columnName = "home_address"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactPhone":
       table = "customers";
       columnName = "primary_phone"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactEmail":
       table = "customers";
       columnName = "primary_email"
-      value = "'" + newValue + "'";
+      value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
 
     case "daytaskTitle":
       table = "worksheets";
       columnName = "title"
-      value = "'" + newValue + "'";
+      value =  newValue ;
       console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
@@ -1266,20 +1266,20 @@ app.get("/update", async (req,res) => {
     case "daytaskDate":
       table = "worksheets";
       columnName = "date"
-      value = "'" + newValue + "'";
+      value =  newValue ;
       // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
       console.log('ufg00076');
-      const a1 = await db.query("UPDATE worksheets SET date = " + value + " WHERE id = " + rowID + ";");      
+      const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
       console.log('ufg00077');
-      const a2 = await db.query("SELECT description FROM worksheets WHERE id = " + rowID + ";");      
+      const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
       if (a2.rows.length > 0 && a2.rows[0].description !== null) {
         try {
               const descriptionJson = JSON.parse(a2.rows[0].description);
               const taskId = descriptionJson.task_id;
               console.log("ufg00071   Task ID:", taskId);
-              const a3 = await db.query("UPDATE tasks SET target_date = " + value + " WHERE id = " + taskId + ";");      
+              const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
               console.log('ufg00079');
           } catch (error) {
               console.error("ufg00078 Error parsing JSON:", error);
