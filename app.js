@@ -362,7 +362,7 @@ app.get("/2/customers", async (req, res) => {
                     customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
                 }
               });
-              console.log("d31   ", customersResult.rows[0]);
+              //console.log("d31   ", customersResult.rows[0]);
               const buildsResult = await db.query(`
                                     SELECT 
                                         b.id, 
@@ -379,7 +379,7 @@ app.get("/2/customers", async (req, res) => {
                                     WHERE 
                                         b.customer_id = ANY ($1)
                                      `, [customersResult.rows.map(customer => customer.id)]);
-              console.log("d32    ", buildsResult.rows[0]);
+              //console.log("d32    ", buildsResult.rows[0]);
               // Merge customer and build data
               allCustomers = customersResult.rows.map(customer => {
                   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
@@ -413,7 +413,7 @@ app.get("/2/customers", async (req, res) => {
                 acc[status].push(customer);
                 return acc;
               }, {});
-              console.log("d71   ", allCustomers);
+              console.log("d71   ");
               res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.API_URL });
           }
       } catch (err) {
@@ -523,8 +523,21 @@ app.get("/customers", async (req, res) => {
     try {
       // Perform the search operation based on the query
       // For example, you might want to search for customers with names matching the query
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1 ", [`%${query}%`]);
-      
+
+      const statusList = await db.query("SELECT DISTINCT current_status FROM customers");
+      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+
+      const customersByStatus = statusList.rows.reduce((acc, status) => {
+        acc[status.current_status] = result.rows.filter(customer => customer.current_status === status.current_status);
+        return acc;
+      }, {});
+
+      console.log("a2     Grouped Customers by Status:");
+      res.render("listCustomers.ejs", {
+        data : customersByStatus
+      });
+      return;
+
       let allCustomers = result.rows;
       let status = {};
       let openCustomers = [];

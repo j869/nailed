@@ -16,7 +16,7 @@
                         Add a new customer
                     </button>
                 </h2>
-                <div id="stayOpen-collapseThree" class="accordion-collapse collapse show">
+                <div id="stayOpen-collapseThree" class="accordion-collapse collapse ">
                     <div class="accordion-body">
                         <form class="item" action="/addCustomer" method="post">
                             <input type="text" name="fullName"     placeholder="customer name" autocomplete="off" autofocus="true" />
@@ -30,63 +30,48 @@
                 </div>
             </div>
 
-
+            <% for (let key in data) { %> <!-- Loop through each property of 'data' (e.g., 'open', 'closed') -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseOne" aria-expanded="true" aria-controls="stayOpen-collapseOne">
-                        Active customers
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<%= key %>" aria-expanded="true" aria-controls="collapse-<%= key %>">
+                        <%= key.charAt(0).toUpperCase() + key.slice(1) %> Customers <!-- Capitalize and show section name -->
                     </button>
                 </h2>
-                <div id="stayOpen-collapseOne" class="accordion-collapse collapse show">
+                <div id="collapse-<%= key %>" class="accordion-collapse collapse show">
                     <div class="accordion-body">
                         <table class="table">
-
                             <tbody>
-                                <% for (let i in data.open) { %>
-                                <tr>
-                                    <td><%= data.open[i].id %></td>
-                                    <td><%= data.open[i].full_name %></td>
-                                    <td><%= data.open[i].home_address %></td>
-                                    <td><%= data.open[i].primary_phone %></td>
-                                    <td><%= data.open[i].primary_email %></td>
-                                    <td><%= data.open[i].contact_other %></td>
-                                    <td>
-                                        <form class="item" method="post" action="/updateCustomer/<%= data.open[i].id %>">
-                                            <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
-                                        </form>
-                                    </td>
-                                </tr>
+                                <!-- Loop through each customer in the current array (e.g., open or closed) -->
+                                <% if (Array.isArray(data[key])) { %>
+                                    <% data[key].forEach(customer => { %>
+                                        <tr>
+                                            <td><%= customer.id %></td>
+                                            <td><%= customer.full_name %></td>
+                                            <td><%= customer.home_address %></td>
+                                            <td><%= customer.primary_phone %></td>
+                                            <td><%= customer.primary_email %></td>
+                                            <td><%= customer.contact_other %></td>
+                                            <td><%= key %></td>
+                                            <td>
+                                                <form class="item" method="post" action="/updateCustomer/<%= customer.id %>">
+                                                    <button class="update btn btn-primary" type="submit" name="action" value="view">View</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <!-- Handle case if it's not an array (fallback) -->
+                                    <tr>
+                                        <td colspan="7">No customers found</td>
+                                    </tr>
                                 <% } %>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#stayOpen-collapseTwo" aria-expanded="false" aria-controls="stayOpen-collapseTwo">
-                        Archived Customers
-                    </button>
-                </h2>
-                <div id="stayOpen-collapseTwo" class="accordion-collapse collapse show">
-                    <div class="accordion-body">
-                        <% for (let i in data.closed) { %>
-                        <form class="item" method="post" action="/updateCustomer/<%= data.closed[i].id %>">
-                            <br><%= data.closed[i].id %>
-                            <input type="text" name="fullName" value="<%= data.closed[i].full_name %>">
-                            <input type="text" name="primaryPhone" value="<%= data.closed[i].primary_phone %>">
-                            <input type="text" name="primaryEmail" value="<%= data.closed[i].primary_email %>">
-                            <input type="text" name="contactOther" value="<%= data.closed[i].contact_other %>">
-                            <input type="text" name="contactHistory" value="<%= data.closed[i].contact_history %>">
-                            <!-- <button class="update" type="submit" name="action" value="update">Update</button>
-                            <button class="update" type="submit" name="action" value="delete">Delete</button> -->
-                            <button class="update" type="submit" name="action" value="view">View</button>
-                            <!-- <button class="update" type="submit" name="action" value="edit">Edit</button> -->
-                        </form>
-                        <% } %>   
-                    </div>
-                </div>
-            </div>
+        <% } %> <!-- End main data loop -->
+            
         </div>
     </div>
 </div>
