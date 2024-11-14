@@ -12,6 +12,24 @@
             <hr><br>
             <div class="panel-body">
 
+        <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
+            <% 
+                const groupedData = locals.tableData.reduce((acc, data) => {
+                    const status = data.customer.current_status;
+                    if (!acc[status]) {
+                        acc[status] = [];
+                    }
+                    acc[status].push(data);
+                    return acc;
+                }, {});
+            %>
+            <% Object.keys(groupedData).forEach(function(status) { %>
+            <h2 class="accordion-header" id="heading<%= status %>"></h2>
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStatus<%= status %>" aria-expanded="true" aria-controls="collapseStatus<%= status %>">
+                    <strong><%= status %></strong>
+                </button>
+            </h2>
+
 
                 <table class="table table-condensed ">
                     <thead>
@@ -29,7 +47,7 @@
                     <tbody>
                         <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
                             <% locals.tableData.forEach(function(data) { %>
-                                <% if (data.customer) { %>
+                                <% if (data.customer.current_status == status) { %>
                                     <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
                                         <td class="editable" contenteditable="true" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
                                         <td class="editable" contenteditable="true" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
@@ -73,7 +91,8 @@
                     </tbody>
                 </table>
 
-
+            <% }); %>
+        <% } %>
 
 
 
