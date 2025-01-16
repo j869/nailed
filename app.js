@@ -163,20 +163,15 @@ app.get("/2/build/:id", async (req, res) => {
       try {
           let allCustomers;
           if (buildID) {
-              console.log("b2   ", buildID);
+              console.log("b2   SELECT * FROM jobs WHERE build_id = " + buildID + " order by id");
               const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1 order by id", [buildID]);
-              console.log("b21   ", jobsResult.rows);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
-              console.log("b215    ", jobIDArray)
               const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
 
               const taskIDArray = tasksResult.rows.map(task => task.id);
-              console.log("b217    ", taskIDArray)
               const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
               
-
-              console.log("b22   ")
               // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
               // console.log("b23   ", buildsResult.rows[0]);
               const buildsResult = await db.query(`
@@ -197,14 +192,11 @@ app.get("/2/build/:id", async (req, res) => {
                                     ORDER BY
                                         b.id
                                      `, [buildID]);
-              console.log("b23    ", buildsResult.rows[0]);
 
               const custID = buildsResult.rows[0].customer_id
 
               // If there is a search term, fetch matching customers and their builds
-              console.log("b24   ", custID)
               const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
-              console.log("b25   ", customersResult.rows[0])
 
               console.log("b26   ")
 // Merge customer, build, and jobs data
@@ -258,7 +250,6 @@ allCustomers = customersResult.rows.map(customer => {
               //       customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
               //   }
               // });
-              console.log("b31   ", customersResult.rows[0]);
               const buildsResult = await db.query(`
                                     SELECT 
                                         b.id, 
@@ -275,7 +266,6 @@ allCustomers = customersResult.rows.map(customer => {
                                     WHERE 
                                         b.customer_id = ANY ($1)
                                      `, [customersResult.rows.map(customer => customer.id)]);
-              console.log("b32    ", buildsResult.rows[0]);
               // Merge customer and build data
               allCustomers = customersResult.rows.map(customer => {
                   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
@@ -1133,6 +1123,23 @@ app.get("/update", async (req,res) => {
   const newValue = (req.query.newValue || '');   
   const rowID = req.query.whereID;
   console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
+
+  if (!fieldID) {
+    console.error("ufg831    Error: fieldID is null - write was cancelled");
+    res.status(400).send("Error: fieldID is null");
+    return;
+  }
+  if (!newValue) {
+    console.error("ufg832    Error: newValue is null - write was cancelled");
+    res.status(400).send("Error: newValue is null");
+    return;
+  }
+  if (!rowID) {
+    console.error("ufg833    Error: rowID is null - write was cancelled");
+    res.status(400).send("Error: rowID is null");
+    return;
+  }
+
   let table = "";
   let columnName = "";
   let value = "";
@@ -1157,7 +1164,7 @@ app.get("/update", async (req,res) => {
         value = "'" + newValue + "'";
         // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
-        console.log('ufg00050');
+        console.log("ufg00050      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
         const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
         console.log('ufg00051');
         const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      

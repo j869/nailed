@@ -137,21 +137,21 @@
                                                                                     <thead>
                                                                                         <tr class="table-info">
                                                                                             <th>ID</th>
-                                                                                            <th>Activity Group</th>
-                                                                                            <th>Free Text</th>
-                                                                                            <th>Job Template ID</th>
+                                                                                            <th>Job Group</th>
+                                                                                            <th> </th>
+                                                                                            <th style="display: none;">Job Template ID</th>
                                                                                             <th>User ID</th>
                                                                                             <th>Role ID</th>
-                                                                                            <th>Build ID</th>
-                                                                                            <th>Product ID</th>
-                                                                                            <th>Reminder ID</th>
-                                                                                            <th>Conversation ID</th>
-                                                                                            <th>Target Date</th>
-                                                                                            <th>Created By</th>
-                                                                                            <th>Created Date</th>
-                                                                                            <th>Change Array</th>
-                                                                                            <th>Completed By</th>
-                                                                                            <th>Completed Date</th>
+                                                                                            <th style="display: none;">Build ID</th>
+                                                                                            <th style="display: none;">Product ID</th>
+                                                                                            <th style="display: none;">Reminder ID</th>
+                                                                                            <th style="display: none;">Conversation ID</th>
+                                                                                            <th style="display: none;">Target Date</th>
+                                                                                            <th style="display: none;">Created By</th>
+                                                                                            <th style="display: none;">Created Date</th>
+                                                                                            <th style="display: none;">Change Array</th>
+                                                                                            <th style="display: none;">Completed By</th>
+                                                                                            <th style="display: none;">Completed Date</th>
                                                                                             <th>Current Status</th>
                                                                                         </tr>
                                                                                     </thead>                                                        
@@ -161,20 +161,27 @@
                                                                                                 <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
                                                                                                     <td><%= job.id %></td>
                                                                                                     <td class="display-text-column"><%= job.display_text %></td>
-                                                                                                    <td><%= job.free_text %></td>
-                                                                                                    <td><%= job.job_template_id %></td>
-                                                                                                    <td><%= job.user_id %></td>
+                                                                                                    <td style="width: 50%;"><%= job.free_text %></td>
+                                                                                                    <td style="display: none;"><%= job.job_template_id %></td>
+                                                                                                    <td>
+                                                                                                        <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= job.id %>" onclick="event.stopPropagation()">
+                                                                                                          <option value="" <% if (!job.user_id) { %> selected <% } %>>Unspecified</option>
+                                                                                                          <option value="1" <% if (job.user_id === 1) { %> selected <% } %>>John</option>
+                                                                                                          <option value="3" <% if (job.user_id === 3) { %> selected <% } %>>Bryan</option>
+                                                                                                          <option value="9" <% if (job.user_id === 9) { %> selected <% } %>>Alex</option>
+                                                                                                        </select>
+                                                                                                    </td>
                                                                                                     <td><%= job.role_id %></td>
-                                                                                                    <td><%= job.build_id %></td>
-                                                                                                    <td><%= job.product_id %></td>
-                                                                                                    <td><%= job.reminder_id %></td>
-                                                                                                    <td><%= job.conversation_id %></td>
-                                                                                                    <td><%= job.target_date %></td>
-                                                                                                    <td><%= job.created_by %></td>
-                                                                                                    <td><%= job.created_date %></td>
-                                                                                                    <td><%= job.change_array %></td>
-                                                                                                    <td><%= job.completed_by %></td>
-                                                                                                    <td><%= job.completed_date %></td>
+                                                                                                    <td style="display: none;"><%= job.build_id %></td>
+                                                                                                    <td style="display: none;"><%= job.product_id %></td>
+                                                                                                    <td style="display: none;"><%= job.reminder_id %></td>
+                                                                                                    <td style="display: none;"><%= job.conversation_id %></td>
+                                                                                                    <td style="display: none;"><%= job.target_date %></td>
+                                                                                                    <td style="display: none;"><%= job.created_by %></td>
+                                                                                                    <td style="display: none;"><%= job.created_date %></td>
+                                                                                                    <td style="display: none;"><%= job.change_array %></td>
+                                                                                                    <td style="display: none;"><%= job.completed_by %></td>
+                                                                                                    <td style="display: none;"><%= job.completed_date %></td>
                                                                                                     <td>
                                                                                                         <div class="form-check">
                                                                                                             <input class="form-check-input job-checkbox" type="checkbox" id="jobComplete<%= job.id %>" data-job-id="<%= job.id %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
@@ -195,13 +202,13 @@
                                                                                                                 <thead>
                                                                                                                     <tr class="">
                                                                                                                         <th>Num</th>
-                                                                                                                        <th class="display-text-column">Task</th>
+                                                                                                                        <th class="display-text-column">Task Title</th>
+                                                                                                                        <th>Free Text</th>
                                                                                                                         <th>Target Date</th>
                                                                                                                         <th>Contact Date</th>
                                                                                                                         <th>Completed By</th>
                                                                                                                         <th>Change Log</th>
                                                                                                                         <th>Actions</th>
-                                                                                                                        <th>Free Text</th>
                                                                                                                     </tr>
                                                                                                                 </thead>                                                        
                                                                                                                 <tbody>
@@ -209,7 +216,8 @@
                                                                                                                         <% if (task) { %>
                                                                                                                             <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= task.id %>" >
                                                                                                                                 <td class="editable" contenteditable="true" id="taskOrder" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
-                                                                                                                                <td class="editable" contenteditable="true" id="taskTitle" data-record-id="<%= task.id %>"><%= task.display_text %></td>
+                                                                                                                                <td class="editable" contenteditable="true" id="taskTitle" data-record-id="<%= task.id %>" style="width: 25%;"><%= task.display_text %></td>
+                                                                                                                                <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"  style="width: 25%;"><%= task.free_text %></td>
                                                                                                                                 <td><%= task.target_date ? formatDate(new Date(task.target_date)) : '' %></td>
                                                                                                                                 <td><%= task.completed_date ? formatDate(new Date(task.completed_date)) : '' %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskPerson" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
@@ -222,7 +230,6 @@
                                                                                                                                     </div>
                                                                                                                                 
                                                                                                                                 </td>       
-                                                                                                                                <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"><%= task.free_text %></td>
                                                                                                                             </tr>
                                                                                                                             <tr>
                                                                                                                                 <td colspan="12" class="hiddenRow">
@@ -452,7 +459,14 @@
                 element.addEventListener('blur', function(event) {
                     console.log("d3   ")
                     // When the element loses focus, save the updated value
-                    const newValue = event.target.textContent;
+                    let newValue;
+
+                    // Check if the target is a <select> dropdown
+                    if (event.target.tagName === "SELECT") {
+                        newValue = event.target.value;  // For dropdown list
+                    } else {
+                        newValue = event.target.textContent;  // For contenteditable elements
+                    }                    
                     const fieldID = event.target.id;
                     const recordID = event.target.getAttribute('data-record-id');
                     // Make an HTTP GET request to the server to update the database

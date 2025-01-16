@@ -212,7 +212,7 @@ app.get("/update", async (req, res) => {
     console.log("ud99");
   } catch (error) {
     
-    console.error('Error updating job:', error);
+    console.error('ud8   Error updating job:', error);
     // return relevant status code at the end of every API call
     res.status(500).json({ error: 'Failed to add job' });
   }  
