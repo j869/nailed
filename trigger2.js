@@ -109,20 +109,19 @@ async function handleTrigger(triggerData) {
 
         // Loop through each build
         for (const build of builds) {
-            console.log("gnt31  build_id: ", build.id)
+            console.log("gnt31  adding worksheet for build_id: ", build.id)
             
             // Query to get a list of builds
             const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1 order by job_sort, task_sort;", [build.id]);
             const tasks = combiTasks.rows;
-            console.log("gnt33  returned ", combiTasks.rowCount);
+            console.log("gnt33  found " +  combiTasks.rowCount + " tasks for build_id: ", build.id);
 
             // Get the first incomplete task for the current build
             const task = tasks[0];
-            console.log("gnt34  task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.sort_order);
+            console.log("gnt34  adding first task... task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.task_sort);
             
             // Add the task to the work schedule
             if (task) {
-                console.log("gnt51  ")
 
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -133,6 +132,9 @@ async function handleTrigger(triggerData) {
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
               `, ["Build("+build.id+") " + task.task_text, task, task.user_id, targetDate]);
+
+              console.log("gnt51  sucessfully add to worksheet for user:", task.user_id);
+
             }
         }
     } catch (error) {
@@ -143,7 +145,7 @@ async function handleTrigger(triggerData) {
   // Function to add task to the work schedule
   function addToWorkSchedule(task) {
     // Implement the logic to add the task to the work schedule here
-    console.log("Added task to work schedule:", task);
+    console.log("gnz9   Added task to work schedule:", task);
   }
   
 

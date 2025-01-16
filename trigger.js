@@ -99,7 +99,7 @@ async function handleTrigger(triggerData) {
   }
 
   async function getNextTasks() {
-    console.log("gnt11  ")
+    console.log("xnt11  ")
     try {
         //rebuild user_id = 1 worksheet
         const q1 = await pool.query(`DELETE FROM worksheets WHERE user_id = 1;`);
@@ -109,25 +109,28 @@ async function handleTrigger(triggerData) {
 
         // Loop through each build
         for (const build of builds) {
-            console.log("gnt31  ")
+            console.log("xnt31  ")
             
             // Query to get a list of builds
             const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1;", [build.id]);
             const tasks = combiTasks.rows;
-            console.log("gnt33  ")
+            console.log("xnt33  ")
 
             // Get the first incomplete task for the current build
             const task = tasks[0];
-            console.log("gnt34  ", task)
+            console.log("xnt34  ", task)
             
             // Add the task to the work schedule
             if (task) {
-                console.log("gnt51  ")
-
+                console.log("xnt51   task added for:", user_id)
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0];  // Formats the date as 'yyyy-mm-dd'
+                
+                
                 const q2 = await pool.query(`
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
-              `, ["Build("+build.id+") " + task.task_text, task, 1, '2024-04-09']);
+              `, ["Build("+build.id+") " + task.task_text, task, task.user_id || 1, formattedDate]);
             }
         }
     } catch (error) {

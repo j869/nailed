@@ -14,7 +14,7 @@ CREATE OR REPLACE VIEW public.combined_tasks
     t.target_date AS task_target,
     t.completed_date AS task_completed,
     t.current_status AS task_status,
-	t.owned_by as user_id
+    t.owned_by as user_id
    FROM builds b
      LEFT JOIN jobs j ON j.build_id = b.id
      LEFT JOIN tasks t ON t.job_id = j.id

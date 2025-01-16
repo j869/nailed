@@ -345,7 +345,8 @@ SELECT
 	t.display_text as task_text,
 	t.target_date as task_target,
 	t.completed_date as task_completed,
-	t.current_status as task_status
+	t.current_status as task_status,
+    t.owned_by as user_id
 FROM builds b
 LEFT JOIN jobs j ON j.build_id = b.id
 LEFT JOIN tasks t ON t.job_id = j.id
