@@ -166,9 +166,11 @@
                                                                                                     <td>
                                                                                                         <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= job.id %>" onclick="event.stopPropagation()">
                                                                                                           <option value="" <% if (!job.user_id) { %> selected <% } %>>Unspecified</option>
-                                                                                                          <option value="1" <% if (job.user_id === 1) { %> selected <% } %>>John</option>
-                                                                                                          <option value="3" <% if (job.user_id === 3) { %> selected <% } %>>Bryan</option>
+                                                                                                          <option value="12" <% if (job.user_id === 3) { %> selected <% } %>>Bryan</option>
                                                                                                           <option value="9" <% if (job.user_id === 9) { %> selected <% } %>>Alex</option>
+                                                                                                          <option value="10" <% if (job.user_id === 3) { %> selected <% } %>>James</option>
+                                                                                                          <option value="11" <% if (job.user_id === 3) { %> selected <% } %>>Amandah</option>
+                                                                                                          <option value="1" <% if (job.user_id === 1) { %> selected <% } %>>John</option>
                                                                                                         </select>
                                                                                                     </td>
                                                                                                     <td><%= job.role_id %></td>
