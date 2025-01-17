@@ -118,10 +118,14 @@ async function handleTrigger(triggerData) {
 
             // Get the first incomplete task for the current build
             const task = tasks[0];
-            console.log("gnt34  adding first task... task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.task_sort);
+            console.log("gnt34    searching build " + build.id + " for first task... task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.task_sort);
             
             // Add the task to the work schedule
             if (task) {
+                if (!task.user_id) {
+                  console.log("gnt50   Task user_id unassigned, skipping task:", task.task_id);
+                  continue;
+                }
 
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -133,7 +137,7 @@ async function handleTrigger(triggerData) {
                 VALUES ($1, $2, $3, $4);
               `, ["Build("+build.id+") " + task.task_text, task, task.user_id, targetDate]);
 
-              console.log("gnt51  sucessfully add to worksheet for user:", task.user_id);
+              console.log("gnt51          sucessfully add to worksheet for user:", task.user_id);
 
             }
         }

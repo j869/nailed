@@ -446,7 +446,7 @@
 </html>
 
 <script>
-
+        console.log("locals ", <%- JSON.stringify(locals) %>);
         //add listener to all editable fields.  When field changes, notify the database
         document.addEventListener('DOMContentLoaded', function() {
             console.log("d1   " )

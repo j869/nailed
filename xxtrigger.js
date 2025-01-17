@@ -38,39 +38,39 @@ async function handleTrigger(triggerData) {
       case "monthEnd":
         // const taskId = parseInt(value.match(/\d+/)[0]);
         // const days = parseInt(value.match(/[-+]\d+/)[0]);
-        console.log(`tr41   Triggered by task ID ${taskId} with ${days} days`);
+        console.log(`xxtr41   Triggered by task ID ${taskId} with ${days} days`);
         // break;
       case "jobsID":
         // const jobId = parseInt(value.match(/\d+/)[0]);
         // const weeks = parseInt(value.match(/[-+]\d+/)[0]);
-        console.log(`tr42    Triggered by job ID ${jobId} with ${weeks} weeks`);
+        console.log(`xxtr42    Triggered by job ID ${jobId} with ${weeks} weeks`);
         // break;
       case "saleDate":
         // const saleDateOffset = parseInt(value);
-        console.log(`tr43   Triggered by sale date with ${saleDateOffset} days`);
+        console.log(`xxtr43   Triggered by sale date with ${saleDateOffset} days`);
         // break;
       case "monthEnd":
         // const monthEndOffset = parseInt(value);
-        console.log(`tr44    Triggered by month end with ${monthEndOffset} days`);
+        console.log(`xxxxtr44    Triggered by month end with ${monthEndOffset} days`);
         // break;
       default:
-        console.log("tr48    Unknown trigger type:", type);
+        console.log("xxtr48    Unknown trigger type:", type);
     }
   }
 
   async function startNewBuilds(){
-    console.log("st1")
+    console.log("xxst1")
 
     try {
         
         const q1 = await pool.query(`SELECT enquiry_date FROM builds WHERE current_status is null;`);
         for (const reminder of q1.rows) {
             const startDate = new Date(q1.rows[0].enquiry_date);
-            console.log("st23    ", q1.rows[0].enquiry_date);  
+            console.log("xxst23    ", q1.rows[0].enquiry_date);  
             await startFirstJob()
         }
     } catch (error) {
-        console.error("st8   Error:", error.message);
+        console.error("xxst8   Error:", error.message);
     }
   }
 
@@ -88,9 +88,9 @@ async function handleTrigger(triggerData) {
         UPDATE reminders set trigger = $1 WHERE id = 10;
       `, [trigger]);
       
-        console.log("a9    Inserted into worksheets");
+        console.log("xxa9    Inserted into worksheets");
     } catch (error) {
-        console.error("a8   Error:", error.message);
+        console.error("xxa8   Error:", error.message);
     } finally {
       // Close the pool to end the script
         await pool.end();
@@ -134,7 +134,7 @@ async function handleTrigger(triggerData) {
             }
         }
     } catch (error) {
-        console.error("Error:", error.message);
+        console.error("xxError:", error.message);
     }
   }
   
@@ -180,7 +180,7 @@ async function handleTrigger(triggerData) {
       
       console.log("re9    Inserted into worksheets");
     } catch (error) {
-      console.error("re8   Error:", error.message);
+      console.error("xxre8   Error:", error.message);
     } finally {
       // Close the pool to end the script
       await pool.end();

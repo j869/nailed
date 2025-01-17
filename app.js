@@ -290,7 +290,7 @@ allCustomers = customersResult.rows.map(customer => {
           } else {
               console.log("b7   ", process.env.API_URL);
               // If no specific build is clicked, render customers.ejs
-              res.render("2/customer.ejs", { tableData : allCustomers, baseUrl : process.env.BASE_URL });
+              res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
           }
       } catch (err) {
           console.log("b8   ");
@@ -404,7 +404,7 @@ app.get("/2/customers", async (req, res) => {
                 return acc;
               }, {});
               console.log("d71   ");
-              res.render("2/customers.ejs", { tableData : allCustomers,  baseUrl: process.env.API_URL });
+              res.render("2/customers.ejs", { user : req.user,  tableData : allCustomers,  baseUrl: process.env.API_URL });
           }
       } catch (err) {
           console.log("d8   ");
@@ -456,6 +456,7 @@ app.get("/3/customers", async (req, res) => {
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
       res.render("2/customers.ejs", {
+        user : req.user, 
         data : openCustomers
       });
 
@@ -524,6 +525,7 @@ app.get("/customers", async (req, res) => {
 
       console.log("a2     Grouped Customers by Status:");
       res.render("listCustomers.ejs", {
+        user : req.user,
         data : customersByStatus
       });
       return;
@@ -550,6 +552,7 @@ app.get("/customers", async (req, res) => {
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
       res.render("listCustomers.ejs", {
+        user : req.user,
         data : allCustomers
       });
 
