@@ -705,30 +705,30 @@ try {
     const currentStatus = result.rows[0].current_status;
 
     // Update logic based on currentStatus and status values
+    // Update logic based on currentStatus and status values
+    let newCompleteDate;
+    let newCompleteBy;
     let newStatus;
-    
     if (status === 'true') {
-        // if (currentStatus === null || currentStatus === 'pending') {
-        //     newStatus = 'active';
-        // } else if (currentStatus === 'active') {
-        //     newStatus = 'complete';
-        // }
+        newCompleteDate = new Date();
         newStatus = 'complete';
-
     } else {
-        // If status is not 'true', keep the current status unchanged
+        newCompleteDate = null;  
         newStatus = 'pending';
-
     }
+    newCompleteBy = req.user.id || 1;
+
 
     // Update the jobs table in your database
-    const updateResult = await db.query("UPDATE jobs SET current_status = $1 WHERE id = $2", [newStatus, jobID]);
+    console.log("tb2   ", newStatus, jobID);
+    const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
         // update the status of all child tasks 
         console.log("tb71      ", jobID, newStatus);  
-        const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
+    //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
+        const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
         console.log("tb72      ", result.rowCount);  
         console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
         res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
@@ -755,18 +755,18 @@ try {
     const currentStatus = result.rows[0].current_status;
 
     // Update logic based on currentStatus and status values
+    let newCompleteDate;
+    let newCompleteBy;
     let newStatus;
     if (status === 'true') {
-        // if (currentStatus === null || currentStatus === 'pending') {
-        //     newStatus = 'active';
-        // } else if (currentStatus === 'active') {
-        //     newStatus = 'complete';
-        // }
+        newCompleteDate = new Date();
         newStatus = 'complete';
     } else {
-        // If status is not 'true', keep the current status unchanged
+        newCompleteDate = null;  
         newStatus = 'pending';
     }
+    newCompleteBy = req.user.id || 1;
+
 
     // Update the builds table in your database
     const updateResult = await db.query("UPDATE builds SET current_status = $1 WHERE id = $2", [newStatus, buildID]);

@@ -146,7 +146,7 @@ CREATE TABLE tasks    -- would this be better named activities??    -- a very la
 (
     id SERIAL PRIMARY KEY,
     job_id INTEGER,
-    precedence varchar(15)    -- is it a pre task or a post task
+    precedence varchar(15),    -- is it a pre task or a post task
     display_text VARCHAR(127),
     free_text TEXT,
     current_status VARCHAR(127),       -- tentitive/pending: recently created by a task_template on a new job, active: confirmed as applicable against role_id and user_id for this job, complete: task has been performed, archived: task was not relavant or has been supressed (deleted) by the user
@@ -158,8 +158,9 @@ CREATE TABLE tasks    -- would this be better named activities??    -- a very la
     completed_comment INTEGER,
     change_log TEXT,
     task_template_id INTEGER,
-    task_id INTEGER
-
+    task_id INTEGER,
+	completed_by_person VARCHAR(63),
+	sort_order VARCHAR(7)
 );
 drop table task_templates;
 CREATE TABLE task_templates
