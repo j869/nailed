@@ -665,17 +665,17 @@ app.post("/taskComplete", async (req, res) => {
           // }
           newStatus = 'complete';
           newCompleteDate = new Date();
-          //newCompleteBy = req.user.id || 1;
+          newCompleteBy = req.user.id;
       } else {
         console.log("ta3");
         // If status is not 'true', keep the current status unchanged
           newStatus = 'pending';
           newCompleteDate = null;
-          //newCompleteBy = req.user.id || 1;
+          newCompleteBy = req.user.id;
       }
 
       // Update the tasks table in your database
-      const updateResult = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE id = $2", [newStatus, taskID, newCompleteDate, 1]);
+      const updateResult = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE id = $2", [newStatus, taskID, newCompleteDate, newCompleteBy]);
       console.log("ta4");
 
       // Check if the update was successful
