@@ -1,6 +1,6 @@
 <%- include('../partials/header') %>
 
-
+customers.ejs
     <div class="jumbotron text-center">
         <div class="container">
             <!-- Search form -->
@@ -23,74 +23,82 @@
                     return acc;
                 }, {});
             %>
-            <% Object.keys(groupedData).forEach(function(status) { %>
-            <h2 class="accordion-header" id="heading<%= status %>"></h2>
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStatus<%= status %>" aria-expanded="true" aria-controls="collapseStatus<%= status %>">
-                    <strong><%= status %></strong>
-                </button>
-            </h2>
+            <% Object.keys(groupedData).forEach(function(status, index) { %>
+                <div class="accordion-status-item">
+                    <h2 class="accordion-header" id="heading<%= index %>">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#collapseStatus<%= index %>"
+                            aria-expanded="true" aria-controls="collapseStatus<%= index %>"
+                            onclick="console.log('Index:', <%= index %>, 'Status:', '<%= status %>')">
+                            <strong><%= status %></strong>
+                        </button>
+                    </h2>
 
-
-                <table class="table table-condensed ">
-                    <thead>
-                        <tr class="table-primary">
-                            <th scope="col">ENum</th>
-                            <th scope="col">Full Name</th>
-                            <th scope="col">Home Address</th>
-                            <th scope="col">Primary Phone</th>
-                            <th scope="col">Primary Email</th>
-                            <th scope="col">Current Status</th>
-                            <th scope="col">Follow-up Date</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
-                            <% locals.tableData.forEach(function(data) { %>
-                                <% if (data.customer.current_status == status) { %>
-                                    <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
-                                        <td class="editable" contenteditable="true" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
-                                        <td class="editable" contenteditable="true" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
-                                        <td class="editable" contenteditable="true" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
-                                        <td class="editable" contenteditable="true" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
-                                        <td class="editable" contenteditable="true" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
-                                        <td class="editable" contenteditable="true" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
-                                        <td><%= data.customer.follow_up %></td>
+                    <div id="collapseStatus<%= index %>" class="accordion-collapse collapse" 
+                        aria-labelledby="heading<%= status %>" data-bs-parent="#yourAccordionId">
+                        <div class="accordion-status-body">
+                            <table class="table table-condensed ">
+                                <thead>
+                                    <tr class="table-primary">
+                                        <th scope="col">ENum</th>
+                                        <th scope="col">Full Name</th>
+                                        <th scope="col">Home Address</th>
+                                        <th scope="col">Primary Phone</th>
+                                        <th scope="col">Primary Email</th>
+                                        <th scope="col">Current Status</th>
+                                        <th scope="col">Follow-up Date</th>
                                     </tr>
-                                    <tr>
-                                        <td colspan="12" class="hiddenRow">
-                                            <div class="accordian-body collapse" id="collapseCust<%= data.customer.id %>">
-                                                <table class="table nested-table">
-                                                    <thead>
-                                                        <tr class="table-secondary">
-                                                            <th>ID</th>
-                                                            <th>Product Description</th>
-                                                            <th>Enquiry Date</th>
-                                                            <th>Job ID</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <% data.builds.forEach(function(build) { %>
-                                                            <% if (build) { %>
-                                                                <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'">
-                                                                    <td><%= build.id %></td>
-                                                                    <td><%= build.product_description %></td>
-                                                                    <td><%= build.enquiry_date %></td>
-                                                                    <td><%= build.job_id %></td>
-                                                                </tr>
-                                                            <% } %>
-                                                        <% }); %>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <% } %>
-                            <% }); %>
-                        <% } %>
-                    </tbody>
-                </table>
+                                </thead>
 
+                                <tbody>
+                                    <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
+                                        <% locals.tableData.forEach(function(data) { %>
+                                            <% if (data.customer.current_status == status) { %>
+                                                <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
+                                                    <td class="editable" contenteditable="true" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
+                                                    <td class="editable" contenteditable="true" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
+                                                    <td class="editable" contenteditable="true" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
+                                                    <td class="editable" contenteditable="true" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
+                                                    <td class="editable" contenteditable="true" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
+                                                    <td class="editable" contenteditable="true" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
+                                                    <td><%= data.customer.follow_up %></td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="12" class="hiddenRow">
+                                                        <div class="accordian-body collapse" id="collapseCust<%= data.customer.id %>">
+                                                            <table class="table nested-table">
+                                                                <thead>
+                                                                    <tr class="table-secondary">
+                                                                        <th>ID</th>
+                                                                        <th>Product Description</th>
+                                                                        <th>Enquiry Date</th>
+                                                                        <th>Job ID</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <% data.builds.forEach(function(build) { %>
+                                                                        <% if (build) { %>
+                                                                            <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'">
+                                                                                <td><%= build.id %></td>
+                                                                                <td><%= build.product_description %></td>
+                                                                                <td><%= build.enquiry_date %></td>
+                                                                                <td><%= build.job_id %></td>
+                                                                            </tr>
+                                                                        <% } %>
+                                                                    <% }); %>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <% } %>
+                                        <% }); %>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             <% }); %>
         <% } %>
 

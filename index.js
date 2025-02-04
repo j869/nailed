@@ -349,7 +349,7 @@ app.get("/addjob", async (req, res) => {
           //If there is a template already then we have already returned it in q1...
           console.log("a70     ", jobTemplate);
           //create the new job in the database from the parameters read from the tempalte, and link it to the build
-          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1, 'a70']);
+          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1, jobTemplate.sort_order]);
           newJobID = q2.rows[0].id;
           // No relationship to define because there is only on Job in the system for this build (at this point)     //const q3 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (null, " + newJobID + ") ;");             
         }
@@ -418,7 +418,7 @@ export async function createDecendantsForJob(jobID, pool) {
       console.log("c13   ", productID);
       console.log("c14    ", oldJob.rows);
       console.log("c15");
-      const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
+      const q3 = await pool.query("SELECT display_text, reminder_id, id, product_id, sort_order FROM job_templates b WHERE b.product_id = " + productID + " AND b.antecedent_array = '"+ oldJob.job_template_id + "'");  
       const newTemplate = q3.rows[0];
       console.log("c16    ", q3.rows);
 
@@ -523,7 +523,7 @@ export async function createDecendantsForJob(jobID, pool) {
 
 
       if (q3.rowCount !== 0) {       //no more templates defined
-          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id, sort_order) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ", 'c40') returning id")
+          const q2 = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id, sort_order) VALUES ('"+ newTemplate.display_text + "', " + newTemplate.reminder_id + ", " + newTemplate.id + ", " + newTemplate.product_id + ", " + oldJob.build_id + ", '" + newTemplate.sort_order + "') returning id")
           console.log("c40");
           console.log("Added " + q2.rows.length + " rows.");
           const newJob = q2.rows[0];     // assumes only 1 child
