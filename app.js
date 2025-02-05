@@ -17,6 +17,7 @@ let baseURL = "";
 const saltRounds = 10;
 env.config();
 
+app.use(express.json());    //// Middleware to parse JSON bodies
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -308,77 +309,173 @@ app.get("/2/customers", async (req, res) => {
   if (req.isAuthenticated()) {
       const query = req.query.query || "";
       try {
-          let allCustomers;
-          if (query) {
-              console.log("d2   ");
-              // If there is a search term, fetch matching customers and their builds
-              //const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
-              const customersResult = await db.query(
-                "SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE full_name ILIKE $1 OR primary_phone ILIKE $1 OR home_address ILIKE $1 OR primary_email ILIKE $1 OR contact_other ILIKE $1 OR current_status ILIKE $1 ORDER BY contact_other asc",
-                [`%${query}%`]
-              );
-              const customerIds = customersResult.rows.map(customer => parseInt(customer.id, 10));
-              console.log("d21  ", customersResult.rowCount, customerIds);
 
-              if (customerIds.length > 0) {
-                  const placeholders = customerIds.map((_, index) => `$${index + 1}`).join(', ');
-                  const buildsQuery = `SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN (${placeholders})`;
-                  const buildsResult = await db.query(buildsQuery, customerIds);
-                  console.log("d22   ", buildsResult.rowCount);
-                  // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id, current_status FROM builds WHERE customer_id IN ($1)", [customersResult.rows.map(customer => parseInt(customer.id, 10))]);
-                  // console.log("d22   ", buildsResult.rowCount);
-
-                  // Merge customer and build data
-                  console.log("d211    ", customerIds)
-                  allCustomers = customersResult.rows.map(customer => {
-                    const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-                    return {
-                        customer,
-                        builds
-                    };
-                  });
-                  console.log("d23   ", allCustomers.rowCount);
+              let allCustomers;
+              if (query) {
+                console.log("d2   User serched for a term: ", query);
+                // If there is a search term, fetch matching customers and their builds
+                const customersQuery = `
+                    SELECT 
+                        c.id, 
+                        c.full_name, 
+                        c.home_address, 
+                        c.primary_phone, 
+                        c.primary_email, 
+                        c.contact_other, 
+                        c.current_status AS customer_status, 
+                        TO_CHAR(c.follow_up, 'DD-Mon-YY hh:mm') AS follow_up,
+                        b.id AS build_id, 
+                        b.product_id, 
+                        b.enquiry_date, 
+                        b.job_id, 
+                        b.current_status AS build_status
+                    FROM 
+                        customers c
+                    LEFT JOIN 
+                        builds b ON b.customer_id = c.id
+                    WHERE 
+                        (
+                            c.full_name ILIKE $1 
+                            OR c.primary_phone ILIKE $1 
+                            OR c.home_address ILIKE $1 
+                            OR c.primary_email ILIKE $1 
+                            OR c.contact_other ILIKE $1 
+                            OR c.current_status ILIKE $1
+                        )
+                        AND EXISTS (
+                            SELECT 1 
+                            FROM jobs j 
+                            WHERE j.build_id = b.id 
+                            AND j.user_id = $2
+                        )
+                    ORDER BY 
+                        c.contact_other ASC;
+                `;
+        
+                const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);
+                // console.log("d21  ", customersResult.rowCount);
+        
+                if (customersResult.rowCount > 0) {
+                    // Merge customer and build data
+                    allCustomers = customersResult.rows.reduce((acc, row) => {
+                        // Check if the customer already exists in the accumulator
+                        let customer = acc.find(cust => cust.customer.id === row.id);
+                        if (!customer) {
+                            // If not, create a new customer object with an empty builds array
+                            customer = {
+                                customer: {
+                                    id: row.id,
+                                    full_name: row.full_name,
+                                    home_address: row.home_address,
+                                    primary_phone: row.primary_phone,
+                                    primary_email: row.primary_email,
+                                    contact_other: row.contact_other,
+                                    current_status: row.customer_status,
+                                    follow_up: row.follow_up
+                                },
+                                builds: []
+                            };
+                            acc.push(customer);
+                        }
+                        // Add the build to the customer's builds array
+                        if (row.build_id) {
+                            customer.builds.push({
+                                id: row.build_id,
+                                product_id: row.product_id,
+                                enquiry_date: row.enquiry_date,
+                                job_id: row.job_id,
+                                current_status: row.build_status
+                            });
+                        }
+                        return acc;
+                    }, []);
+        
+                    // console.log("d22   ", allCustomers);
                 } else {
-                  console.log("d24   No customers found");
-                  allCustomers = [];
+                    console.log("d24   No customers found");
+                    allCustomers = [];
                 }
 
           } else {
-            console.log("d3   ");
-            // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers order by contact_other asc" );
-              customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
-                if (customer.follow_up) {
-                    customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
+            console.log("d31   ");
+
+            // Execute query to get customers and builds for the given user_id
+            const customersResult = await db.query(`
+                SELECT 
+                    c.id, 
+                    c.full_name, 
+                    c.home_address, 
+                    c.primary_phone, 
+                    c.primary_email, 
+                    c.contact_other, 
+                    c.current_status AS customer_status, 
+                    TO_CHAR(c.follow_up, 'DD-Mon-YY hh:mm') AS follow_up,
+                    b.id AS build_id, 
+                    b.product_id, 
+                    TO_CHAR(b.enquiry_date, 'DD-Mon-YY') AS enquiry_date, 
+                    b.job_id, 
+                    b.current_status AS build_status,
+                    p.display_text AS product_description
+                FROM 
+                    customers c
+                LEFT JOIN 
+                    builds b ON b.customer_id = c.id
+                LEFT JOIN 
+                    products p ON b.product_id = p.id
+                WHERE 
+                    EXISTS (
+                        SELECT 1 
+                        FROM jobs j 
+                        WHERE j.build_id = b.id 
+                        AND j.user_id = $1
+                    )
+                ORDER BY 
+                    c.contact_other ASC;
+            `, [req.user.id]);
+        
+        
+            // Format follow_up value and structure the data
+            allCustomers = customersResult.rows.reduce((acc, row) => {
+                // Format follow_up to a short date
+                if (row.follow_up) {
+                    row.follow_up = new Date(row.follow_up).toLocaleDateString();
                 }
-              });
-              //console.log("d31   ", customersResult.rows[0]);
-              const buildsResult = await db.query(`
-                                    SELECT 
-                                        b.id, 
-                                        b.customer_id, 
-                                        b.product_id, 
-                                        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date , 
-                                        b.job_id,
-                                        b.current_status,
-                                        p.display_text AS product_description
-                                    FROM 
-                                        builds AS b
-                                    JOIN 
-                                        products AS p ON b.product_id = p.id
-                                    WHERE 
-                                        b.customer_id = ANY ($1)
-                                     `, [customersResult.rows.map(customer => customer.id)]);
-              //console.log("d32    ", buildsResult.rows[0]);
-              // Merge customer and build data
-              allCustomers = customersResult.rows.map(customer => {
-                  const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-                  return {
-                      customer,
-                      builds
-                  };
-              });
-              console.log("d33    ");
+        
+                // Find or create a customer entry in the accumulator
+                let customer = acc.find(cust => cust.customer.id === row.id);
+                if (!customer) {
+                    customer = {
+                        customer: {
+                            id: row.id,
+                            full_name: row.full_name,
+                            home_address: row.home_address,
+                            primary_phone: row.primary_phone,
+                            primary_email: row.primary_email,
+                            contact_other: row.contact_other,
+                            current_status: row.customer_status,
+                            follow_up: row.follow_up
+                        },
+                        builds: []
+                    };
+                    acc.push(customer);
+                }
+        
+                // Add build to the customer's builds array
+                if (row.build_id) {
+                    customer.builds.push({
+                        id: row.build_id,
+                        product_id: row.product_id,
+                        product_description: row.product_description,
+                        enquiry_date: row.enquiry_date,
+                        job_id: row.job_id,
+                        build_status: row.build_status
+                    });
+                }
+        
+                return acc;
+            }, []);
+        
+            console.log("d39   ", allCustomers);
           }
           
           // Render the appropriate template based on the scenario
@@ -395,16 +492,38 @@ app.get("/2/customers", async (req, res) => {
               console.log("d7   ");
               // If no specific build is clicked, render customers.ejs
               // Grouping customers by current_status
-              const groupedCustomers = allCustomers.reduce((acc, customer) => {
-                const status = customer.customer.current_status;
-                if (!acc[status]) {
-                    acc[status] = [];
-                }
-                acc[status].push(customer);
+              
+              // const qry1 = await db.query(`SELECT display_text FROM listorder WHERE user_id = $1 AND location_used = 'CustomersStatus' ORDER BY sort_order;`, [req.user.id]);
+              const qry1 = await db.query(`SELECT display_text FROM listorder WHERE location_used = 'CustomersStatus' ORDER BY sort_order;`);
+              const statusOrderList = qry1.rows.map(row => row.display_text);
+
+            
+            // Create a lookup map for quick sorting
+            const statusOrderMap = statusOrderList.reduce((acc, status, index) => {
+                acc[status] = index; // Assign index based on predefined order
                 return acc;
-              }, {});
-              console.log("d71   ");
-              res.render("2/customers.ejs", { user : req.user,  tableData : allCustomers,  baseUrl: process.env.API_URL });
+            }, {});
+            
+            // Sort the allCustomers array based on the status order
+            allCustomers.sort((a, b) => {
+                const statusA = a.customer.current_status;
+                const statusB = b.customer.current_status;
+            
+                // Get the predefined index for each status (default to Infinity if not found)
+                const indexA = statusOrderMap[statusA] ?? Infinity;
+                const indexB = statusOrderMap[statusB] ?? Infinity;
+            
+                return indexA - indexB;
+            });
+            
+            // console.log("Sorted allCustomers:", allCustomers);
+            
+            res.render("2/customers.ejs", { 
+                user: req.user,  
+                tableData: allCustomers,  
+                baseUrl: process.env.API_URL 
+            });
+            
           }
       } catch (err) {
           console.log("d8   ");
@@ -1116,6 +1235,39 @@ app.get("/dtDone", async (req, res) => {
     
     // Send an error response
     res.status(500).json({ error: "Failed to update checkbox" }); // Return error status
+  }
+});
+
+
+app.post("/updateUserStatusOrder", async (req, res) => {
+  console.log("us1   ");
+  // console.log("us10   User ID:", req.body.userId);
+  // console.log("us11   Status Order:", JSON.stringify(req.body.statusOrder, null, 2)); // Pretty print array
+
+
+
+  try {
+    console.log("us21   "); 
+    const { userId, statusOrder } = req.body;
+    if (!Array.isArray(statusOrder) || statusOrder.length === 0) {
+      return res.status(400).json({ error: "Invalid or empty statusOrder array" });
+    }
+    const values = statusOrder.map((item, index) => `(${userId}, 'CustomersStatus', ${index}, '${item.status.replace(/'/g, "''")}')`).join(",\n");
+    const deleteSql = `DELETE from listOrder where location_used = 'CustomersStatus'; `;
+    const insertSql = `INSERT INTO listOrder (user_id, location_used, sort_order, display_text) VALUES ${values};`;
+    // console.log("us22   Generated SQL:\n", sql); // Log the generated SQL statement
+
+    await db.query('BEGIN');
+    await db.query(deleteSql);
+    await db.query(insertSql);
+    await db.query('COMMIT');
+
+    res.status(200).json({ message: "UserSpecificStatusOrder updated successfully." });
+  } catch (error) {
+      console.log("us81   "); // Log the incoming request body
+      await db.query('ROLLBACK');      
+      console.error("Error updating UserSpecificStatusOrder:", error);
+      res.status(500).json({ error: "Failed to update UserSpecificStatusOrder." });
   }
 });
 

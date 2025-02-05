@@ -1,21 +1,26 @@
 
-CREATE OR REPLACE VIEW public.combined_tasks
- AS
- SELECT b.id AS build_id,
-    b.enquiry_date AS build_start,
-    b.product_id AS build_product,
-    j.id AS job_id,
-    j.display_text AS job_text,
-    j.target_date AS job_target,
-    j.completed_date AS job_completed,
-    j.current_status AS job_status,
-    t.id AS task_id,
-    t.display_text AS task_text,
-    t.target_date AS task_target,
-    t.completed_date AS task_completed,
-    t.current_status AS task_status,
-    t.owned_by as user_id
-   FROM builds b
-     LEFT JOIN jobs j ON j.build_id = b.id
-     LEFT JOIN tasks t ON t.job_id = j.id
-  ORDER BY t.job_id, j.build_id;
+
+  CREATE TABLE listOrder (
+    user_id INT NOT NULL,
+    location_used VARCHAR(255) NOT NULL,
+    sort_order INT NOT NULL,
+    display_text VARCHAR(255) NOT NULL,
+    PRIMARY KEY (user_id, location_used, sort_order)  -- Composite primary key
+   );
+
+   INSERT INTO listOrder (user_id, location_used, sort_order, display_text) VALUES (12, 'CustomersStatus', 0, 'Planning Lapsed'),
+   (12, 'CustomersStatus', 1, 'open'),
+   (12, 'CustomersStatus', 2, 'Pending LPOD and Contract'),
+   (12, 'CustomersStatus', 3, 'RFI Actioned'),
+   (12, 'CustomersStatus', 4, 'Refund Pending'),
+   (12, 'CustomersStatus', 5, 'On Hold - Financial Issues'),
+   (12, 'CustomersStatus', 6, 'Followed up refund'),
+   (12, 'CustomersStatus', 7, 'Pending Contract Insurance'),
+   (12, 'CustomersStatus', 8, 'Pending Payment'),
+   (12, 'CustomersStatus', 9, 'Pending payment $234'),
+   (12, 'CustomersStatus', 10, 'Pending Archival'),
+   (12, 'CustomersStatus', 11, 'JMQuote'),
+   (12, 'CustomersStatus', 12, 'PreProduction');
+
+
+   

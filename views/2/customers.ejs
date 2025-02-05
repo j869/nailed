@@ -24,12 +24,12 @@ customers.ejs
                 }, {});
             %>
             <% Object.keys(groupedData).forEach(function(status, index) { %>
-                <div class="accordion-status-item">
+                <div class="accordion-status-item" draggable="true" ondragstart="dragStart(event, <%= index %>)" ondragover="allowDrop(event)" ondrop="drop(event, <%= index %>)">
                     <h2 class="accordion-header" id="heading<%= index %>">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" 
                             data-bs-target="#collapseStatus<%= index %>"
                             aria-expanded="true" aria-controls="collapseStatus<%= index %>"
-                            onclick="console.log('Index:', <%= index %>, 'Status:', '<%= status %>')">
+                            onclick="console.log('col001     heading' + <%= index %> + ' ', '<%= status %>')">
                             <strong><%= status %></strong>
                         </button>
                     </h2>
@@ -113,6 +113,60 @@ customers.ejs
 
 
 <script>
+    let draggedElement = null;
+
+    function dragStart(event) {
+        draggedElement = event.target.closest(".accordion-status-item");
+        event.dataTransfer.setData("text/plain", draggedElement.dataset.dragDropIndex);
+    }
+
+    function allowDrop(event) {
+        event.preventDefault();
+    }
+
+    function drop(event) {
+        event.preventDefault();
+        const targetElement = event.target.closest(".accordion-status-item");
+        if (!draggedElement || !targetElement || draggedElement === targetElement) return;
+        
+        const parent = targetElement.parentNode;
+        parent.insertBefore(draggedElement, targetElement.nextSibling);
+        updateDragDropIndexes();
+    }
+
+    function updateDragDropIndexes() {
+        const indexes = [];
+
+        document.querySelectorAll(".accordion-status-item").forEach((item, newIndex) => {
+            const status = item.querySelector(".accordion-button strong").innerText;
+            item.dataset.dragDropIndex = newIndex;
+            indexes.push({ index: newIndex, status: status });
+        });
+
+        console.log('uso5      indexes', indexes);
+        fetch('/updateUserStatusOrder', {
+            method: 'POST', // Using POST to send a body
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId: <%= locals.user.id %>,     // The user ID
+                statusOrder: indexes     // The updated order as a JSON array
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('UserSpecificStatusOrder updated successfully.');
+            } else {
+                throw new Error('Failed to update UserSpecificStatusOrder.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {
         console.log("d1   " )
