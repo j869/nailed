@@ -40,6 +40,8 @@
 
 </head>
 
+
+
   <div class="bg-dark">
     <header class="d-flex justify-content-center py-3">
       <ul class="nav nav-pills">
@@ -48,9 +50,85 @@
         <li class="nav-item"><a href="/2/customers" class="nav-link link-light">List view</a></li>
         <li class="nav-item"><a href="/logout" class="nav-link link-light">Log Out</a></li>
       </ul>
-
+      
+      <% if (locals.user) { %>
+        <select name="roles" id="roles" class="bg-dark" style="color: white; margin-left: 20px;">
+          <% if (!locals.user.roles) { %>
+              //default values
+            <option value="admin">Admin</option>
+            <option value="manager">Manager</option>
+            <option value="sales">Sales</option>
+            <option value="construction">Construction</option>
+            <option value="permits">Permits</option>
+          <% } else { %>
+            <%= locals.user.roles %>
+            <% locals.user.roles.split(',').forEach(function(role) { %>
+              <option value="<%= role.trim() %>"><%= role.trim().charAt(0).toUpperCase() + role.trim().slice(1) %></option>
+            <% }); %>
+          <% } %>
+        </select>
+        <span class="text-white">Welcome, <%= locals.user.display_name %></span>
+      <% } %>
     </header>
-</div>
+  </div>
+
+
+
 
  <body>
+
+
+
+
   
+  <script>
+    console.log('ha1      ');
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const roleDropdown = document.getElementById('roles');
+      const editorNavItem = document.querySelector('.nav-item a[href="/customers"]').parentElement;
+
+      function toggleEditorNavItem() {
+        if (roleDropdown.value !== 'manager') {
+          editorNavItem.style.display = 'none';
+        } else {
+          editorNavItem.style.display = 'block';
+        }
+      }
+
+      roleDropdown.addEventListener('change', toggleEditorNavItem);
+      toggleEditorNavItem(); // Initial check on page load
+
+
+      roleDropdown.addEventListener('change', function() {
+        const selectedRole = roleDropdown.value;
+        const roles = Array.from(roleDropdown.options).map(option => option.value);
+        console.log('wr01');
+
+        if (roles.length > 1) {
+          const reorderedRoles = [selectedRole, ...roles.filter(role => role !== selectedRole)].join(',');
+          console.log('wr02   Rewriting roles with current role as default:', reorderedRoles);
+          fetch('/updateRoles', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ roles: reorderedRoles })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log('wr09     Roles updated:', data);
+          })
+          .catch(error => {
+            console.error('wr8    Error updating roles:', error);
+          });
+        }
+      });
+
+
+
+    });
+
+
+
+  </script>

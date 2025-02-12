@@ -23,6 +23,10 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
+    cookie: { 
+      secure: false,  // Use secure: true in production with HTTPS
+      httpOnly: true
+    }
   })
 );
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -42,6 +46,14 @@ db.connect();
 
 
 
+// Middleware to make session user available on req.user for convenience
+app.use((req, res, next) => {
+  if (req.session.user) {
+    console.log("i1   ");
+    req.user = req.session.user;
+  }
+  next();
+});
 
 app.post("/", async (req, res) => {
   console.log("wb1   ", req.body);
@@ -1085,7 +1097,33 @@ app.get("/addtask", async (req, res) => {
 //#endregion
 
 
+//#region user metadata
 
+app.post("/updateRoles", async (req, res) => {
+  //allows the user to update their own role, and reorder their role.  It defaults to the first role in the list.
+  
+  console.log("k1    ", req.body.roles);
+  if (req.isAuthenticated()) {
+    const newRole = req.body.roles;
+    const userId = req.user.id;
+
+    try {
+      const result = await db.query("UPDATE users SET roles = $1 WHERE id = $2 RETURNING *", [newRole, userId]);
+      if (result.rowCount === 1) {
+        res.status(200).json({ message: "Role updated successfully", user: req.user });
+        req.user.roles = newRole;
+        // req.session.user = result.rows[0];
+      } else {
+        res.status(404).json({ error: "User not found" });
+      }
+    } catch (err) {
+      console.error("Error updating role:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
 
 
 
@@ -1285,9 +1323,10 @@ app.get("/update", async (req,res) => {
     return;
   }
   if (!newValue) {
-    console.error("ufg832    Error: newValue is null - write was cancelled");
-    res.status(400).send("Error: newValue is null");
-    return;
+    //console.error("ufg832    Error: newValue is null - write was cancelled");
+    console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
+    //res.status(400).send("Error: newValue is null");
+    //return;
   }
   if (!rowID) {
     console.error("ufg833    Error: rowID is null - write was cancelled");
@@ -1316,7 +1355,11 @@ app.get("/update", async (req,res) => {
     case "jobOwner":
         table = "jobs";
         columnName = "user_id";
-        value = "'" + newValue + "'";
+        if (newValue === null || newValue === "") {
+          value = "null";
+        } else {
+          value = "'" + newValue + "'";
+        }
         // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
         console.log("ufg00050      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");

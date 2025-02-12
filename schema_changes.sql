@@ -1,6 +1,6 @@
 
 
-  CREATE TABLE listOrder (
+  CREATE TABLE listorder (
     user_id INT NOT NULL,
     location_used VARCHAR(255) NOT NULL,
     sort_order INT NOT NULL,
@@ -8,7 +8,7 @@
     PRIMARY KEY (user_id, location_used, sort_order)  -- Composite primary key
    );
 
-   INSERT INTO listOrder (user_id, location_used, sort_order, display_text) VALUES (12, 'CustomersStatus', 0, 'Planning Lapsed'),
+   INSERT INTO listorder (user_id, location_used, sort_order, display_text) VALUES (12, 'CustomersStatus', 0, 'Planning Lapsed'),
    (12, 'CustomersStatus', 1, 'open'),
    (12, 'CustomersStatus', 2, 'Pending LPOD and Contract'),
    (12, 'CustomersStatus', 3, 'RFI Actioned'),
@@ -23,4 +23,6 @@
    (12, 'CustomersStatus', 12, 'PreProduction');
 
 
-   
+ALTER TABLE users RENAME COLUMN system_access_type TO roles;
+
+
