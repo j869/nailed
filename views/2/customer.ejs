@@ -464,7 +464,7 @@ customer.ejs
         console.log("locals ", <%- JSON.stringify(locals) %>);
         //add listener to all editable fields.  When field changes, notify the database
         const baseUrl = "<%= locals.baseUrl %>";
-        const apiUrl = baseUrl.replace("3000", "4000") + "/files";
+        const apiUrl = baseUrl.replace("3000", "4000") 
         console.log("lf3     apiUrl: ", apiUrl);
                 
         document.addEventListener('DOMContentLoaded', function() {
@@ -540,8 +540,8 @@ document.addEventListener("DOMContentLoaded", function () {
         formData.append("file", file);
 
         try {
-            console.log("uf5      Sending file to backend...");
-            const response = await fetch("http://localhost:4000/upload", {
+            console.log("uf5      Sending file to backend...");    
+            const response = await fetch(`${apiUrl}/upload`, {
                 method: "POST",
                 body: formData,
             });
@@ -575,8 +575,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-        //const response = await fetch("http://localhost:4000/files");
-        const response = await fetch(apiUrl);
+        const response = await fetch(`${apiUrl}/files`);
         const files = await response.json();
 
         if (files.length === 0) {
@@ -590,7 +589,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         // Generate list of downloadable links with delete buttons
         fileListContainer.innerHTML = files.map(file =>
             `<li>
-                <a href="http://localhost:4000/download/${file.id}" download>${file.filename}</a>
+                <a href="${apiUrl}/download/${file.id}" download>${file.filename}</a>
                 <button class="btn btn-link text-danger btn-sm delete-btn" data-id="${file.id}">
                     <i class="fas fa-times"></i> 
                 </button>
@@ -608,7 +607,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                 try {
                     console.log(`df5     Sending DELETE request for file ID: ${fileId}`);
-                    const deleteResponse = await fetch(`http://localhost:4000/deletefile/${fileId}`, {
+                    const deleteResponse = await fetch(`${apiUrl}/deletefile/${fileId}`, {
                         method: "DELETE",
                     });
 
