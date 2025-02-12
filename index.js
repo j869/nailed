@@ -1,27 +1,36 @@
-
-
-//#region   middleware
+//#region middleware
 import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
-// import bcrypt from "bcrypt";
-// import passport from "passport";
-// import { Strategy } from "passport-local";
 import session from "express-session";
 import env from "dotenv";
+import multer from "multer";
+import cors from "cors";
+
 
 export const app = express();
 const port = 4000;
-//const saltRounds = 10;
+
 env.config();
 if (process.env.SESSION_SECRET) {
-  console.log('en1    npm middleware loaded ok');
+  console.log("en1    npm middleware loaded ok");
 } else {
-  console.log('en9    you must run nodemon from Documents/nailed/  : ', process.cwd());
-  console.log('       rm -R node_modules');
-  console.log('       npm cache clean --force');
-  console.log('       npm i');
+  console.log(
+    "en9    you must run nodemon from Documents/nailed/  : ",
+    process.cwd()
+  );
+  console.log("       rm -R node_modules");
+  console.log("       npm cache clean --force");
+  console.log("       npm i");
 }
+
+app.use(cors({
+  origin: "http://localhost:3000", // Allow frontend requests
+  methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods
+  allowedHeaders: "Content-Type"
+}));
+
+
 
 app.use(
   session({
@@ -32,9 +41,7 @@ app.use(
 );
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
-app.use(express.json());    //// Middleware to parse JSON bodies
-// app.use(passport.initialize());
-// app.use(passport.session());
+app.use(express.json()); // Middleware to parse JSON bodies
 
 const { Pool } = pg;
 export const pool = new Pool({
@@ -44,16 +51,123 @@ export const pool = new Pool({
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
 });
-//db.connect();
+
 //#endregion
 
-// Add middleware to set CORS headers
-// app.use((req, res, next) => {
-//   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
-//   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
-//   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//   next();
-// });
+// Multer Setup for File Uploads (storing in memory)
+const upload = multer({ storage: multer.memoryStorage() });
+
+/**
+ * Route to Upload a File
+ */
+app.post("/upload", upload.single("file"), async (req, res) => {
+  console.log("uf1      Incoming file upload request...");
+
+  if (!req.file) {
+    console.warn("uf81      Upload failed: No file provided.");
+    return res.status(400).send("No file uploaded.");
+  }
+
+  try {
+    const { originalname, mimetype, buffer } = req.file;
+
+    console.log(`uf2      Uploading file: ${originalname}, Type: ${mimetype}, Size: ${buffer.length} bytes`);
+
+    const result = await pool.query(
+      "INSERT INTO files (filename, mimetype, data) VALUES ($1, $2, $3) RETURNING id",
+      [originalname, mimetype, buffer]
+    );
+
+    console.log(`File uploaded successfully with ID: ${result.rows[0].id}`);
+    res.json({ success: true, message: "File uploaded successfully!" });
+    //res.redirect("/"); // Refresh page after upload
+  } catch (error) {
+    console.error("uf82      Error saving file:", error);
+    res.status(500).send("Error saving file.");
+  }
+});
+
+
+/**
+ * Route to list attachments
+ */
+app.get("/files", async (req, res) => {
+  console.log("vf1      Fetching list of uploaded files...");
+
+  try {
+    const result = await pool.query("SELECT id, filename FROM files ORDER BY id DESC");
+
+    if (result.rows.length === 0) {
+      console.warn("vf81      No files found in the database.");
+      return res.json([]);
+    }
+
+    console.log(`vf2      Found ${result.rows.length} files.`);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("vf8      Error retrieving files:", error);
+    res.status(500).send("Error retrieving files.");
+  }
+});
+
+
+app.delete("/deletefile/:id", async (req, res) => {
+  const fileId = req.params.id;
+  console.log(`df1       Request to delete file with ID: ${fileId}`);
+
+  try {
+    // Check if file exists
+    const checkFile = await pool.query("SELECT * FROM files WHERE id = $1", [fileId]);
+
+    if (checkFile.rows.length === 0) {
+      console.warn("File not found for deletion.");
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    // Delete the file
+    await pool.query("DELETE FROM files WHERE id = $1", [fileId]);
+    console.log(`File ID ${fileId} deleted successfully.`);
+
+    res.json({ message: "File deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({ message: "Error deleting file." });
+  }
+});
+
+
+
+/**
+ * Route to Download a File
+ */
+app.get("/download/:id", async (req, res) => {
+  const fileId = req.params.id;
+  console.log(`df1      Download request received for file ID: ${fileId}`);
+
+  try {
+    const result = await pool.query("SELECT * FROM files WHERE id = $1", [fileId]);
+
+    if (result.rows.length === 0) {
+      console.warn(`df81      File not found for ID: ${fileId}`);
+      return res.status(404).send("File not found.");
+    }
+
+    const file = result.rows[0];
+    console.log(`df2      Serving file: ${file.filename} (ID: ${fileId})`);
+
+    res.setHeader("Content-Type", file.mimetype);
+    res.setHeader("Content-Disposition", `attachment; filename="${file.filename}"`);
+    res.send(file.data);
+  } catch (error) {
+    console.error("Error retrieving file:", error);
+    res.status(500).send("Error retrieving file.");
+  }
+});
+
+
+/**
+ * Main Route - Shows Upload Form & File List
+ */
 
 
 
