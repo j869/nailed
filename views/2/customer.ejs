@@ -571,7 +571,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-        const response = await fetch("http://localhost:4000/files");
+        //const response = await fetch("http://localhost:4000/files");
+        const baseUrl = "<%= locals.baseUrl %>";
+        const apiUrl = baseUrl.replace("3000", "4000") + "/files";
+        const response = await fetch(apiUrl);
         const files = await response.json();
 
         if (files.length === 0) {
