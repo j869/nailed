@@ -25,7 +25,7 @@ if (process.env.SESSION_SECRET) {
 }
 
 app.use(cors({
-  origin: "http://localhost:3000", // Allow frontend requests
+  origin:  `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
   methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods
   allowedHeaders: "Content-Type"
 }));
