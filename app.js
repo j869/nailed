@@ -361,7 +361,7 @@ app.get("/2/customers", async (req, res) => {
                             AND j.user_id = $2
                         )
                     ORDER BY 
-                        c.contact_other ASC;
+                        c.follow_up ASC;
                 `;
         
                 const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);

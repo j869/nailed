@@ -700,3 +700,12 @@ CREATE OR REPLACE VIEW public.combined_tasks
 
 
 ALTER TABLE users RENAME COLUMN system_access_type TO roles;
+
+
+
+CREATE TABLE files (
+  id SERIAL PRIMARY KEY,
+  filename TEXT NOT NULL,
+  mimetype TEXT NOT NULL,
+  data BYTEA NOT NULL
+);
