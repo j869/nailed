@@ -174,8 +174,9 @@ app.get("/download/:id", async (req, res) => {
 app.get("/jobs/:id", async (req, res) => {
   //const { username, email } = req.body;
   const job_id = parseInt(req.params.id);
+  console.log("gd1    retrieving page data for job " + job_id + " ")
   if (!job_id) {
-    console.error("43892783 Tried to get a job, but not given the Job_ID")
+    console.error("gd18   Tried to get a job, but not given the Job_ID")
   } else {
 
     let data = {};
@@ -183,7 +184,19 @@ app.get("/jobs/:id", async (req, res) => {
     let vSQL = "";
 
     try {
-      result = await pool.query("SELECT * FROM jobs WHERE id = " + job_id + ";");        //'INSERT INTO users (username, email) VALUES ($1, $2) RETURNING *', [username, email]
+      try {
+        console.log("gd2")
+        // result = await pool.query("SELECT * FROM jobs WHERE id = " + job_id + ";");        //'INSERT INTO users (username, email) VALUES ($1, $2) RETURNING *', [username, email]
+        result = await pool.query("SELECT * FROM jobs WHERE id = $1;", [job_id]); // Use paramet
+        if (result.rows.length === 0) {
+          // No rows found: job_id does not exist in the table
+          console.error("gd281   Job not found for job_id:", job_id);
+          return res.status(404).json({ success: false, message: "gd281  Job not found" }); // 404 Not Found
+        }        
+      } catch (error) {
+        console.error("gd282   error executing query " + error)
+        return;
+      }
       const jobName = result.rows[0].display_text;
       const jobText = result.rows[0].free_text;
       const targetDate = result.rows[0].target_date;
@@ -198,6 +211,7 @@ app.get("/jobs/:id", async (req, res) => {
       //   reminder = result.rows[0];
       // }
 
+      console.log("gd3")
       let conversation = [];
       vSQL = "SELECT id, display_name, message_text FROM conversations WHERE job_id = " + job_id + ";";
       result = await pool.query(vSQL);        
@@ -206,16 +220,19 @@ app.get("/jobs/:id", async (req, res) => {
         conversation.push( { display_name : result.rows[r].display_name, message_text : result.rows[r].message_text, attachment : result2.rows } )
       }
       
+      console.log("gd4    adding antecedents")
       let job_antecedents = [];
       vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_antecedents = result.rows;
 
+      console.log("gd5   adding decendants")
       let job_decendants = [];
       vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
+      console.log("gd6 adding tasks")
       let task_antecedents = [];
       vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
       result = await pool.query(vSQL);        
@@ -258,10 +275,11 @@ app.get("/jobs/:id", async (req, res) => {
         //   {display_text : "Roofing", free_text : "supporting text"}, ],
         job_decendants : job_decendants,    //[{display_text : "Plumbing", free_text : "supporting text"},  ],
       };
+      console.log("gd9    successfully retrieved data")
       res.json(data);
       //res.json(result.rows[0]);
     } catch (error) {
-      console.error('Error reading job:', error);
+      console.error('gd8    Error reading job:', error);
       res.status(500).json({ error: 'Failed to read job' });
     }
 
@@ -303,10 +321,9 @@ app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
   let value = req.query.value;
-  console.log("ud01    ", value);
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud10   " + "UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";");
+  console.log("ud10    set " + column + " to " + value + " in table " + table + " where id = " + id);
   try {
     // put every database query into a try - catch block
     //update table
@@ -413,9 +430,20 @@ app.get("/addjob", async (req, res) => {
       console.log("a31   new job_tempalate created id = " + q1.rows[0].id);
       console.log("a33" + "        UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID);
       const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
-
-      const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order) VALUES ($1, $2, $3, $4) RETURNING id;", [title, 1, q1.rows[0].id, 'a34']);
-      console.log("a34");
+      
+      let newJob
+      try {
+      // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
+      newJob = await pool.query(
+          "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+          [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
+        );
+      
+        console.log("a339    New job inserted successfully:", newJob.rows[0]);
+      } catch (error) {
+        console.error("a338    Error inserting new job:", error);
+      }
+      console.log("a34     parentJob!build_id=" + q4.rows[0].build_id + "\n parentjob!product_id=" + q4.rows[0].product_id);
       newJobID = newJob.rows[0].id;
       const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
     } else if (precedence == "origin") {

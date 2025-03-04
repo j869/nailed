@@ -1016,10 +1016,22 @@ app.post("/updateBuild/:id", async (req, res) => {
 //#region jobs
 app.get("/jobs/:id", async (req, res) => {
   if (req.isAuthenticated()) {
-    console.log("g1    as2987");
+    console.log("g1    displaying edit page for job " + req.params.id);
     //console.log(req.params.id);
-    const response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
-    console.log("g2  ");
+    let response 
+    try {
+      response = await axios.get(`${API_URL}/jobs/${req.params.id}`);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.error("g81     Job not found");
+        return res.send("g81    cannot find this job"); // Redirect to the home page
+      } else {
+        // Handle other errors (e.g., 500, network errors)
+        console.error("g82      Unexpected error:", error.message);
+        return res.status(500).send("Internal Server Error"); // Send a 500 error response
+      }
+    }
+    // console.log("g2  ");
     //console.log(response.data);
     res.render("editTask.ejs", {
     //res.render("jobs.ejs", {
