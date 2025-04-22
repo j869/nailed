@@ -1124,14 +1124,7 @@ app.get("/tasks/:id", async (req, res) => {
 app.get("/addtask", async (req, res) => {
   let precedence;
   if (req.isAuthenticated()) {
-    if (req.query.type == "parent") {
-      precedence = "pretask";
-    } else if (req.query.type == "child") {
-      precedence = "postask";
-    } else {
-      console.error("did not understand " + req.query.type)
-    }
-    const response = await axios.get(`${API_URL}/addtask?precedence=${precedence}&job_id=${req.query.jobnum}`);
+    const response = await axios.get(`${API_URL}/addtask?tier=${req.query.tier}&job_id=${req.query.jobnum}`);
     res.redirect("/jobs/" + req.query.jobnum);
   } else {
     res.redirect("/login");
@@ -1198,11 +1191,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-<<<<<<< HEAD
-    successRedirect: "/jobs/7",     //    "/2/customers",
-=======
-    successRedirect: "/jobs/94",     //"/2/customers",
->>>>>>> savepoint1
+    successRedirect: "/jobs/7",     //"/2/customers",
     failureRedirect: "/login",
   })
 );

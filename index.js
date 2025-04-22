@@ -249,39 +249,47 @@ app.get("/jobs/:id", async (req, res) => {
 
       // console.log("gd6 adding tasks")
       let task_antecedents = [];
-      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = "+antecedentTier+" ;";
-      result = await pool.query(vSQL);        
-      const buildId = result.rows[0].build_id  
-      vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
-      result = await pool.query(vSQL);        
-      const customerId = result.rows[0].customer_id  
-      const productId = result.rows[0].product_id  
-      vSQL = "select * from customers where id = " + customerId + ";";
-      result = await pool.query(vSQL);    
-      const customerName = result.rows[0].full_name  
-      task_antecedents = [
-        {
-          id: buildId,
-          display_text: 'build(' + buildId + ') for ' + customerName,
-          current_status: null,
-          change_log: null
-        }
-      ];
-      // task_antecedents = result.rows;
-      // console.log(task_antecedents)
-
+      if (antecedentTier === null) {
+        console.log("gd6    No antecedent tier found less than the current tier.");
+        vSQL = "SELECT * from jobs where id = "+job_id+" ;";
+        result = await pool.query(vSQL);        
+        const buildId = result.rows[0].build_id  
+        vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
+        result = await pool.query(vSQL);        
+        const customerId = result.rows[0].customer_id  
+        const productId = result.rows[0].product_id  
+        vSQL = "select * from customers where id = " + customerId + ";";
+        result = await pool.query(vSQL);    
+        const customerName = result.rows[0].full_name  
+        task_antecedents = [
+          {
+            id: buildId,
+            display_text: 'build(' + buildId + ') for ' + customerName,
+            current_status: null,
+            change_log: null
+          }
+        ];
+      } else {
+        vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, j.build_id FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = "+antecedentTier+" ;";
+        result = await pool.query(vSQL);        
+        console.log("gd63    sdfsdf")
+  
+      }
 
       let task_decendants = [];
-      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = "+descendantTier+" ;";
-      result = await pool.query(vSQL);        
-      task_decendants = result.rows;
-
+      if (antecedentTier === null) {
+      } else {
+        // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
+        vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = "+descendantTier+" ;";
+        result = await pool.query(vSQL);        
+        task_decendants = result.rows;
+      }
       
+
       let data = { 
         job : {
           id : job_id, 
+          tier : tier, 
           display_text : jobName, 
           display_name : jobUser, 
           free_text : jobText, 
@@ -444,9 +452,11 @@ app.get("/addtask", async (req, res) => {
   let newTaskID 
 
   try {
+
     //add task
     // console.log("t2    ");
-    const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence, sort_order) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "', 't2') RETURNING id;");      
+    // const newTask = await pool.query("INSERT INTO jobs (display_text, id, current_status, sort_order, tier) VALUES ('UNNAMED', "+ job_id +", 'active', 't2', 500) RETURNING id;");      
+    const newTask = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", ['UNNAMED', null, buildID, productID, 1, jobTemplate.sort_order]);
     newTaskID = newTask.rows[0].id;
     res.status(201).json({newTaskID : newTaskID });
 
