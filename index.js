@@ -202,9 +202,24 @@ app.get("/jobs/:id", async (req, res) => {
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
-      vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
+      vSQL = "SELECT * FROM jobs WHERE id = " + job_id + ";";
       result = await pool.query(vSQL);        
-      const reminder = result.rows[0];
+      const tier = result.rows[0].tier;
+      const build_id = result.rows[0].build_id;
+
+
+      result = await pool.query("SELECT tier FROM jobs WHERE build_id = $1 and tier > $2 ORDER BY tier ASC;", [build_id, tier]); 
+      const descendantTier = result.rows.length > 0 ? result.rows[0].tier : null;
+
+      result = await pool.query("SELECT tier FROM jobs WHERE build_id = $1 and tier < $2 ORDER BY tier DESC;", [build_id, tier]); 
+      const antecedentTier = result.rows.length > 0 ? result.rows[0].tier : null;
+
+      console.log("gd301     current tier("+ tier +") found also ("+antecedentTier+ " and "+descendantTier+")")
+      
+
+      // vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
+      // result = await pool.query(vSQL);        
+      const reminder = []    //result.rows[0];
       // if (result.rows.length === 0) {
       //   reminder = { escalation1_interval: 7, escalation2_interval: 14 };      //default values for new records
       // } else {
@@ -222,24 +237,26 @@ app.get("/jobs/:id", async (req, res) => {
       
       // console.log("gd4    adding antecedents")
       let job_antecedents = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = "+tier+" and r.decendant_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_antecedents = result.rows;
 
       // console.log("gd5   adding decendants")
       let job_decendants = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = "+tier+" and r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
       // console.log("gd6 adding tasks")
       let task_antecedents = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
+      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = "+antecedentTier+" ;";
       result = await pool.query(vSQL);        
       task_antecedents = result.rows;
 
       let task_decendants = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
+      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = "+descendantTier+" ;";
       result = await pool.query(vSQL);        
       task_decendants = result.rows;
 

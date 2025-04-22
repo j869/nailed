@@ -1152,7 +1152,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/2/customers",
+    successRedirect: "/jobs/7",     //    "/2/customers",
     failureRedirect: "/login",
   })
 );
