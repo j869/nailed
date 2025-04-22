@@ -1,5 +1,6 @@
 <%- include('partials/header') %>
 
+editTask.ejs
 Previous Task(s) was completed <div class="editable" id="dueDate" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.target_date %></div> (x days ago)
 <div class=" ">
     <% for (let pre in siteContent.job_antecedents) { %>
@@ -218,7 +219,7 @@ Next Task
 
 
 <%- include('partials/footer') %>
-editTask.ejs
+
 
 
 

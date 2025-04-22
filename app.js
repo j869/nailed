@@ -56,9 +56,8 @@ app.use((req, res, next) => {
 });
 
 app.post("/", async (req, res) => {
-  console.log("wb1   ", req.body);
-
   const { title, person, date } = req.body;
+  console.log("wb1    user("+ person +") added new task '" + title + "' to their day_task list");
   const nullDesc = {
     "build_id": 0,
     "build_start": "2024-06-24T23:00:00.000Z",
@@ -76,17 +75,16 @@ app.post("/", async (req, res) => {
   }
   
   const q2 = await db.query("INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4) RETURNING id", [title, null, person, date]);
-  console.log("wb7    ", q2.data);
+  // console.log("wb7    ", q2.data);
 
   res.redirect("/") ;
 
 })
 
 app.get("/", async (req, res) => {
-  console.log("ws1     ");
 
   if (req.user) {
-    console.log("ws21     current logged in user: ", req.user.id);
+    console.log("ws1     user(" + req.user.id + ") navigated to HOME page ");
     const iViewDay = parseInt(req.query.view) || 0;
     console.log("ws22     view: ", req.query.view);
     let q1SQL = "";
@@ -98,7 +96,7 @@ app.get("/", async (req, res) => {
       q1Params.push(iViewDay);
     } 
     const q1 = await db.query(q1SQL, q1Params);    
-    console.log("ws25    rows", q1.rowCount);
+    console.log("ws25     tasks to do today: ", q1.rowCount);
 
     // Parse the JSON data and extract task_id, build_id, and job_id for each object
     const parsedData = [];
@@ -150,6 +148,7 @@ app.get("/", async (req, res) => {
     res.render("home.ejs", { baseURL: process.env.BASE_URL, view: iViewDay, user_id: req.user.id, data: parsedData });
 
   } else {
+    console.log("ws1     navigated to HOME page ");
     res.render("home.ejs");
 
   }
@@ -170,13 +169,13 @@ app.get("/daytaskUpdate", (req, res) => {
 //#region Bryans Excel UX style
 
 app.get("/2/build/:id", async (req, res) => {
-  console.log("b1   ")
+  console.log("b1      navigate to WORKFLOW_LISTVIEW by user("+ req.user.id +") ")
   if (req.isAuthenticated()) {
       const buildID = req.params.id || "";
       try {
           let allCustomers;
           if (buildID) {
-              console.log("b2   SELECT * FROM jobs WHERE build_id = " + buildID + " order by id");
+              console.log("b2       retrieving all jobs for build("+buildID+")");
               const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1 order by id", [buildID]);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
@@ -211,7 +210,7 @@ app.get("/2/build/:id", async (req, res) => {
               // If there is a search term, fetch matching customers and their builds
               const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
 
-              console.log("b26   ")
+              // console.log("b26   ")
 // Merge customer, build, and jobs data
 // Sort tasks by sort_order
 const sortedTasks = tasksResult.rows.sort((a, b) => {
@@ -253,7 +252,7 @@ allCustomers = customersResult.rows.map(customer => {
 
             
 
-              console.log("b29   ")
+              // console.log("b29   ")
           } else {
             console.log("b3   ");
             // If there's no search term, fetch all customers and their builds
@@ -301,7 +300,7 @@ allCustomers = customersResult.rows.map(customer => {
               // Render customer.ejs with customer, builds, and jobs data
               res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
           } else {
-              console.log("b7   ", process.env.API_URL);
+              // console.log("b91      returning page");
               // If no specific build is clicked, render customers.ejs
               res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
           }
@@ -317,14 +316,14 @@ allCustomers = customersResult.rows.map(customer => {
 });
 
 app.get("/2/customers", async (req, res) => {
-  console.log("d1   ")
+  console.log("d1      nagivate to CUSTOMER_LISTVIEW")
   if (req.isAuthenticated()) {
       const query = req.query.query || "";
       try {
 
               let allCustomers;
               if (query) {
-                console.log("d2   User serched for a term: ", query);
+                console.log("d2      User serched for a term: ", query);
                 // If there is a search term, fetch matching customers and their builds
                 const customersQuery = `
                     SELECT 
@@ -404,12 +403,12 @@ app.get("/2/customers", async (req, res) => {
         
                     // console.log("d22   ", allCustomers);
                 } else {
-                    console.log("d24   No customers found");
+                    console.log("d24      No customers found");
                     allCustomers = [];
                 }
 
           } else {
-            console.log("d31   ");
+            console.log("d31      No search terms ");
 
             // Execute query to get customers and builds for the given user_id
             const customersResult = await db.query(`
@@ -487,7 +486,7 @@ app.get("/2/customers", async (req, res) => {
                 return acc;
             }, []);
         
-            console.log("d39   ", allCustomers);
+            console.log("d39      found " + allCustomers.length + " records");
           }
           
           // Render the appropriate template based on the scenario
@@ -501,7 +500,7 @@ app.get("/2/customers", async (req, res) => {
               // Render customer.ejs with customer, builds, and jobs data
               res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
           } else {
-              console.log("d7   ");
+              // console.log("d7   ");
               // If no specific build is clicked, render customers.ejs
               // Grouping customers by current_status
               
@@ -543,7 +542,7 @@ app.get("/2/customers", async (req, res) => {
           res.status(500).send("Internal Server Error");
       }
   } else {
-      console.log("d9   ");
+      console.log("d9       user not authenticated");
       res.redirect("/login");
   }
 });
@@ -563,7 +562,7 @@ app.get("/3/customers", async (req, res) => {
       // Perform the search operation based on the query
       // For example, you might want to search for customers with names matching the query
       const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
-      console.log("d1  ");
+      console.log("cc1  ");
 
       let allCustomers = result.rows;
       let status = {};
@@ -582,7 +581,7 @@ app.get("/3/customers", async (req, res) => {
         }
       }
       allCustomers = {open : openCustomers, closed : closedCustomers};
-      console.log("d5   ", allCustomers);
+      console.log("cc5   ", allCustomers);
 
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
@@ -592,7 +591,7 @@ app.get("/3/customers", async (req, res) => {
       });
 
     } catch (err) {
-      console.error(err);
+      console.error("cc8  " + err);
       // Handle errors appropriately, perhaps render an error page
       res.status(500).send("Internal Server Error");
     }
@@ -604,7 +603,7 @@ app.get("/3/customers", async (req, res) => {
 app.get("/customer/:id", async (req, res) => {
   const custID = parseInt(req.params.id);
   if (req.isAuthenticated()) {
-    console.log("c1   ", custID);
+    console.log("c1      navigate to EDIT_CUSTOMER_DETAILS for custID: ", custID);
 
 
     try {
@@ -639,7 +638,7 @@ app.get("/customer/:id", async (req, res) => {
 });
 
 app.get("/customers", async (req, res) => {
-  console.log("a1  ");
+  console.log("a1      navigate to EDITOR_LIST page ");
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
@@ -654,7 +653,7 @@ app.get("/customers", async (req, res) => {
         return acc;
       }, {});
 
-      console.log("a2     Grouped Customers by Status:");
+      console.log("a2       Grouped Customers by Status:", result.rowCount);
       res.render("listCustomers.ejs", {
         user : req.user,
         data : customersByStatus
@@ -924,8 +923,8 @@ try {
 //#region builds
 
 app.post("/addBuild", async (req, res) => {
-  console.log("e1    ", req.body);
-  console.log("e2    AddBuild() on " + API_URL)
+  console.log("e1       action: add");
+  console.log("e2        AddingBuild for customer_" + req.body.customer_id)
   let productID = req.body.product_id;
   
   if (req.isAuthenticated()) {
@@ -937,7 +936,7 @@ app.post("/addBuild", async (req, res) => {
       const newBuild = result.rows[0];    
 
       //start workflow
-      console.log("e3    adding the original job for the build(" + result.rows[0].id + ")");
+      console.log("e3        adding the original job for the build(" + result.rows[0].id + ")");
       const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
 
@@ -952,31 +951,31 @@ app.post("/addBuild", async (req, res) => {
 
 app.post("/updateBuild/:id", async (req, res) => {
   const buildID = parseInt(req.params.id);
-  console.log("f1    ", buildID);
+  console.log("f1      navigate to EDIT(JOB) page for build/:"+ buildID);
   const action = req.body.action;     // did the user click delete, update, view, or
-  console.log("f2    ", action);
+  console.log("f2       action: ", action);
   if (req.isAuthenticated()) {
     
     switch (action) {
       case "update":
-        console.log(action);
-        console.log(req.body);
-        console.log();
+        // console.log(action);
+        // console.log(req.body);
         const updateSQL = "UPDATE builds SET     " +
         "customer_id='" + req.body.customer_id + "', " +
         "product_id='" + req.body.product_id + "', " +
         "enquiry_date='" + req.body.enquiry_date.slice(0, 19).replace('T', ' ') + "' " +        // Format: YYYY-MM-DD HH:MM:SS
         "WHERE id=" + buildID + " RETURNING *"    
-        console.log(updateSQL);
+        // console.log(updateSQL);
         try {
           const result = await db.query(updateSQL);
           const updatedCustomer = result.rows[0];
-          console.log(updatedCustomer);
+          // console.log(updatedCustomer);
         } catch (err) {
-          console.error(err);
+          console.error("f38      " + err);
           res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
         }
         
+        console.log("f3        updated build_"+buildID );
         res.redirect("/customer/" + req.body.customer_id);
         break;
       case "delete":
@@ -986,11 +985,12 @@ app.post("/updateBuild/:id", async (req, res) => {
           console.error(err);
           //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
         }
+        console.log("f3        deleted build_"+buildID);
         res.redirect("/customer/" + req.body.customer_id);
         break;
       case "view":
         const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
-        console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
+        // console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
         res.redirect("/jobs/" + result.rows[0].job_id);
         break;
       default:
@@ -1016,7 +1016,7 @@ app.post("/updateBuild/:id", async (req, res) => {
 //#region jobs
 app.get("/jobs/:id", async (req, res) => {
   if (req.isAuthenticated()) {
-    console.log("g1    displaying edit page for job " + req.params.id);
+    // console.log("g1      navigate to JOB_EDIT page for /jobs/:", req.params.id);
     //console.log(req.params.id);
     let response 
     try {
@@ -1033,11 +1033,11 @@ app.get("/jobs/:id", async (req, res) => {
     }
     // console.log("g2  ");
     //console.log(response.data);
+    console.log("g9      navigate to JOB_EDIT page for /jobs/:"+ req.params.id + " - '" + response.data.job.display_text + "'");
     res.render("editTask.ejs", {
     //res.render("jobs.ejs", {
       siteContent : response.data, baseURL : baseURL
     });
-    console.log("g9  ");
   } else {
     console.log("g8  ");
     res.redirect("/login");
@@ -1056,21 +1056,23 @@ app.get("/jobDone/:id", async (req, res) => {
 });
 
 app.get("/delJob", async (req, res) => {
-  console.log("i1    ");
+  console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
   if (req.isAuthenticated()) {
     const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
-    res.redirect("/jobs/1");
+    console.log("i9       job deleted with response: "+ response.data.status);
+    res.redirect("/jobs/" + response.data.goToId);
   } else {
     res.redirect("/login");
   }
 });
 
 app.get("/addjob", async (req, res) => {
-  console.log("j1    ");
+  console.log("j1      user("+ req.user.id +") is adding a new job");
   if (req.isAuthenticated()) {
     
     //Add a single job as a placeholder for further user input (and the relationship)
     const response = await axios.get(`${API_URL}/addjob?precedence=${req.query.type}&id=${req.query.jobnum}`);
+    console.log("j9       new job added:", response.data.id);
     res.redirect("/jobs/" + req.query.jobnum);
   } else {
     res.redirect("/login");
@@ -1143,6 +1145,7 @@ app.post("/updateRoles", async (req, res) => {
 //#region authentication
 
 app.get("/login", (req, res) => {
+  console.log("l1      navigate to LOGIN page")
   res.render("login.ejs");
   baseURL = `${req.protocol}://${req.get('host')}`;
 });
@@ -1193,6 +1196,7 @@ app.post("/register", async (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
+  console.log("lz1     USER clicked logout")
   req.logout(function (err) {
     if (err) {
       return next(err);
@@ -1217,13 +1221,16 @@ passport.use(
             return cb(err);
           } else {
             if (valid) {
+              console.log("pp81    user(" + result.rows[0].id + ") authenticated on [MAC] at [SYSTIME]"  )
               return cb(null, user);
             } else {
+              console.log("pp9     user(" + username + ") wrong password on [MAC] at [SYSTIME]"  )
               return cb(null, false);
             }
           }
         });
       } else {
+        console.log("pp9     user(" + username + ") not registered on [MAC] at [SYSTIME]"  )
         return cb("Sorry, we do not recognise you as an active user of our system.");
         // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
       }
@@ -1242,7 +1249,7 @@ passport.deserializeUser((user, cb) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`re9     STARTED running on port ${port}`);
 });
 
 //#endregion
@@ -1323,11 +1330,11 @@ app.post("/updateUserStatusOrder", async (req, res) => {
 
 
 app.get("/update", async (req,res) => {
-  console.log("ufg1     "	)
   const fieldID = req.query.fieldID;
   const newValue = (req.query.newValue || '');   
   const rowID = req.query.whereID;
-  console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
+  console.log("ufg1    user("+req.user.id+") changed "	+ fieldID + " to " + newValue )
+  // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
 
   if (!fieldID) {
     console.error("ufg831    Error: fieldID is null - write was cancelled");
@@ -1335,8 +1342,8 @@ app.get("/update", async (req,res) => {
     return;
   }
   if (!newValue) {
-    //console.error("ufg832    Error: newValue is null - write was cancelled");
-    console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
+    console.log("ufg832    Error: newValue is null - write was cancelled");
+    // console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
     //res.status(400).send("Error: newValue is null");
     //return;
   }
@@ -1350,15 +1357,18 @@ app.get("/update", async (req,res) => {
   let columnName = "";
   let value = "";
   let q ;
+  // console.log("ufg41")
 
   switch (fieldID) {
     case "dueDate": 
-      table = "jobs";
+    console.log("ufg42")
+    table = "jobs";
       columnName = "target_date"
       value = newValue;
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "jobDesc":
+      console.log("ufg43")
       table = "jobs";
       columnName = "free_text"
       value = newValue;
@@ -1372,13 +1382,14 @@ app.get("/update", async (req,res) => {
         } else {
           value = "'" + newValue + "'";
         }
+        // console.log("ufg51   set jobs.user_id = " + newValue)
         // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
-        console.log("ufg00050      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
+        // console.log("ufg52      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
         const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
-        console.log('ufg00051');
+        // console.log('ufg53');
         const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
-        console.log('ufg00052');
+        console.log('ufg54    Updated job('+ rowID +')');
             
         break;
     case "taskDesc":

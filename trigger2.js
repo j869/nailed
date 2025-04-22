@@ -13,7 +13,7 @@ const pool = new Pool({
   port: process.env.PG_PORT,
 });
 
-console.log("re1    ", process.env.PG_DATABASE);
+console.log("re1     STARTING ", process.env.PG_DATABASE);
 
 
 async function handleTrigger(triggerData) {
@@ -99,7 +99,6 @@ async function handleTrigger(triggerData) {
   }
 
   async function getNextTasks() {
-    console.log("gnt11  ")
     try {
         //rebuild user_id = 1 worksheet
         const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
@@ -108,22 +107,23 @@ async function handleTrigger(triggerData) {
         const builds = buildQuery.rows;
 
         // Loop through each build
+        console.log("gnt11   user TRIGGERED update day_task_list matView")
         for (const build of builds) {
-            console.log("gnt31  adding worksheet for build_id: ", build.id)
+            console.log("gnt31    adding worksheet for build_id: ", build.id)
             
             // Query to get a list of builds
             const combiTasks = await pool.query("SELECT * FROM combined_tasks WHERE task_completed is null and build_id = $1 order by job_sort, task_sort;", [build.id]);
             const tasks = combiTasks.rows;
-            console.log("gnt33  found " +  combiTasks.rowCount + " tasks for build_id: ", build.id);
+            // console.log("gnt33     found " +  combiTasks.rowCount + " tasks for build_id: ", build.id);
 
             // Get the first incomplete task for the current build
             const task = tasks[0];
-            console.log("gnt34    searching build " + build.id + " for first task... task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.task_sort);
+            // console.log("gnt34    searching build " + build.id + " for first task... task.id " + task.task_id + ", title: " + task.task_text + " , sort_order " + task.task_sort);
             
             // Add the task to the work schedule
             if (task) {
                 if (!task.user_id) {
-                  console.log("gnt50   Task user_id unassigned, skipping task:", task.task_id);
+                  console.log("gnt50   Task("+ task.task_id +") user_id is unassigned... skipping task:");
                   continue;
                 }
 
@@ -137,7 +137,7 @@ async function handleTrigger(triggerData) {
                 VALUES ($1, $2, $3, $4);
               `, ["Build("+build.id+") " + task.task_text, task, task.user_id, targetDate]);
 
-              console.log("gnt51          sucessfully add to worksheet for user:", task.user_id);
+              // console.log("gnt51      sucessfully add to worksheet for user:", task.user_id);
 
             }
         }

@@ -174,7 +174,7 @@ app.get("/download/:id", async (req, res) => {
 app.get("/jobs/:id", async (req, res) => {
   //const { username, email } = req.body;
   const job_id = parseInt(req.params.id);
-  console.log("gd1    retrieving page data for job " + job_id + " ")
+  // console.log("gd1    retrieving page data for job " + job_id + " ")
   if (!job_id) {
     console.error("gd18   Tried to get a job, but not given the Job_ID")
   } else {
@@ -185,7 +185,7 @@ app.get("/jobs/:id", async (req, res) => {
 
     try {
       try {
-        console.log("gd2")
+        // console.log("gd2")
         // result = await pool.query("SELECT * FROM jobs WHERE id = " + job_id + ";");        //'INSERT INTO users (username, email) VALUES ($1, $2) RETURNING *', [username, email]
         result = await pool.query("SELECT * FROM jobs WHERE id = $1;", [job_id]); // Use paramet
         if (result.rows.length === 0) {
@@ -211,7 +211,7 @@ app.get("/jobs/:id", async (req, res) => {
       //   reminder = result.rows[0];
       // }
 
-      console.log("gd3")
+      // console.log("gd3")
       let conversation = [];
       vSQL = "SELECT id, display_name, message_text FROM conversations WHERE job_id = " + job_id + ";";
       result = await pool.query(vSQL);        
@@ -220,19 +220,19 @@ app.get("/jobs/:id", async (req, res) => {
         conversation.push( { display_name : result.rows[r].display_name, message_text : result.rows[r].message_text, attachment : result2.rows } )
       }
       
-      console.log("gd4    adding antecedents")
+      // console.log("gd4    adding antecedents")
       let job_antecedents = [];
       vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_antecedents = result.rows;
 
-      console.log("gd5   adding decendants")
+      // console.log("gd5   adding decendants")
       let job_decendants = [];
       vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
-      console.log("gd6 adding tasks")
+      // console.log("gd6 adding tasks")
       let task_antecedents = [];
       vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
       result = await pool.query(vSQL);        
@@ -275,7 +275,7 @@ app.get("/jobs/:id", async (req, res) => {
         //   {display_text : "Roofing", free_text : "supporting text"}, ],
         job_decendants : job_decendants,    //[{display_text : "Plumbing", free_text : "supporting text"},  ],
       };
-      console.log("gd9    successfully retrieved data")
+      console.log("gd9    successfully retrieved data for job " + job_id + " ")
       res.json(data);
       //res.json(result.rows[0]);
     } catch (error) {
@@ -404,7 +404,22 @@ app.get("/addjob", async (req, res) => {
         const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1,productID, title, null, job_template_ID, null, 1]);
         console.log("updated template to include the new job.  job_template_id=" + q1.rows[0].id);
         console.log("a11")
-        const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
+        // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id) VALUES ($1, 1) RETURNING id;", [title]);
+        let newJob
+        try {
+        // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
+        newJob = await pool.query(
+            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
+          );
+        
+          console.log("a339    New job inserted successfully:", newJob.rows[0]);
+        } catch (error) {
+          console.error("a338    Error inserting new job:", error);
+        }
+  
+
+
         console.log("a12")
         newJobID = newJob.rows[0].id;
         console.log("a13")
@@ -523,11 +538,17 @@ app.get("/addjob", async (req, res) => {
 
 app.get("/deleteJob", async (req, res) => {
   const client = await pool.connect();
-  
+  console.log("ii1     deleting job: ", req.query.job_id)
+
   try {
     await client.query('BEGIN'); // Start a transaction
 
     const job_id = req.query.job_id;
+    const q1 = await client.query("SELECT * FROM job_process_flow WHERE antecedent_id = $1;", [job_id]);  
+    console.log("ii3     this job has ["+ q1.rowCount + "] children")
+    const q2 = await client.query("SELECT * FROM job_process_flow WHERE decendant_id = $1;", [job_id]);  
+    let parentID = q2.rows[0].antecedent_id
+    console.log("ii4     job parent is ", parentID )
     const result = await client.query("DELETE FROM jobs WHERE id = $1 RETURNING *;", [job_id]);  
     
     // Check if rowCount is not equal to 1
@@ -536,11 +557,17 @@ app.get("/deleteJob", async (req, res) => {
     }
 
     await client.query('COMMIT'); // Commit the transaction
-    res.status(200).send("Job deleted successfully");
+    res.status(200).send({
+      status: "Job deleted successfully",
+      goToId: parentID
+    });
   } catch (error) {
     console.error("Error deleting job:", error);
     await client.query('ROLLBACK'); // Rollback the transaction
-    res.status(500).send("Failed to delete job");
+    res.status(500).send({
+      status: "Failed to delete job",
+      goToId: job_id
+    });
   } finally {
     client.release(); // Release the client back to the pool
   }
@@ -715,7 +742,7 @@ export async function createDecendantsForJob(jobID, pool) {
 
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  console.log(`rd9     STARTED running on port ${port}`);
 });
 
 
