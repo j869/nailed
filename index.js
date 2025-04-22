@@ -202,6 +202,12 @@ app.get("/jobs/:id", async (req, res) => {
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
+      vSQL = "SELECT * from jobs WHERE id = " + job_id + ";";
+      result = await pool.query(vSQL);        
+      // const tier = result.rows[0].tier
+      // console.log("gd117   ", tier)
+
+
       vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
       result = await pool.query(vSQL);        
       const reminder = result.rows[0];
@@ -222,10 +228,10 @@ app.get("/jobs/:id", async (req, res) => {
       
       // console.log("gd4    adding antecedents")
       let job_antecedents = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + " ;";
       result = await pool.query(vSQL);        
       job_antecedents = result.rows;
-
+      
       // console.log("gd5   adding decendants")
       let job_decendants = [];
       vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
@@ -234,12 +240,33 @@ app.get("/jobs/:id", async (req, res) => {
 
       // console.log("gd6 adding tasks")
       let task_antecedents = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
+      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
+      // console.log("gd61    jobid" + job_id)
+      vSQL = "select build_id from jobs where id = " + job_id + ";";
       result = await pool.query(vSQL);        
-      task_antecedents = result.rows;
+      const buildId = result.rows[0].build_id  
+      vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
+      result = await pool.query(vSQL);        
+      const customerId = result.rows[0].customer_id  
+      const productId = result.rows[0].product_id  
+      vSQL = "select * from customers where id = " + customerId + ";";
+      result = await pool.query(vSQL);    
+      const customerName = result.rows[0].full_name  
+      task_antecedents = [
+        {
+          id: buildId,
+          display_text: 'build(' + buildId + ') for ' + customerName,
+          current_status: null,
+          change_log: null
+        }
+      ];
+      // task_antecedents = result.rows;
+      // console.log(task_antecedents)
+
 
       let task_decendants = [];
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
+      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
+      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE job_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       task_decendants = result.rows;
 
@@ -323,24 +350,25 @@ app.get("/update", async (req, res) => {
   let value = req.query.value;
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud10    set " + column + " to " + value + " in table " + table + " where id = " + id);
+  console.log("ud10   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
   try {
     // put every database query into a try - catch block
     //update table
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud50     ", q.rowCount);
+      console.log("ud50    succesfully modified the " + table + " record: ");
     }
 
     if (table === "jobs") {
-      console.log("ud55 " + column);
+      // console.log("ud55    updating table 'jobs' and column: " + column);
       if (column === "display_text") {
-        const q2 = await pool.query("UPDATE job_templates SET display_text = " + value + " WHERE id = (SELECT job_template_id FROM jobs WHERE id = " + id + ");");      
-        console.log("ud70");
+        // console.log("ud69  sdf")
+        const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);        
+        console.log("ud70     ...we also modified the template to reflect this change. ");
       }
     }
-    console.log("ud99");
+    // console.log("ud99");
   } catch (error) {
     
     console.error('ud8   Error updating job:', error);
@@ -349,17 +377,69 @@ app.get("/update", async (req, res) => {
   }  
 })
 
+
+
+app.get("/tasks/:id", async (req, res) => {
+  console.log("me1    DB is reading task info ", req.params)
+  const task_id = parseInt(req.params.id);
+  if (!task_id) {
+    console.error("me81   Tried to get a task, but not given the task_ID")
+  } else {
+    let conversation = [];
+
+
+
+      let data = { 
+        job : {
+          id : 1, 
+          display_text : 'test', 
+          display_name : 'john', 
+          free_text : 'jobText', 
+          target_date : 'targetDate', 
+          reminder : 'reminder',      //{escalation1_interval : 7, escalation2_interval : 21},
+          conversation : 
+          [
+            {display_name : "John", message_text : "see attached pic", attachment : [{thumbnail : "https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png", link : "http://www.google.com"},]}, 
+            {display_name : "Nick", message_text : "John this is the ...", }, 
+            {display_name : "Owner", message_text : "when is it done?", }, ]
+          }, 
+        task_antecedents :  
+        [
+          {display_text : "Call Plumber", current_status : true, free_text : ""}, 
+          {display_text : "vook trencher", current_status : true, free_text : ""}, 
+          {display_text : "visit reece", current_status : true, free_text : ""}, 
+        ],
+        task_decendants :  
+        [
+          {display_text : "record pics", free_text : ""}, 
+          {display_text : "confirm plumber availability", free_text : ""}, 
+          {display_text : "call Bryan", free_text : ""}, ],
+        job_antecedents :  
+        [
+          {display_text : "Cladding", free_text : "supporting text"}, 
+          {display_text : "Roofing", free_text : "supporting text"}, ],
+        job_decendants : [{display_text : "Plumbing", free_text : "supporting text"},  ],
+      };
+      console.log("me9    successfully retrieved data for job() ")
+      res.json(data);
+
+  }
+
+});
+
+
 app.get("/addtask", async (req, res) => {
-  console.log("t1    ", req.query);
+  console.log("t1     USER is adding a new task for jobID(" + req.query.job_id + ")");
   const job_id = req.query.job_id;
   const precedence = req.query.precedence;
   let vSQL = "";
+  let newTaskID 
 
   try {
     //add task
-    console.log("t2    ");
+    // console.log("t2    ");
     const newTask = await pool.query("INSERT INTO tasks (display_text, job_id, current_status, precedence, sort_order) VALUES ('UNNAMED', "+ job_id +", 'active', '"+ precedence + "', 't2') RETURNING id;");      
-    const newTaskID = newTask.rows[0].id;
+    newTaskID = newTask.rows[0].id;
     res.status(201).json({newTaskID : newTaskID });
 
   } catch (error) {
@@ -367,9 +447,63 @@ app.get("/addtask", async (req, res) => {
     res.status(500).json({ error: 'Failed to add job' });
   }
 
-  console.log("t9    ");
+  console.log("t9      Successfully added task("+newTaskID+")");
 });
 
+
+app.get("/update", async (req, res) => {
+  const table = req.query.table;
+  const column = req.query.column;
+  let value = req.query.value;
+  //value = value.replace(/%/g,"_");
+  const id = req.query.id;
+  console.log("ud10   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  try {
+    // put every database query into a try - catch block
+    //update table
+    const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
+    if (q.rowCount == 1) {
+      res.status(201).json({msg : 'succesfully modified 1 record'});
+      console.log("ud50    succesfully modified the " + table + " record: ");
+    }
+
+    if (table === "jobs") {
+      // console.log("ud55    updating table 'jobs' and column: " + column);
+      if (column === "display_text") {
+        // console.log("ud69  sdf")
+        const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);        
+        console.log("ud70     ...we also modified the template to reflect this change. ");
+      }
+    }
+    // console.log("ud99");
+  } catch (error) {
+    
+    console.error('ud8   Error updating job:', error);
+    // return relevant status code at the end of every API call
+    res.status(500).json({ error: 'Failed to add job' });
+  }  
+})
+
+app.get("/deltask", async (req, res) => {
+  console.log("tl1     USER is deleting task(??) ");
+  const task_id = req.query.task_id;
+  const table = req.query.table;
+  let vSQL = "";
+  
+
+  try {
+    //add task
+    console.log("tl2    ", task_id);
+    const newTask = await pool.query("DELETE FROM tasks where id = "+ task_id +";");      
+    res.status(201).json({newTaskID : 'task was deleted successfully' });
+
+  } catch (error) {
+    console.error('tl81   Error deleting task:', error);
+    res.status(500).json({ error: 'Failed to delete task' });
+  }
+
+  console.log("tl9      Successfully deleted task("+task_id+")");
+});
 
 
 
@@ -390,7 +524,7 @@ app.get("/addjob", async (req, res) => {
     jobID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
   }
   //  no longer provided... its derived from the buildID record      const productID = req.query.product_id;
-  console.log("adding to job("+jobID+") for build(" + buildID + ") on " + precedence + " called " + title);
+  console.log("a01    adding to job("+jobID+") for build(" + buildID + ") on " + precedence + " called " + title);
 
   try {
     let newJobID;
@@ -436,31 +570,32 @@ app.get("/addjob", async (req, res) => {
       }
 
     } else if (precedence == "child") {
-      console.log("a30 updated template to include the new job. " + jobID);
-      //console.log(req.query);
-      const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
-      console.log("a31 " + q4.rows[0].job_template_id);
-      let oldJobTemplateID = q4.rows[0].job_template_id;
-      const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
-      console.log("a31   new job_tempalate created id = " + q1.rows[0].id);
-      console.log("a33" + "        UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID);
-      const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
-      
-      let newJob
-      try {
-      // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
-      newJob = await pool.query(
-          "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
-          [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
-        );
-      
-        console.log("a339    New job inserted successfully:", newJob.rows[0]);
-      } catch (error) {
-        console.error("a338    Error inserting new job:", error);
-      }
-      console.log("a34     parentJob!build_id=" + q4.rows[0].build_id + "\n parentjob!product_id=" + q4.rows[0].product_id);
-      newJobID = newJob.rows[0].id;
-      const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
+        console.log("a30     new job is a child to job("+ jobID +")");
+        //console.log(req.query);
+        const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+        console.log("a31     based on template_id(" + q4.rows[0].job_template_id + ") for job("+ jobID +")");
+        let oldJobTemplateID = q4.rows[0].job_template_id;
+        const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
+        const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
+        console.log("a32     tempalate updated to insert new jobtemplateID(" + q1.rows[0].id + ")");
+        // console.log("a33     updated relationship. decendant_array = '" + q1.rows[0].id + "', where oldJobTemplateID = " + oldJobTemplateID);
+        
+        let newJob
+        try {
+        // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
+        newJob = await pool.query(
+            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
+            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
+          );
+        
+          console.log("a339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");
+        } catch (error) {
+          console.error("a338    Error inserting new job:", error);
+        }
+        console.log("a34     working with parentJob!build_id=" + q4.rows[0].build_id + ", parentjob!product_id=" + q4.rows[0].product_id);
+        newJobID = newJob.rows[0].id;
+        const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
+        console.log("a39     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " ")
     } else if (precedence == "origin") {
         console.log("a50")
         //pull down the build record.  What kind of build? garage or hay shed?
