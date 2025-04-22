@@ -1091,6 +1091,36 @@ app.get("/addjob", async (req, res) => {
 
 //#region tasks
 
+app.get("/tasks/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    console.log("m1      ", req.params.id);
+    let response 
+    try {
+      response = await axios.get(`${API_URL}/tasks/${req.params.id}`);
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.error("m81     Task not found");
+        return res.send("m81    cannot find this task"); // Redirect to the home page
+      } else {
+        // Handle other errors (e.g., 500, network errors)
+        console.error("m82      Unexpected error:", error.message);
+        return res.status(500).send("Internal Server Error"); // Send a 500 error response
+      }
+    }
+    // console.log("g2  ");
+    //console.log(response.data);
+    console.log("m9      navigate to JOB_EDIT page for /tasks/:"+ req.params.id + " - '" + response.data.job.display_text + "'");
+    res.render("editTask.ejs", {
+    //res.render("jobs.ejs", {
+      siteContent : response.data, baseURL : baseURL
+    });
+  } else {
+    console.log("m8  ");
+    res.redirect("/login");
+  }
+});
+
+
 app.get("/addtask", async (req, res) => {
   let precedence;
   if (req.isAuthenticated()) {
@@ -1102,6 +1132,22 @@ app.get("/addtask", async (req, res) => {
       console.error("did not understand " + req.query.type)
     }
     const response = await axios.get(`${API_URL}/addtask?precedence=${precedence}&job_id=${req.query.jobnum}`);
+    res.redirect("/jobs/" + req.query.jobnum);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/deltask", async (req, res) => {
+  console.log("dlt1    ", req.query )
+  let precedence;
+  if (req.isAuthenticated()) {
+    if (req.query.table == "task") {
+      const response = await axios.get(`${API_URL}/deltask?table=${req.query.table}&task_id=${req.query.id}`);
+    } else {
+      console.error("did not understand " + req.query.type)
+    }
+    console.log("dlt9   success")
     res.redirect("/jobs/" + req.query.jobnum);
   } else {
     res.redirect("/login");
@@ -1152,7 +1198,11 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
+<<<<<<< HEAD
     successRedirect: "/jobs/7",     //    "/2/customers",
+=======
+    successRedirect: "/jobs/94",     //"/2/customers",
+>>>>>>> savepoint1
     failureRedirect: "/login",
   })
 );
