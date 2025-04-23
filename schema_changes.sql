@@ -19,3 +19,6 @@ UPDATE job_process_flow
 SET tier = 500;
 
 
+ALTER TABLE files
+ADD COLUMN build_id INT,
+ADD COLUMN job_id INT;

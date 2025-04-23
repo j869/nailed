@@ -526,6 +526,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
         console.log("uf3      Upload form submitted.");
 
+        const buildId = <%= locals.tableData[0].builds[0].id %>;    //data.builds[0].id
         const file = fileInput.files[0];
 
         if (!file) {
@@ -534,10 +535,15 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        console.log(`uf4      Selected file: ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
+        console.log(`uf4      Selected file for build(${buildId}): ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
 
         const formData = new FormData();
         formData.append("file", file);
+        
+        // const jobId = <= job.job_id >;
+
+        formData.append("build_id", buildId);
+        // formData.append("job_id", jobId);
 
         try {
             console.log("uf5      Sending file to backend...");    
@@ -566,6 +572,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.addEventListener("DOMContentLoaded", async function () {
     console.log("lf1     Fetching uploaded files...");
+    const buildId = <%= locals.tableData[0].builds[0].id %>;    //data.builds[0].id
+    console.log('lf45   ' + buildId)
 
     const fileListContainer = document.getElementById("fileList");
 
@@ -575,7 +583,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     try {
-        const response = await fetch(`${apiUrl}/files`);
+        const build_id = <%= locals.tableData[0].builds[0].id %>;   
+        const response = await fetch(`${apiUrl}/files?build_id=${build_id}`);
         const files = await response.json();
 
         if (files.length === 0) {

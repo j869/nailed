@@ -61,8 +61,9 @@ const upload = multer({ storage: multer.memoryStorage() });
  * Route to Upload a File
  */
 app.post("/upload", upload.single("file"), async (req, res) => {
-  console.log("uf1      Incoming file upload request...");
-
+  //const buildId = req.query.build_id;
+  console.log("uf1      Incoming file upload request... ");
+  
   if (!req.file) {
     console.warn("uf81      Upload failed: No file provided.");
     return res.status(400).send("No file uploaded.");
@@ -70,12 +71,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
   try {
     const { originalname, mimetype, buffer } = req.file;
+    const build_id = req.body.build_id;
 
-    console.log(`uf2      Uploading file: ${originalname}, Type: ${mimetype}, Size: ${buffer.length} bytes`);
+    console.log(`uf2      Uploading on build(${build_id}): ${originalname}, Type: ${mimetype}, Size: ${buffer.length} bytes`);
 
     const result = await pool.query(
-      "INSERT INTO files (filename, mimetype, data) VALUES ($1, $2, $3) RETURNING id",
-      [originalname, mimetype, buffer]
+      "INSERT INTO files (filename, mimetype, data, build_id) VALUES ($1, $2, $3, $4) RETURNING id",
+      [originalname, mimetype, buffer, build_id]
     );
 
     console.log(`File uploaded successfully with ID: ${result.rows[0].id}`);
@@ -92,10 +94,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
  * Route to list attachments
  */
 app.get("/files", async (req, res) => {
-  console.log("vf1      Fetching list of uploaded files...");
+  console.log("vf1      Fetching list of uploaded files for build...", req.query.build_id);
 
   try {
-    const result = await pool.query("SELECT id, filename FROM files ORDER BY id DESC");
+    const result = await pool.query("SELECT id, filename FROM files WHERE build_id = "+ req.query.build_id +" ORDER BY id DESC");
 
     if (result.rows.length === 0) {
       console.warn("vf81      No files found in the database.");
@@ -505,7 +507,7 @@ app.get("/deltask", async (req, res) => {
   const table = req.query.table;
   let vSQL = "";
   
-  
+
   let recordsDeleted
   try {
     // console.log("tl2    ", task_id);
