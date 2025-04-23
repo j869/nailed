@@ -13,7 +13,7 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
             </div>
         </div>
     <% } %>
-    <a href="<%= baseURL %>/addJob?type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
+    <a href="<%= baseURL %>/addJob?tier=<%= parseInt(siteContent.job.tier) - 1 %>&type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
     
 </div>
 
@@ -34,11 +34,12 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                         <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                         <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
                     </div>
+                    <a href="<%= baseURL %>/jobs/<%= siteContent.task_antecedents[pr].id  %>" class="btn btn-light">E</a>
                 </div>
                 <% } %>
                 <div class="card">
                     <div class="card-body">
-                        <a href="<%= baseURL %>/addtask?type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
+                        <a href="<%= baseURL %>/addtask?tier=<%= siteContent.job.tier %>&type=parent&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
                     </div>
                 </div>      
             </div>        
@@ -136,8 +137,8 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                                 <div class="editable" id="taskTitle" contenteditable="true" data-record-id="<%= siteContent.task_decendants[po].id  %>">
                                     <%= siteContent.task_decendants[po].display_text %>
                                 </div>
-                                <a href="<%= baseURL %>/deltask?table=task&id=<%= siteContent.task_decendants[po].id  %>&jobnum=<%= siteContent.job.id %>" class="btn btn-light">D</a>
-                                <a href="<%= baseURL %>/tasks/<%= siteContent.task_decendants[po].id  %>" class="btn btn-light">E</a>
+                                <a href="<%= baseURL %>/delJob?jobnum=<%= siteContent.task_decendants[po].id %>"  class="btn btn-light">D</a>
+                                <a href="<%= baseURL %>/jobs/<%= siteContent.task_decendants[po].id  %>" class="btn btn-light">E</a>
                             </h5>
                             <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                             <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
@@ -146,7 +147,7 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                 <% } %>    
                 <div class="card">
                     <div class="card-body">
-                        <a href="<%= baseURL %>/addtask?type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
+                        <a href="<%= baseURL %>/addjob?tier=<%= parseInt(siteContent.job.tier) + 1 %>&type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-light">Add New +</a>
                     </div>
                 </div>   
             </div>        
@@ -171,7 +172,7 @@ Next Task
             </div>
         </div>
     <% } %>
-    <a href="<%= baseURL %>/addJob?type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
+    <a href="<%= baseURL %>/addJob?tier=<%= siteContent.job.tier %>&type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
 </div>
 
 

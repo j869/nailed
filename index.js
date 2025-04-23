@@ -203,14 +203,21 @@ app.get("/jobs/:id", async (req, res) => {
       const jobUser = "" + result.rows[0].user_id + ""
 
       vSQL = "SELECT * from jobs WHERE id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      // const tier = result.rows[0].tier
-      // console.log("gd117   ", tier)
+      result = await pool.query(vSQL);       
+      const tier = result.rows[0].tier 
+      const build_id= result.rows[0].build_id 
 
+      vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier > "+ tier +" ORDER BY tier ASC;";
+      result = await pool.query(vSQL);       
+      const decendantTier = result.rows.length > 0 ? result.rows[0].tier : null;
 
-      vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
-      result = await pool.query(vSQL);        
-      const reminder = result.rows[0];
+      vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier < "+ tier +" ORDER BY tier DESC;";
+      result = await pool.query(vSQL);       
+      const antecedentTier = result.rows.length > 0 ? result.rows[0].tier : null;
+
+      // vSQL = "SELECT escalation1_interval, escalation2_interval FROM reminders WHERE id = " + result.rows[0].reminder_id + ";";
+      // result = await pool.query(vSQL);        
+      const reminder = []     //result.rows[0];
       // if (result.rows.length === 0) {
       //   reminder = { escalation1_interval: 7, escalation2_interval: 14 };      //default values for new records
       // } else {
@@ -228,45 +235,52 @@ app.get("/jobs/:id", async (req, res) => {
       
       // console.log("gd4    adding antecedents")
       let job_antecedents = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE r.decendant_id = " + job_id + " ;";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = " + tier + " and r.decendant_id = " + job_id + " ;";
       result = await pool.query(vSQL);        
       job_antecedents = result.rows;
       
       // console.log("gd5   adding decendants")
       let job_decendants = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE r.antecedent_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + tier + " and r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
+      console.log("gd117   ", tier, decendantTier, job_id, antecedentTier)
       // console.log("gd6 adding tasks")
       let task_antecedents = [];
-      // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
-      // console.log("gd61    jobid" + job_id)
-      vSQL = "select build_id from jobs where id = " + job_id + ";";
-      result = await pool.query(vSQL);        
-      const buildId = result.rows[0].build_id  
-      vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
-      result = await pool.query(vSQL);        
-      const customerId = result.rows[0].customer_id  
-      const productId = result.rows[0].product_id  
-      vSQL = "select * from customers where id = " + customerId + ";";
-      result = await pool.query(vSQL);    
-      const customerName = result.rows[0].full_name  
-      task_antecedents = [
-        {
-          id: buildId,
-          display_text: 'build(' + buildId + ') for ' + customerName,
-          current_status: null,
-          change_log: null
-        }
-      ];
-      // task_antecedents = result.rows;
-      // console.log(task_antecedents)
-
+      if (antecedentTier) {
+        vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = " + antecedentTier + " and r.decendant_id = " + job_id + ";";
+        result = await pool.query(vSQL);        
+        task_antecedents = result.rows;
+      } else {
+        // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'pretask' AND job_id = " + job_id + ";";
+        // console.log("gd61    jobid" + job_id)
+        vSQL = "select build_id from jobs where id = " + job_id + ";";
+        result = await pool.query(vSQL);        
+        const buildId = result.rows[0].build_id  
+        vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
+        result = await pool.query(vSQL);        
+        const customerId = result.rows[0].customer_id  
+        const productId = result.rows[0].product_id  
+        vSQL = "select * from customers where id = " + customerId + ";";
+        result = await pool.query(vSQL);    
+        const customerName = result.rows[0].full_name  
+        task_antecedents = [
+          {
+            id: buildId,
+            display_text: 'build(' + buildId + ') for ' + customerName,
+            current_status: null,
+            change_log: null
+          }
+        ];
+        // task_antecedents = result.rows;
+        // console.log(task_antecedents)
+      }
 
       let task_decendants = [];
       // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
-      vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE job_id = " + job_id + ";";
+      // vSQL = "SELECT id, display_text, current_status, free_text FROM jobs WHERE tier = " + decendantTier + " and build_id = " + build_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + decendantTier + " and r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       task_decendants = result.rows;
 
@@ -274,6 +288,7 @@ app.get("/jobs/:id", async (req, res) => {
       let data = { 
         job : {
           id : job_id, 
+          tier : tier, 
           display_text : jobName, 
           display_name : jobUser, 
           free_text : jobText, 
@@ -490,19 +505,20 @@ app.get("/deltask", async (req, res) => {
   const table = req.query.table;
   let vSQL = "";
   
-
+  
+  let recordsDeleted
   try {
-    //add task
-    console.log("tl2    ", task_id);
-    const newTask = await pool.query("DELETE FROM tasks where id = "+ task_id +";");      
-    res.status(201).json({newTaskID : 'task was deleted successfully' });
+    // console.log("tl2    ", task_id);
+    const result = await pool.query("DELETE FROM tasks WHERE id = $1;", [task_id]);
+    recordsDeleted = result.rowCount;
+    res.status(201).json({newTaskID : recordsDeleted + ' task(s) were deleted successfully' });
 
   } catch (error) {
     console.error('tl81   Error deleting task:', error);
     res.status(500).json({ error: 'Failed to delete task' });
   }
 
-  console.log("tl9      Successfully deleted task("+task_id+")");
+  console.log("tl9      Successfully deleted task(" + task_id + ") deleting " + recordsDeleted + " records");
 });
 
 
@@ -516,6 +532,7 @@ app.get("/addjob", async (req, res) => {
 
   const title = req.query.title || 'UNNAMED';
   const precedence = req.query.precedence;
+  const tier = req.query.tier;
   let buildID;
   let jobID;
   if (precedence == "origin") {
@@ -543,8 +560,8 @@ app.get("/addjob", async (req, res) => {
         try {
         // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
         newJob = await pool.query(
-            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
-            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
+            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id, tier]
           );
         
           console.log("a339    New job inserted successfully:", newJob.rows[0]);
@@ -584,8 +601,8 @@ app.get("/addjob", async (req, res) => {
         try {
         // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
         newJob = await pool.query(
-            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;",
-            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id]
+            "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id, tier]
           );
         
           console.log("a339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");
@@ -641,7 +658,7 @@ app.get("/addjob", async (req, res) => {
           //If there is a template already then we have already returned it in q1...
           console.log("a70     ", jobTemplate);
           //create the new job in the database from the parameters read from the tempalte, and link it to the build
-          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1, jobTemplate.sort_order]);
+          const q2 = await pool.query("INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, sort_order, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;", [jobTemplate.display_text, jobTemplateID, buildID, productID, 1, jobTemplate.sort_order, 500]);
           newJobID = q2.rows[0].id;
           // No relationship to define because there is only on Job in the system for this build (at this point)     //const q3 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (null, " + newJobID + ") ;");             
         }

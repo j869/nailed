@@ -1067,11 +1067,11 @@ app.get("/delJob", async (req, res) => {
 });
 
 app.get("/addjob", async (req, res) => {
-  console.log("j1      user("+ req.user.id +") is adding a new job");
+  console.log("j1      user("+ req.user.id +") is adding a new job on tier " + req.query.tier);
   if (req.isAuthenticated()) {
     
     //Add a single job as a placeholder for further user input (and the relationship)
-    const response = await axios.get(`${API_URL}/addjob?precedence=${req.query.type}&id=${req.query.jobnum}`);
+    const response = await axios.get(`${API_URL}/addjob?tier=${req.query.tier}&precedence=${req.query.type}&id=${req.query.jobnum}`);
     console.log("j9       new job added:", response.data.id);
     res.redirect("/jobs/" + req.query.jobnum);
   } else {
