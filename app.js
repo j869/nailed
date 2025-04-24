@@ -435,10 +435,15 @@ app.get("/2/customers", async (req, res) => {
                     products p ON b.product_id = p.id
                 WHERE 
                     EXISTS (
-                        SELECT 1 
-                        FROM jobs j 
-                        WHERE j.build_id = b.id 
-                        AND j.user_id = $1
+                      SELECT 1 
+                      FROM jobs j 
+                      WHERE j.build_id = b.id 
+                      AND j.user_id = $1
+                    )     OR EXISTS (
+                      SELECT 1
+                      FROM users u
+                      WHERE u.id = $1
+                      AND u.roles LIKE '%sysadmin%'
                     )
                 ORDER BY 
                     c.contact_other ASC;
@@ -505,7 +510,7 @@ app.get("/2/customers", async (req, res) => {
               // Grouping customers by current_status
               
               // const qry1 = await db.query(`SELECT display_text FROM listorder WHERE user_id = $1 AND location_used = 'CustomersStatus' ORDER BY sort_order;`, [req.user.id]);
-              const qry1 = await db.query(`SELECT display_text FROM listorder WHERE location_used = 'CustomersStatus' ORDER BY sort_order;`);
+              const qry1 = await db.query(`SELECT display_text FROM listorder WHERE location_used = 'CustomersStatus' and user_id = 0 ORDER BY sort_order;`);
               const statusOrderList = qry1.rows.map(row => row.display_text);
 
             
@@ -532,7 +537,8 @@ app.get("/2/customers", async (req, res) => {
             res.render("2/customers.ejs", { 
                 user: req.user,  
                 tableData: allCustomers,  
-                baseUrl: process.env.API_URL 
+                baseUrl: process.env.API_URL,
+                statusOrderList 
             });
             
           }
@@ -1356,7 +1362,7 @@ app.post("/updateUserStatusOrder", async (req, res) => {
       return res.status(400).json({ error: "Invalid or empty statusOrder array" });
     }
     const values = statusOrder.map((item, index) => `(${userId}, 'CustomersStatus', ${index}, '${item.status.replace(/'/g, "''")}')`).join(",\n");
-    const deleteSql = `DELETE from listOrder where location_used = 'CustomersStatus'; `;
+    const deleteSql = `DELETE from listOrder where location_used = 'CustomersStatus' and user_id = ${userId}; `;
     const insertSql = `INSERT INTO listOrder (user_id, location_used, sort_order, display_text) VALUES ${values};`;
     // console.log("us22   Generated SQL:\n", sql); // Log the generated SQL statement
 

@@ -12,24 +12,39 @@ customers.ejs
             <hr><br>
             <div class="panel-body">
 
-        <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
-            <% 
-                const groupedData = locals.tableData.reduce((acc, data) => {
-                    const status = data.customer.current_status;
-                    if (!acc[status]) {
-                        acc[status] = [];
-                    }
-                    acc[status].push(data);
-                    return acc;
-                }, {});
-            %>
-            <% Object.keys(groupedData).forEach(function(status, index) { %>
+
+
+
+                <% if (locals.tableData && Array.isArray(locals.tableData) && Array.isArray(locals.statusOrderList)) { %>
+                    <%
+                        // Create a Set of unique statuses from the dataset
+                        const datasetStatuses = new Set(locals.tableData.map(data => data.customer.current_status));
+                
+                        // Combine with statusOrderList, ensuring no duplicates
+                        const combinedStatuses = Array.from(new Set([...datasetStatuses, ...locals.statusOrderList]));
+                
+                        // Create a lookup map for quick sorting based on statusOrderList
+                        const statusOrderMap = locals.statusOrderList.reduce((acc, status, index) => {
+                            acc[status] = index; // Assign index based on predefined order
+                            return acc;
+                        }, {});
+                
+                        // Sort the combinedStatuses array based on the status order
+                        combinedStatuses.sort((a, b) => {
+                            const indexA = statusOrderMap[a] ?? Infinity;
+                            const indexB = statusOrderMap[b] ?? Infinity;
+                            return indexA - indexB;
+                        });
+                    %>
+
+ 
+            <% combinedStatuses.forEach(function(status, index) { %>
                 <div class="accordion-status-item" draggable="true" ondragstart="dragStart(event, <%= index %>)" ondragover="allowDrop(event)" ondrop="drop(event, <%= index %>)">
                     <h2 class="accordion-header" id="heading<%= index %>">
                         <button class="accordion-button" type="button" data-bs-toggle="collapse" 
                             data-bs-target="#collapseStatus<%= index %>"
                             aria-expanded="true" aria-controls="collapseStatus<%= index %>"
-                            onclick="console.log('col001     heading' + <%= index %> + ' ', '<%= status %>')">
+                            onclick="console.log('cl1     heading' + <%= index %> + ' ', '<%= status %>')">
                             <strong><%= status %></strong>
                         </button>
                     </h2>
