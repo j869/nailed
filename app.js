@@ -169,9 +169,9 @@ app.get("/daytaskUpdate", (req, res) => {
 //#region Bryans Excel UX style
 
 app.get("/2/build/:id", async (req, res) => {
-  console.log("b1      navigate to WORKFLOW_LISTVIEW by user("+ req.user.id +") ")
   if (req.isAuthenticated()) {
-      const buildID = req.params.id || "";
+    console.log("b1      navigate to WORKFLOW_LISTVIEW by user("+ req.user.id +") ")
+    const buildID = req.params.id || "";
       try {
           let allCustomers;
           if (buildID) {
