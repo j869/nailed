@@ -703,11 +703,49 @@ app.get("/customers", async (req, res) => {
 });
 
 app.post("/addCustomer", async (req, res) => {
+  console.log("n1      USER is adding a new customer ");
   if (req.isAuthenticated()) {
     try {
     const currentTime = new Date(); // Get the current time
     currentTime.setDate(currentTime.getDate() + 21); // Add 21 days
     
+    //check if the customer name already exists
+    const existingCustomer = await db.query("SELECT * FROM customers WHERE full_name = $1", [req.body.fullName]);
+    if (existingCustomer.rows.length > 0) {
+      console.log("n81         Customer already exists: ", req.body.fullName);
+      res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
+      return;
+    }
+    //check if email already exists
+    const existingEmail = await db.query("SELECT * FROM customers WHERE primary_email = $1", [req.body.primaryEmail]);
+    if (existingEmail.rows.length > 0) {
+      console.log("n82         Email already exists: ", req.body.primaryEmail);
+      res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
+      return;
+    }
+    //check if phone number already exists
+    const existingPhone = await db.query("SELECT * FROM customers WHERE primary_phone = $1", [req.body.primaryPhone]);
+    if (existingPhone.rows.length > 0) {
+      console.log("n83         Phone number already exists: ", req.body.primaryPhone);
+      res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
+      return;
+    }
+    //check if address already exists
+    const existingAddress = await db.query("SELECT * FROM customers WHERE home_address = $1", [req.body.homeAddress]);
+    if (existingAddress.rows.length > 0) {
+      console.log("n84         Address already exists: ", req.body.homeAddress);
+      res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
+      return;
+    }
+    //check if other contact already exists
+    const existingContact = await db.query("SELECT * FROM customers WHERE contact_other = $1", [req.body.contactOther]);
+    if (existingContact.rows.length > 0) {
+      console.log("n85         Other contact already exists: ", req.body.contactOther);
+      res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
+      return;
+    }
+
+    // Insert the new customer into the database
     const result = await db.query(
       "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
       [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "open", currentTime]
@@ -780,7 +818,7 @@ app.post("/updateCustomer/:id", async (req, res) => {
 
 app.post("/taskComplete", async (req, res) => {
   try {
-      console.log("ta1   ", req.body);
+      console.log("ta1    USER changed task status ", req.body);
       const taskID = req.body.taskId;
       const status = req.body.status;    //string 'true' or 'false'
 
@@ -793,7 +831,7 @@ app.post("/taskComplete", async (req, res) => {
       let newCompleteDate;
       let newCompleteBy;
       if (status === 'true') {
-          console.log("ta2");
+          // console.log("ta2");
           // if (currentStatus === null || currentStatus === 'pending') {
           //     newStatus = 'active';
           // } else if (currentStatus === 'active') {
@@ -803,7 +841,7 @@ app.post("/taskComplete", async (req, res) => {
           newCompleteDate = new Date();
           newCompleteBy = req.user.id;
       } else {
-        console.log("ta3");
+        // console.log("ta3");
         // If status is not 'true', keep the current status unchanged
           newStatus = 'pending';
           newCompleteDate = null;
@@ -812,12 +850,12 @@ app.post("/taskComplete", async (req, res) => {
 
       // Update the tasks table in your database
       const updateResult = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE id = $2", [newStatus, taskID, newCompleteDate, newCompleteBy]);
-      console.log("ta4");
+      // console.log("ta4");
 
       // Check if the update was successful
       if (updateResult.rowCount === 1) {
-          console.log(`ta9   Task ${taskID} status updated to ${newStatus}`);
           const q4 = await db.query(`DELETE FROM worksheets WHERE description LIKE '%' || '"task_id":' || $1 || ',' || '%'`,[taskID]);
+          console.log(`ta9      Task ${taskID} status updated to ${newStatus}`);
           res.status(200).json({ message: `Task ${taskID} status updated to ${newStatus}` });
       } else {
           console.log(`ta8     Task ${taskID} not found or status not updated`);
@@ -831,8 +869,8 @@ app.post("/taskComplete", async (req, res) => {
 
 
 app.post("/jobComplete", async (req, res) => {
-try {
-    console.log("tb1   ", req.body);
+  console.log("tb1      USER is updating status", req.body);
+  try {
     const jobID = req.body.jobId;
     const status = req.body.status;    //string 'true' or 'false'
 
@@ -856,27 +894,27 @@ try {
 
 
     // Update the jobs table in your database
-    console.log("tb2   ", newStatus, jobID);
+    // console.log("tb2   ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
         // update the status of all child tasks 
-        console.log("tb71      ", jobID, newStatus);  
+        // console.log("tb71      ", jobID, newStatus);  
     //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
         const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
-        console.log("tb72      ", result.rowCount);  
-        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
+        // console.log("tb72      ", result.rowCount);  
         res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
+        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
 
     } else {
         console.log(`tb8     job ${jobID} not found or status not updated`);
         res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
-} catch (error) {
+  } catch (error) {
     console.error("tb84     Error updating job status:", error);
     res.status(500).json({ error: "Internal Server Error" });
-}
+  }
 });
 
 

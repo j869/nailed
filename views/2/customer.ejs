@@ -1,5 +1,5 @@
 <%- include('../partials/header') %>
-customer.ejs
+views/2/customer.ejs
 
 <!DOCTYPE html>
 <html lang="en">
@@ -394,15 +394,15 @@ customer.ejs
         });
 
         $(document).ready(function() {
-            console.log("b1   ");
+            console.log("b1     USER changed status of job");
             // Add click event listener to the checkbox with class 'job-checkbox'
             $('.job-checkbox').click(function() {
                 // Get the job ID from the data attribute
                 var jobId = $(this).data('job-id');
-                console.log("b2   ", jobId);
+                // console.log("b2   ", jobId);
                 // Determine if checkbox is checked
                 var isChecked = $(this).prop('checked');
-                console.log("b3   ", isChecked);
+                // console.log("b3   ", isChecked);
                 // Send API request to update job status
                 $.ajax({
                     url: '<%= locals.baseUrl %>/jobComplete', 
@@ -413,7 +413,7 @@ customer.ejs
                     },
                     success: function(response) {
                         // Handle success response if needed
-                        console.log('b9    job status updated successfully');
+                        console.log('b9    job(' + jobId + ') status updated to ' + isChecked + ' successfully');
                     },
                     error: function(xhr, status, error) {
                         // Handle error response if needed
