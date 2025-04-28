@@ -318,6 +318,8 @@ allCustomers = customersResult.rows.map(customer => {
 app.get("/2/customers", async (req, res) => {
   console.log("d1      nagivate to CUSTOMER_LISTVIEW")
   if (req.isAuthenticated()) {
+      // console.log("d12    user variable from session: ", req.user);
+      
       const query = req.query.query || "";
       try {
 
@@ -345,6 +347,8 @@ app.get("/2/customers", async (req, res) => {
                     LEFT JOIN 
                         builds b ON b.customer_id = c.id
                     WHERE 
+                        EXISTS (SELECT 1 FROM users WHERE roles = 'sysadmin' AND user_id = $2)
+                        OR
                         (
                             c.full_name ILIKE $1 
                             OR c.primary_phone ILIKE $1 
@@ -357,7 +361,7 @@ app.get("/2/customers", async (req, res) => {
                             SELECT 1 
                             FROM jobs j 
                             WHERE j.build_id = b.id 
-                            AND j.user_id = $2
+                            AND j.user_id = $2 
                         )
                     ORDER BY 
                         c.follow_up ASC;
@@ -1299,6 +1303,7 @@ passport.use(
   "local",
   new Strategy(async function verify(username, password, cb) {
     try {
+      // console.log("pp1     user(" + username + ") is trying to log in on [MAC] at [SYSTIME]"  )
       const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
         username,
       ]);
@@ -1307,20 +1312,20 @@ passport.use(
         const storedHashedPassword = user.password;
         bcrypt.compare(password, storedHashedPassword, (err, valid) => {
           if (err) {
-            console.error("Error comparing passwords:", err);
+            console.error("pp83     Error comparing passwords:", err);
             return cb(err);
           } else {
             if (valid) {
-              console.log("pp81    user(" + result.rows[0].id + ") authenticated on [MAC] at [SYSTIME]"  )
+              console.log("pp9    user(" + result.rows[0].id + ") authenticated on [MAC] at [SYSTIME]"  )
               return cb(null, user);
             } else {
-              console.log("pp9     user(" + username + ") wrong password on [MAC] at [SYSTIME]"  )
+              console.log("pp81     user(" + username + ") wrong password on [MAC] at [SYSTIME]"  )
               return cb(null, false);
             }
           }
         });
       } else {
-        console.log("pp9     user(" + username + ") not registered on [MAC] at [SYSTIME]"  )
+        console.log("pp82     user(" + username + ") not registered on [MAC] at [SYSTIME]"  )
         return cb("Sorry, we do not recognise you as an active user of our system.");
         // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
       }
