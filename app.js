@@ -714,41 +714,50 @@ app.post("/addCustomer", async (req, res) => {
     currentTime.setDate(currentTime.getDate() + 21); // Add 21 days
     
     //check if the customer name already exists
-    const existingCustomer = await db.query("SELECT * FROM customers WHERE full_name = $1", [req.body.fullName]);
-    if (existingCustomer.rows.length > 0) {
-      console.log("n81         Customer already exists: ", req.body.fullName);
-      res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
-      return;
+    if (req.body.fullName) {
+      const existingCustomer = await db.query("SELECT * FROM customers WHERE full_name = $1", [req.body.fullName]);
+      if (existingCustomer.rows.length > 0) {
+        console.log("n81         Customer already exists: ", req.body.fullName);
+        res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
+        return;
+      }
     }
     //check if email already exists
-    const existingEmail = await db.query("SELECT * FROM customers WHERE primary_email = $1", [req.body.primaryEmail]);
-    if (existingEmail.rows.length > 0) {
-      console.log("n82         Email already exists: ", req.body.primaryEmail);
-      res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
-      return;
+    if (req.body.primaryEmail) {
+      const existingEmail = await db.query("SELECT * FROM customers WHERE primary_email = $1", [req.body.primaryEmail]);
+      if (existingEmail.rows.length > 0) {
+        console.log("n82         Email already exists: ", req.body.primaryEmail);
+        res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
+        return;
+      }
     }
     //check if phone number already exists
-    const existingPhone = await db.query("SELECT * FROM customers WHERE primary_phone = $1", [req.body.primaryPhone]);
-    if (existingPhone.rows.length > 0) {
-      console.log("n83         Phone number already exists: ", req.body.primaryPhone);
-      res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
-      return;
+    if (req.body.primaryPhone) {
+      const existingPhone = await db.query("SELECT * FROM customers WHERE primary_phone = $1", [req.body.primaryPhone]);
+      if (existingPhone.rows.length > 0) {
+        console.log("n83         Phone number already exists: ", req.body.primaryPhone);
+        res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
+        return;
+      }
     }
     //check if address already exists
-    const existingAddress = await db.query("SELECT * FROM customers WHERE home_address = $1", [req.body.homeAddress]);
-    if (existingAddress.rows.length > 0) {
-      console.log("n84         Address already exists: ", req.body.homeAddress);
-      res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
-      return;
+    if (req.body.homeAddress) {
+      const existingAddress = await db.query("SELECT * FROM customers WHERE home_address = $1", [req.body.homeAddress]);
+      if (existingAddress.rows.length > 0) {
+        console.log("n84         Address already exists: ", req.body.homeAddress);
+        res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
+        return;
+      }
     }
     //check if other contact already exists
-    const existingContact = await db.query("SELECT * FROM customers WHERE contact_other = $1", [req.body.contactOther]);
-    if (existingContact.rows.length > 0) {
-      console.log("n85         Other contact already exists: ", req.body.contactOther);
-      res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
-      return;
+    if (req.body.contactOther) {
+      const existingContact = await db.query("SELECT * FROM customers WHERE contact_other = $1", [req.body.contactOther]);
+      if (existingContact.rows.length > 0) {
+        console.log("n85         Other contact already exists: ", req.body.contactOther);
+        res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
+        return;
+      }
     }
-
     // Insert the new customer into the database
     const result = await db.query(
       "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
