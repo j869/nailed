@@ -184,33 +184,34 @@ views/2/customers.ejs
 
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {
-        console.log("d1   " )
+        // console.log("cud1   " )
         const editableElements = document.querySelectorAll('.editable');
         editableElements.forEach(function(element) {
             element.addEventListener('dblclick', function(event) {
-                console.log("d2   ")
+                // console.log("cud2   ")
                 event.preventDefault();    // Prevent default behavior
                 event.target.contentEditable = true;  // Make the element editable
                 event.target.focus();    // Set focus to the element
             });
             element.addEventListener('blur', function(event) {
-                console.log("d3   ")
+                // console.log("cud3   ")
                 // When the element loses focus, save the updated value
                 const newValue = event.target.textContent.trim();
                 const fieldID = event.target.id;
                 const recordID = event.target.getAttribute('data-record-id');
                 // Make an HTTP GET request to the server to update the database
-                console.log("d4   ", fieldID, newValue, recordID)
-                fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                const encodedNewValue = encodeURIComponent(newValue);
+                console.log("cud4   USER changed [" + fieldID + "] to [" + newValue + "] where ID=["+ recordID + "]" );
+                fetch(`/update?fieldID=${fieldID}&newValue=${encodedNewValue}&whereID=${recordID}`)
                     .then(response => {
                         if (response.ok) {
-                            console.log('Database updated successfully.');
+                            console.log('cud9    Database updated successfully.');
                         } else {
-                            throw new Error('Failed to update database.');
+                            throw new Error('cud8    Failed to update database.');
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
+                        console.error('cud81    Error:', error);
                     });
             });
         });

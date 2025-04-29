@@ -474,28 +474,28 @@ app.get("/update", async (req, res) => {
   let value = req.query.value;
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud10   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  console.log("ua1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
   try {
     // put every database query into a try - catch block
     //update table
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud50    succesfully modified the " + table + " record: ");
+      // console.log("ua5    succesfully modified the " + table + " record: ");
     }
 
     if (table === "jobs") {
-      // console.log("ud55    updating table 'jobs' and column: " + column);
+      // console.log("ua55    updating table 'jobs' and column: " + column);
       if (column === "display_text") {
-        // console.log("ud69  sdf")
+        // console.log("ua69  sdf")
         const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);        
-        console.log("ud70     ...we also modified the template to reflect this change. ");
+        console.log("ua7     ...we also modified the template to reflect this change. ");
       }
     }
-    // console.log("ud99");
+    // console.log("ua9");
   } catch (error) {
     
-    console.error('ud8   Error updating job:', error);
+    console.error('ua8   Error updating job:', error);
     // return relevant status code at the end of every API call
     res.status(500).json({ error: 'Failed to add job' });
   }  

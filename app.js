@@ -372,7 +372,7 @@ app.get("/2/customers", async (req, res) => {
                 `;
         
                 const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);
-                console.log("d21        search returned " + customersResult.rowCount + " records");
+                // console.log("d21        search returned " + customersResult.rowCount + " records");
         
                 if (customersResult.rowCount > 0) {
                     // Merge customer and build data
