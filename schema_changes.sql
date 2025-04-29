@@ -42,4 +42,6 @@ alter table job_process_flow
 add column change_array TEXT           -- Task definition type datapoints only (i.e due date, person responsible, job name, etc)
 
 
+alter table jobs 
+add column change_array TEXT;
 
