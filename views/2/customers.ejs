@@ -76,7 +76,7 @@ views/2/customers.ejs
                                                     <td class="editable" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
                                                     <td class="editable" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
                                                     <td class="editable" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
-                                                    <td><%= data.customer.follow_up %></td>
+                                                    <td class="editable" id="customerFollowUpDate" data-record-id="<%= data.customer.id %>"><%= data.customer.follow_up %></td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="12" class="hiddenRow">

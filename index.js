@@ -208,6 +208,7 @@ app.get("/jobs/:id", async (req, res) => {
       result = await pool.query(vSQL);       
       const tier = result.rows[0].tier 
       const build_id= result.rows[0].build_id 
+      const changeArray = result.rows[0].change_array;
 
       vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier > "+ tier +" ORDER BY tier ASC;";
       result = await pool.query(vSQL);       
@@ -295,6 +296,7 @@ app.get("/jobs/:id", async (req, res) => {
           display_name : jobUser, 
           free_text : jobText, 
           target_date : targetDate, 
+          change_array : changeArray,
           reminder : reminder,      //{escalation1_interval : 7, escalation2_interval : 21},
           conversation : conversation,
           // [

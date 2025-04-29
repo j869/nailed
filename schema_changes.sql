@@ -35,3 +35,11 @@ insert into listorder (user_id, location_used, sort_order, display_text) values 
 insert into listorder (user_id, location_used, sort_order, display_text) values (0, 'CustomersStatus', 600, 'Production Ordered'); 
 insert into listorder (user_id, location_used, sort_order, display_text) values (0, 'CustomersStatus', 700, 'Delivery Scheduled'); 
 insert into listorder (user_id, location_used, sort_order, display_text) values (0, 'CustomersStatus', 800, 'Pre-Production & Final Check'); 
+
+
+
+alter table job_process_flow 
+add column change_array TEXT           -- Task definition type datapoints only (i.e due date, person responsible, job name, etc)
+
+
+

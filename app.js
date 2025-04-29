@@ -9,6 +9,9 @@ import { Strategy } from "passport-local";
 import session from "express-session";
 import env from "dotenv";
 import { main }  from './trigger2.js';
+import moment from 'moment';
+
+
 
 const app = express();
 const port = 3000;
@@ -176,10 +179,10 @@ app.get("/2/build/:id", async (req, res) => {
           let allCustomers;
           if (buildID) {
               console.log("b2       retrieving all jobs for build("+buildID+")");
-              const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1 order by id", [buildID]);
+              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 order by id", [buildID]);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
-              const tasksResult = await db.query("SELECT * FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
+              const tasksResult = await db.query("SELECT id, job_id, precedence, display_text, free_text, current_status, owned_by, user_date, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, completed_date, completed_by, completed_comment, change_log, task_template_id, task_id, completed_by_person, sort_order FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
 
               const taskIDArray = tasksResult.rows.map(task => task.id);
               const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
@@ -208,7 +211,7 @@ app.get("/2/build/:id", async (req, res) => {
               const custID = buildsResult.rows[0].customer_id
 
               // If there is a search term, fetch matching customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
 
               // console.log("b26   ")
 // Merge customer, build, and jobs data
@@ -256,7 +259,7 @@ allCustomers = customersResult.rows.map(customer => {
           } else {
             console.log("b3   ");
             // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY hh:mm') AS follow_up FROM customers");
+              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers");
               // customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
               //   if (customer.follow_up) {
               //       customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
@@ -336,7 +339,7 @@ app.get("/2/customers", async (req, res) => {
                         c.primary_email, 
                         c.contact_other, 
                         c.current_status AS customer_status, 
-                        TO_CHAR(c.follow_up, 'DD-Mon-YY hh:mm') AS follow_up,
+                        TO_CHAR(c.follow_up, 'DD-Mon-YY') AS follow_up,
                         b.id AS build_id, 
                         b.product_id, 
                         b.enquiry_date, 
@@ -428,7 +431,7 @@ app.get("/2/customers", async (req, res) => {
                     c.primary_email, 
                     c.contact_other, 
                     c.current_status AS customer_status, 
-                    TO_CHAR(c.follow_up, 'DD-Mon-YY hh:mm') AS follow_up,
+                    TO_CHAR(c.follow_up, 'DD-Mon-YY') AS follow_up,
                     b.id AS build_id, 
                     b.product_id, 
                     TO_CHAR(b.enquiry_date, 'DD-Mon-YY') AS enquiry_date, 
@@ -460,10 +463,7 @@ app.get("/2/customers", async (req, res) => {
         
             // Format follow_up value and structure the data
             allCustomers = customersResult.rows.reduce((acc, row) => {
-                // Format follow_up to a short date
-                if (row.follow_up) {
-                    row.follow_up = new Date(row.follow_up).toLocaleDateString();
-                }
+                
         
                 // Find or create a customer entry in the accumulator
                 let customer = acc.find(cust => cust.customer.id === row.id);
@@ -1469,10 +1469,38 @@ app.get("/update", async (req,res) => {
     // console.log("ufg41")
 
     switch (fieldID) {
-      case "dueDate": 
-      console.log("ufg42")
-      table = "jobs";
+      case "customerFollowUpDate":
+        console.log("ufg41     [" + newValue + "] ")
+        table = "customers"
+        columnName = "follow_up"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "jobTargetDate":
+        console.log("ufg411     [" + newValue + "] ")
+        table = "jobs"
         columnName = "target_date"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "taskTargetDate":
+        console.log("ufg412     [" + newValue + "] ")
+        table = "tasks"
+        columnName = "target_date"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "dueDate": 
+        console.log("ufg42    ")
+        table = "jobs";
+        columnName = "target_date"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "changeArray":
+        console.log("ufg425    ")
+        table = "jobs";
+        columnName = "change_array"
         value = newValue;
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;

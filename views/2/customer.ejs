@@ -102,7 +102,7 @@ views/2/customer.ejs
                                             <td><%= data.customer.primary_email %></td>
                                             <td><%= data.customer.contact_other %></td>
                                             <td><%= data.customer.current_status %></td>
-                                            <td><%= data.customer.follow_up %></td>
+                                            <td class="editable" id="customerFollowUpDate" data-record-id="<%= data.customer.id %>"><%= data.customer.follow_up %></td>
                                         </tr>
                                         <tr>
                                             <td colspan="12" class="hiddenRow">
@@ -161,7 +161,7 @@ views/2/customer.ejs
                                                                                             <th style="display: none;">Product ID</th>
                                                                                             <th style="display: none;">Reminder ID</th>
                                                                                             <th style="display: none;">Conversation ID</th>
-                                                                                            <th style="display: none;">Target Date</th>
+                                                                                            <th>Target Date</th>
                                                                                             <th style="display: none;">Created By</th>
                                                                                             <th style="display: none;">Created Date</th>
                                                                                             <th style="display: none;">Change Array</th>
@@ -176,7 +176,7 @@ views/2/customer.ejs
                                                                                                 <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
                                                                                                     <td><%= job.id %></td>
                                                                                                     <td class="display-text-column"><%= job.display_text %></td>
-                                                                                                    <td style="width: 50%;"><%= job.free_text %></td>
+                                                                                                    <td style="width: 40%;"><%= job.free_text %></td>
                                                                                                     <td style="display: none;"><%= job.job_template_id %></td>
                                                                                                     <td>
                                                                                                         <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= job.id %>" onclick="event.stopPropagation()">
@@ -193,7 +193,7 @@ views/2/customer.ejs
                                                                                                     <td style="display: none;"><%= job.product_id %></td>
                                                                                                     <td style="display: none;"><%= job.reminder_id %></td>
                                                                                                     <td style="display: none;"><%= job.conversation_id %></td>
-                                                                                                    <td style="display: none;"><%= job.target_date %></td>
+                                                                                                    <td class="editable" id="jobTargetDate" data-record-id="<%= job.id %>"><%= job.target_date %></td>
                                                                                                     <td style="display: none;"><%= job.created_by %></td>
                                                                                                     <td style="display: none;"><%= job.created_date %></td>
                                                                                                     <td style="display: none;"><%= job.change_array %></td>
@@ -235,8 +235,8 @@ views/2/customer.ejs
                                                                                                                                 <td class="editable" contenteditable="true" id="taskOrder" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskTitle" data-record-id="<%= task.id %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"  style="width: 25%;"><%= task.free_text %></td>
-                                                                                                                                <td><%= task.target_date ? formatDate(new Date(task.target_date)) : '' %></td>
-                                                                                                                                <td><%= task.completed_date ? formatDate(new Date(task.completed_date)) : '' %></td>
+                                                                                                                                <td class="editable" id="taskTargetDate" data-record-id="<%= task.id %>"><%= task.target_date %></td>
+                                                                                                                                <td><%= task.completed_date %></td>
                                                                                                                                 <td class="editable" contenteditable="true" id="taskPerson" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
                                                                                                                                 <td><%= task.change_log %></td>
                                                                                                                                 <td>

@@ -94,11 +94,11 @@ CREATE TABLE jobs
     target_date TIMESTAMP,      -- if you miss the target date, this date will increment based on the reminder schedule
     created_by varchar(127),     -- it could be the user_id, but more likely it will be a function() on behalf of a user
     created_date TIMESTAMP,     -- INSERT INTO t (col_timestamp) VALUES ('2022-10-10 11:30:30');     use select LOCALTIMESTAMP(0); to set value because NOW() returns the timezone
-    change_array TEXT,      -- who changed it, when, and what did they change?  Excludes changes to the notes, excludes adding to the conversation... Task definition type datapoints only (i.e due date, person responsible, job name, etc)
+    change_array TEXT,           -- Task definition type datapoints only (i.e due date, person responsible, job name, etc)
     completed_by VARCHAR(127),     -- who clicked the 'done' button, and (maybe) which machine were they using?
     completed_date TIMESTAMP,
     current_status VARCHAR(127),       -- active, pending, completed
-    change_log TEXT
+    change_log TEXT                        -- who changed it, when, and what did they change?  Excludes changes to the notes, excludes adding to the conversation...
 );
 
 
