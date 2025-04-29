@@ -182,7 +182,7 @@ app.get("/2/build/:id", async (req, res) => {
               const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 order by id", [buildID]);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
-              const tasksResult = await db.query("SELECT id, job_id, precedence, display_text, free_text, current_status, owned_by, user_date, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, completed_date, completed_by, completed_comment, change_log, task_template_id, task_id, completed_by_person, sort_order FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
+              const tasksResult = await db.query("SELECT id, job_id, precedence, display_text, free_text, current_status, owned_by, user_date, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, TO_CHAR(completed_date, 'DD-Mon-YY') AS completed_date, completed_by, completed_comment, change_log, task_template_id, task_id, completed_by_person, sort_order FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
 
               const taskIDArray = tasksResult.rows.map(task => task.id);
               const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
