@@ -70,12 +70,12 @@ views/2/customers.ejs
                                         <% locals.tableData.forEach(function(data) { %>
                                             <% if (data.customer.current_status == status) { %>
                                                 <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
-                                                    <td class="editable" contenteditable="true" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
-                                                    <td class="editable" contenteditable="true" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
-                                                    <td class="editable" contenteditable="true" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
-                                                    <td class="editable" contenteditable="true" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
-                                                    <td class="editable" contenteditable="true" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
-                                                    <td class="editable" contenteditable="true" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
+                                                    <td class="editable" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
+                                                    <td class="editable" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
+                                                    <td class="editable" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
+                                                    <td class="editable" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
+                                                    <td class="editable" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
+                                                    <td class="editable" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
                                                     <td><%= data.customer.follow_up %></td>
                                                 </tr>
                                                 <tr>
