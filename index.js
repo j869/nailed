@@ -367,14 +367,27 @@ app.get("/update", async (req, res) => {
   let value = req.query.value;
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud10   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  // console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
   try {
-    // put every database query into a try - catch block
+    // Retrieve the current value from the database
+    const currentValueQuery = `SELECT ${column} FROM ${table} WHERE id = $1;`;
+    const currentValueResult = await pool.query(currentValueQuery, [id]);
+    if (currentValueResult.rows.length === 0) {
+      return res.status(404).json({ msg: 'Record not found' });
+    }
+    const currentValue = currentValueResult.rows[0][column];
+    // Check if the new value is the same as the current value
+    if (currentValue === value) {
+      console.log("ud2   No change to column " + column + " = [" + value + "] in table " + table + " where id = " + id + ".  Update cancelled.");
+      return res.status(200).json({ msg: 'No changes made; value is the same' });
+    }    
+
     //update table
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud50    succesfully modified the " + table + " record: ");
+      console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+      console.log("ud5    succesfully modified the " + table + " record: ");
     }
 
     if (table === "jobs") {
@@ -382,7 +395,7 @@ app.get("/update", async (req, res) => {
       if (column === "display_text") {
         // console.log("ud69  sdf")
         const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);        
-        console.log("ud70     ...we also modified the template to reflect this change. ");
+        console.log("ud7     ...we also modified the template to reflect this change. ");
       }
     }
     // console.log("ud99");

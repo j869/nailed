@@ -91,6 +91,7 @@ views/2/customers.ejs
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
+                                                                    <a href="/customer/<%= data.customer.id %>" class="btn btn-primary">Edit Customer</a>
                                                                     <% data.builds.forEach(function(build) { %>
                                                                         <% if (build) { %>
                                                                             <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'">
