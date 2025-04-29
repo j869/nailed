@@ -347,8 +347,6 @@ app.get("/2/customers", async (req, res) => {
                     LEFT JOIN 
                         builds b ON b.customer_id = c.id
                     WHERE 
-                        EXISTS (SELECT 1 FROM users WHERE roles = 'sysadmin' AND user_id = $2)
-                        OR
                         (
                             c.full_name ILIKE $1 
                             OR c.primary_phone ILIKE $1 
@@ -356,19 +354,25 @@ app.get("/2/customers", async (req, res) => {
                             OR c.primary_email ILIKE $1 
                             OR c.contact_other ILIKE $1 
                             OR c.current_status ILIKE $1
-                        )
-                        AND EXISTS (
-                            SELECT 1 
-                            FROM jobs j 
-                            WHERE j.build_id = b.id 
-                            AND j.user_id = $2 
+                        ) AND (
+                            EXISTS (
+                              SELECT 1 
+                              FROM jobs j 
+                              WHERE j.build_id = b.id 
+                              AND j.user_id = $2
+                            )     OR EXISTS (
+                              SELECT 1
+                              FROM users u
+                              WHERE u.id = $2
+                              AND u.roles = 'sysadmin'
+                            )
                         )
                     ORDER BY 
                         c.follow_up ASC;
                 `;
         
                 const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);
-                // console.log("d21  ", customersResult.rowCount);
+                console.log("d21        search returned " + customersResult.rowCount + " records");
         
                 if (customersResult.rowCount > 0) {
                     // Merge customer and build data
@@ -447,7 +451,7 @@ app.get("/2/customers", async (req, res) => {
                       SELECT 1
                       FROM users u
                       WHERE u.id = $1
-                      AND u.roles LIKE '%sysadmin%'
+                      AND u.roles = 'sysadmin'
                     )
                 ORDER BY 
                     c.contact_other ASC;
