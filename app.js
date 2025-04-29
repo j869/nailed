@@ -1438,218 +1438,224 @@ app.post("/updateUserStatusOrder", async (req, res) => {
 
 
 app.get("/update", async (req,res) => {
-  const fieldID = req.query.fieldID;
-  const newValue = (req.query.newValue || '');   
-  const rowID = req.query.whereID;
-  console.log("ufg1    user("+req.user.id+") changed "	+ fieldID + " to " + newValue )
-  // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
+  if (req.isAuthenticated()) {
+    const fieldID = req.query.fieldID;
+    const newValue = (req.query.newValue || '');   
+    const rowID = req.query.whereID;
+    console.log("ufg1    user("+req.user.id+") changed "	+ fieldID + " to " + newValue )
+    // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
 
-  if (!fieldID) {
-    console.error("ufg831    Error: fieldID is null - write was cancelled");
-    res.status(400).send("Error: fieldID is null");
-    return;
-  }
-  if (!newValue) {
-    console.log("ufg832    Error: newValue is null - write was cancelled");
-    // console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
-    //res.status(400).send("Error: newValue is null");
-    //return;
-  }
-  if (!rowID) {
-    console.error("ufg833    Error: rowID is null - write was cancelled");
-    res.status(400).send("Error: rowID is null");
-    return;
-  }
+    if (!fieldID) {
+      console.error("ufg831    Error: fieldID is null - write was cancelled");
+      res.status(400).send("Error: fieldID is null");
+      return;
+    }
+    if (!newValue) {
+      console.log("ufg832    Error: newValue is null - write was cancelled");
+      // console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
+      //res.status(400).send("Error: newValue is null");
+      //return;
+    }
+    if (!rowID) {
+      console.error("ufg833    Error: rowID is null - write was cancelled");
+      res.status(400).send("Error: rowID is null");
+      return;
+    }
 
-  let table = "";
-  let columnName = "";
-  let value = "";
-  let q ;
-  // console.log("ufg41")
+    let table = "";
+    let columnName = "";
+    let value = "";
+    let q ;
+    // console.log("ufg41")
 
-  switch (fieldID) {
-    case "dueDate": 
-    console.log("ufg42")
-    table = "jobs";
-      columnName = "target_date"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "jobDesc":
-      console.log("ufg43")
+    switch (fieldID) {
+      case "dueDate": 
+      console.log("ufg42")
       table = "jobs";
-      columnName = "free_text"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "jobOwner":
+        columnName = "target_date"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "jobDesc":
+        console.log("ufg43")
         table = "jobs";
-        columnName = "user_id";
-        if (newValue === null || newValue === "") {
-          value = "null";
-        } else {
-          value = "'" + newValue + "'";
-        }
-        // console.log("ufg51   set jobs.user_id = " + newValue)
+        columnName = "free_text"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "jobOwner":
+          table = "jobs";
+          columnName = "user_id";
+          if (newValue === null || newValue === "") {
+            value = "null";
+          } else {
+            value = "'" + newValue + "'";
+          }
+          // console.log("ufg51   set jobs.user_id = " + newValue)
+          // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
+          // console.log("ufg52      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
+          const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
+          // console.log('ufg53');
+          const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
+          console.log('ufg54    Updated job('+ rowID +')');
+              
+          break;
+      case "taskDesc":
+        table = "tasks";
+        columnName = "free_text"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;      
+      case "jobTitle":
+        table = "jobs";
+        columnName = "display_text"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "taskTitle":
+        table = "tasks";
+        columnName = "display_text"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+    
+      case "taskOrder":
+        table = "tasks";
+        columnName = "sort_order"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "taskPerson":
+        table = "tasks";
+        columnName = "completed_by_person"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+
+      case "otherContact":
+        table = "customers";
+        columnName = "contact_other"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "contactStatus":
+        table = "customers";
+        columnName = "current_status"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+    
+      case "contactName":
+        table = "customers";
+        columnName = "full_name"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "contactAddress":
+        table = "customers";
+        columnName = "home_address"
+        value = encodeURIComponent(newValue);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "contactPhone":
+        table = "customers";
+        columnName = "primary_phone"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "contactEmail":
+        table = "customers";
+        columnName = "primary_email"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+
+      case "daytaskTitle":
+        table = "worksheets";
+        columnName = "title"
+        value =  encodeURIComponent(newValue) ;
+        console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "daytaskPerson":
+          try {
+              await db.query('BEGIN'); // Start transaction
+      
+              table = "worksheets";
+              columnName = "user_id";
+              value = "" + newValue + "";
+              console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+              let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+              
+              // Execute q2 to retrieve the task_id
+              let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
+              let task_id = 0;
+              if (q2.rows.length > 0) {
+                  const description = q2.rows[0].description;
+                  const parsedDescription = JSON.parse(description);
+                  task_id = parsedDescription.task_id;
+                  console.log("ufg787     Task ID:", task_id);
+              }
+              
+              table = "tasks";
+              columnName = "owned_by";
+              value = "" + newValue + "";
+              console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              
+              await db.query('COMMIT'); // Commit transaction
+      
+          } catch (error) {
+              await db.query('ROLLBACK'); // Rollback on error
+              console.error("Transaction failed:", error);
+          }
+
+
+        break;
+      case "daytaskDate":
+        table = "worksheets";
+        columnName = "date"
+        value =  newValue ;
+        // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
-        // console.log("ufg52      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
-        const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
-        // console.log('ufg53');
-        const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
-        console.log('ufg54    Updated job('+ rowID +')');
-            
-        break;
-    case "taskDesc":
-      table = "tasks";
-      columnName = "free_text"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;      
-    case "jobTitle":
-      table = "jobs";
-      columnName = "display_text"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "taskTitle":
-      table = "tasks";
-      columnName = "display_text"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-  
-    case "taskOrder":
-      table = "tasks";
-      columnName = "sort_order"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "taskPerson":
-      table = "tasks";
-      columnName = "completed_by_person"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-
-    case "otherContact":
-      table = "customers";
-      columnName = "contact_other"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "contactStatus":
-      table = "customers";
-      columnName = "current_status"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-  
-    case "contactName":
-      table = "customers";
-      columnName = "full_name"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "contactAddress":
-      table = "customers";
-      columnName = "home_address"
-      value = encodeURIComponent(newValue);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "contactPhone":
-      table = "customers";
-      columnName = "primary_phone"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "contactEmail":
-      table = "customers";
-      columnName = "primary_email"
-      value = newValue;
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-
-    case "daytaskTitle":
-      table = "worksheets";
-      columnName = "title"
-      value =  encodeURIComponent(newValue) ;
-      console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;
-    case "daytaskPerson":
-        try {
-            await db.query('BEGIN'); // Start transaction
-    
-            table = "worksheets";
-            columnName = "user_id";
-            value = "" + newValue + "";
-            console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-            let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-            
-            // Execute q2 to retrieve the task_id
-            let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
-            let task_id = 0;
-            if (q2.rows.length > 0) {
-                const description = q2.rows[0].description;
-                const parsedDescription = JSON.parse(description);
-                task_id = parsedDescription.task_id;
-                console.log("ufg787     Task ID:", task_id);
+        console.log('ufg00076');
+        const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
+        console.log('ufg00077');
+        const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
+        if (a2.rows.length > 0 && a2.rows[0].description !== null) {
+          try {
+                const descriptionJson = JSON.parse(a2.rows[0].description);
+                const taskId = descriptionJson.task_id;
+                console.log("ufg00071   Task ID:", taskId);
+                const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
+                console.log('ufg00079');
+            } catch (error) {
+                console.error("ufg00078 Error parsing JSON:", error);
             }
-            
-            table = "tasks";
-            columnName = "owned_by";
-            value = "" + newValue + "";
-            console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
-            let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
-            
-            await db.query('COMMIT'); // Commit transaction
-    
-        } catch (error) {
-            await db.query('ROLLBACK'); // Rollback on error
-            console.error("Transaction failed:", error);
-        }
+        } else {
+            console.log("ufg00072  Description is null or no record found, breaking out.");
+        }      
+                  
 
+        break;
+      case "daytaskArchive":
+        table = "worksheets";
+        columnName = "archive"
+        value = (newValue == 1) ? true : false;
+        console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;      
 
-      break;
-    case "daytaskDate":
-      table = "worksheets";
-      columnName = "date"
-      value =  newValue ;
-      // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-
-      console.log('ufg00076');
-      const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
-      console.log('ufg00077');
-      const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
-      if (a2.rows.length > 0 && a2.rows[0].description !== null) {
-        try {
-              const descriptionJson = JSON.parse(a2.rows[0].description);
-              const taskId = descriptionJson.task_id;
-              console.log("ufg00071   Task ID:", taskId);
-              const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
-              console.log('ufg00079');
-          } catch (error) {
-              console.error("ufg00078 Error parsing JSON:", error);
-          }
-      } else {
-          console.log("ufg00072  Description is null or no record found, breaking out.");
-      }      
-                
-
-      break;
-    case "daytaskArchive":
-      table = "worksheets";
-      columnName = "archive"
-      value = (newValue == 1) ? true : false;
-      console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-      break;      
-
-    default:
-      console.error("ufg8    Unknown field was edited: " + fieldID );
+      default:
+        console.error("ufg8    Unknown field was edited: " + fieldID );
+    }
+  } else {
+    console.error("ufg89    User not authenticated, redirecting to login page. [MAC] at [SYSTIME]"  );
+    res.redirect("/login");
   }
+  
 })
 
 
