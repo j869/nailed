@@ -1479,7 +1479,7 @@ app.get("/update", async (req,res) => {
       console.log("ufg43")
       table = "jobs";
       columnName = "free_text"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "jobOwner":
@@ -1503,19 +1503,19 @@ app.get("/update", async (req,res) => {
     case "taskDesc":
       table = "tasks";
       columnName = "free_text"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;      
     case "jobTitle":
       table = "jobs";
       columnName = "display_text"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "taskTitle":
       table = "tasks";
       columnName = "display_text"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
   
@@ -1541,20 +1541,20 @@ app.get("/update", async (req,res) => {
     case "contactStatus":
       table = "customers";
       columnName = "current_status"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
   
     case "contactName":
       table = "customers";
       columnName = "full_name"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactAddress":
       table = "customers";
       columnName = "home_address"
-      value = newValue;
+      value = encodeURIComponent(newValue);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
     case "contactPhone":
@@ -1573,7 +1573,7 @@ app.get("/update", async (req,res) => {
     case "daytaskTitle":
       table = "worksheets";
       columnName = "title"
-      value =  newValue ;
+      value =  encodeURIComponent(newValue) ;
       console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
       break;
