@@ -92,17 +92,17 @@ views/2/customer.ejs
                         </thead>
                         <tbody>
                             <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
-                                <% locals.tableData.forEach(function(data) { %>
-                                    <% if (data.customer) { %>
-                                        <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>" >
-                                            <td><%= data.customer.id %></td>
-                                            <td><%= data.customer.full_name %></td>
-                                            <td><%= data.customer.home_address %></td>
-                                            <td><%= data.customer.primary_phone %></td>
-                                            <td><%= data.customer.primary_email %></td>
-                                            <td><%= data.customer.contact_other %></td>
-                                            <td><%= data.customer.current_status %></td>
-                                            <td class="editable" id="customerFollowUpDate" data-record-id="<%= data.customer.id %>"><%= data.customer.follow_up %></td>
+                                <% locals.tableData.forEach(function(customer) { %>
+                                    <% if (customer) { %>
+                                        <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= customer.id %>" >
+                                            <td><%= customer.id %></td>
+                                            <td><%= customer.full_name %></td>
+                                            <td><%= customer.home_address %></td>
+                                            <td><%= customer.primary_phone %></td>
+                                            <td><%= customer.primary_email %></td>
+                                            <td><%= customer.contact_other %></td>
+                                            <td><%= customer.current_status %></td>
+                                            <td class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>"><%= customer.follow_up %></td>
                                         </tr>
                                         <tr>
                                             <td colspan="12" class="hiddenRow">
@@ -110,7 +110,7 @@ views/2/customer.ejs
                                                 <!-- -------------------------------------------------------------------------- -->
                                                 <!-- ---  sites                                                                -->
                                                 <!-- -------------------------------------------------------------------------- -->
-                                                <div class="accordian-body collapse show " id="collapseCust<%= data.customer.id %>">
+                                                <div class="accordian-body collapse show " id="collapseCust<%= customer.id %>">
                                                     <table class="table nested-table">
                                                         <thead>
                                                             <tr class="table-secondary">
@@ -124,7 +124,7 @@ views/2/customer.ejs
                                                             </tr>
                                                         </thead>                                                        
                                                         <tbody>
-                                                            <% data.builds.forEach(function(site) { %>
+                                                            <% customer.builds.forEach(function(site) { %>
                                                                 <% if (site) { %>
                                                                     <tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild<%= site.id %>">
                                                                         <td><%= site.id %></td>
@@ -244,9 +244,7 @@ views/2/customer.ejs
                                                                                                                                     <div class="form-check">
                                                                                                                                         <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= task.id %>" data-task-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                                         <label class="form-check-label" for="taskComplete<%= task.id %>">Done</label>
-                                                                                                                                        
                                                                                                                                     </div>
-                                                                                                                                
                                                                                                                                 </td>       
                                                                                                                             </tr>
                                                                                                                             <tr>
@@ -312,26 +310,20 @@ views/2/customer.ejs
                                                                                                                     <% }); %>
                                                                                                                 </tbody>
                                                                                                             </table>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                                                                                            <% if (site.missing_jobs) { %>
+                                                                                                                <% site.missing_jobs.forEach(function(missingjob) { %>
+                                                                                                                    <% if (missingjob) { %>
+                                                                                                                        <button onclick="window.location.href='test<%= missingjob.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                    <% } %>
+                                                                                                                <% }); %>
+                                                                                                            <% } %>
                                                                                                         </div>
 
                                                                                                     </td>
                                                                                                 </tr>
                                                                                             <% } %>
                                                                                         <% }); %>
+
                                                                                     </tbody>
                                                                                 </table>
                                                                             </div>
@@ -527,7 +519,7 @@ document.addEventListener("DOMContentLoaded", function () {
         event.preventDefault();
         console.log("uf3      Upload form submitted.");
 
-        const buildId = <%= locals.tableData[0].builds[0].id %>;    //data.builds[0].id
+        const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
         const file = fileInput.files[0];
 
         if (!file) {
@@ -573,7 +565,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 document.addEventListener("DOMContentLoaded", async function () {
     console.log("lf1     Fetching uploaded files...");
-    const buildId = <%= locals.tableData[0].builds[0].id %>;    //data.builds[0].id
+    const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
     console.log('lf45   ' + buildId)
 
     const fileListContainer = document.getElementById("fileList");
