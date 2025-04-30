@@ -188,7 +188,7 @@ app.get("/2/build/:id", async (req, res) => {
               const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
               
               // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
-              // console.log("b23   ", buildsResult.rows[0]);
+              //  console.log("b23   ", buildID);
               const buildsResult = await db.query(`
                                     SELECT 
                                         b.id, 
@@ -208,6 +208,7 @@ app.get("/2/build/:id", async (req, res) => {
                                         b.id
                                      `, [buildID]);
 
+              //  console.log("b25   ", buildsResult.rows[0]);
               const custID = buildsResult.rows[0].customer_id
 
               // If there is a search term, fetch matching customers and their builds
@@ -1117,11 +1118,18 @@ app.get("/jobDone/:id", async (req, res) => {
 });
 
 app.get("/delJob", async (req, res) => {
-  console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
   if (req.isAuthenticated()) {
+    // console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
     const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
-    console.log("i9       job deleted with response: "+ response.data.status);
-    res.redirect("/jobs/" + response.data.goToId);
+    console.log("i9       USER("+ req.user.id +") deleted job("+req.query.jobnum+") with response: "+ response.data.status);
+    if (req.query.returnto) {
+      console.log("i4       redirecting to build_id: " + req.query.returnto);
+      const build_id = req.query.returnto.split("/")[1]; // Extract the build ID from the returnto URL
+      console.log("i4       redirecting to build_id: " + build_id);
+      res.redirect("/2/build/" + build_id);
+    } else {
+      res.redirect("/jobs/" + response.data.goToId);
+    }
   } else {
     res.redirect("/login");
   }

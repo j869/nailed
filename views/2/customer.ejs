@@ -214,7 +214,8 @@ views/2/customer.ejs
                                                                                                         <!-- ---  tasks                                                                 -->
                                                                                                         <!-- -------------------------------------------------------------------------- -->
                                                                                                         <div class="accordian-body collapse" id="collapseJob<%= job.id %>">
-                                                                                                            <button onclick="window.location.href='/jobs/<%= job.id %>';">Edit Job</button>
+                                                                                                            <button onclick="window.location.href='/job/<%= job.id %>';">Edit Job</button>
+                                                                                                            <button onclick="window.location.href='/delJob?jobnum=<%= job.id %>&returnto=build/<%= site.id %>';">Delete Job</button>
                                                                                                             <table class="table nested-table">
                                                                                                                 <thead>
                                                                                                                     <tr class="">

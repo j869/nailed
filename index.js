@@ -370,6 +370,11 @@ app.get("/update", async (req, res) => {
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
   // console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  // Treat empty string as NULL
+  if (value === '') {
+    value = null;
+  }
+
   try {
     // Retrieve the current value from the database
     const currentValueQuery = `SELECT ${column} FROM ${table} WHERE id = $1;`;
