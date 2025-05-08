@@ -939,7 +939,7 @@ app.post("/addCustomer", async (req, res) => {
     // console.log("n45     new job process flow added: ", q4.rows[0].id);
     const q3 = await db.query(
       "INSERT INTO builds (customer_id, product_id, job_id, current_status, enquiry_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [newCustomer.id, 8, q1.rows[0].id, "new", currentTime]
+      [newCustomer.id, 3, q1.rows[0].id, "new", currentTime]
     );
     console.log("n3      new build added: ", q3.rows[0].id);
     //add build_id to the job
