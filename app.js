@@ -921,9 +921,37 @@ app.post("/addCustomer", async (req, res) => {
     // Insert the new customer into the database
     const result = await db.query(
       "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "open", currentTime]
+      [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "new", currentTime]
     );
     const newCustomer = result.rows[0];
+
+    //add workflow to new customer so that the current user can find them in their list of customers
+    console.log("n2      new customer added: ", newCustomer.id);
+    const q1 = await db.query(
+      "INSERT INTO jobs (display_text, user_id) VALUES ($1, $2) RETURNING id",
+      ['new Customer', req.user.id]
+    );
+    console.log("n4      new job added: ", q1.rows[0].id);
+    // const q4 = await db.query(
+    //   "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES ($1, $2, $3) RETURNING id",
+    //   [q1.rows[0].id, q1.rows[0].id, 500]
+    // );
+    // console.log("n45     new job process flow added: ", q4.rows[0].id);
+    const q3 = await db.query(
+      "INSERT INTO builds (customer_id, product_id, job_id, current_status, enquiry_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [newCustomer.id, 8, q1.rows[0].id, "new", currentTime]
+    );
+    console.log("n3      new build added: ", q3.rows[0].id);
+    //add build_id to the job
+    const q5 = await db.query("UPDATE jobs SET build_id = $1 WHERE id = $2", [q3.rows[0].id, q1.rows[0].id]);
+    // const newJob = result.rows[0];
+    // const q2 = await db.query(
+    //   "INSERT INTO tasks (display_text, job_id, owned_by) VALUES ($1, $2, $3) RETURNING iD",
+    //   ['Assign new customer to a sales person', newJob.id, req.user.id]
+    // );
+    // console.log("n5      new task added: ", q2.rows[0].id);
+            
+            
   } catch (err) {
     console.log(err);  
   }  
@@ -955,6 +983,9 @@ app.post("/updateCustomer/:id", async (req, res) => {
               console.error(err);
               //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
             }
+
+
+
             res.redirect("/customer/" + userID);
             break;
       case "delete":
@@ -1298,7 +1329,15 @@ app.get("/addjob", async (req, res) => {
     //Add a single job as a placeholder for further user input (and the relationship)
     const response = await axios.get(`${API_URL}/addjob?tier=${req.query.tier}&precedence=${req.query.type}&id=${req.query.jobnum}`);
     console.log("j9       new job added:", response.data.id);
-    res.redirect("/jobs/" + req.query.jobnum);
+    console.log("j39    ", req.query);
+    if (req.query.returnto && req.query.returnto.startsWith('build')) {
+      console.log("j41       redirecting to build_id: " + req.query.returnto);
+      const build_id = req.query.returnto.replace('build',''); // Extract the build ID from the returnto URL
+      console.log("j42       redirecting to build_id: " + build_id);
+      res.redirect("/2/build/" + build_id);
+    } else {
+      res.redirect("/jobs/" + req.query.jobnum);
+    }
   } else {
     res.redirect("/login");
   }
