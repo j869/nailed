@@ -662,7 +662,7 @@ app.get("/2/customers", async (req, res) => {
               
               // const qry1 = await db.query(`SELECT display_text FROM listorder WHERE user_id = $1 AND location_used = 'CustomersStatus' ORDER BY sort_order;`, [req.user.id]);
               const qry1 = await db.query(`SELECT display_text FROM listorder WHERE location_used = 'CustomersStatus' and user_id = 0 ORDER BY sort_order;`);
-              const statusOrderList = qry1.rows.map(row => row.display_text);
+              let statusOrderList = qry1.rows.map(row => row.display_text);
 
             
             // Create a lookup map for quick sorting
@@ -670,6 +670,7 @@ app.get("/2/customers", async (req, res) => {
                 acc[status] = index; // Assign index based on predefined order
                 return acc;
             }, {});
+            
             
             // Sort the allCustomers array based on the status order
             allCustomers.sort((a, b) => {
@@ -683,6 +684,10 @@ app.get("/2/customers", async (req, res) => {
                 return indexA - indexB;
             });
             
+            // Filter statusOrderList to include only statuses that exist in allCustomers
+            const existingStatuses = new Set(allCustomers.map(customer => customer.customer.current_status));
+            statusOrderList = statusOrderList.filter(status => existingStatuses.has(status));
+
             // console.log("Sorted allCustomers:", allCustomers);
             
             res.render("2/customers.ejs", { 
