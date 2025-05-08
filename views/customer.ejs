@@ -7,10 +7,12 @@ views/customer.ejs
 
     <div class="jumbotron text-center">
         <div class="container">
-            <h1 class="display-3"><%= data.full_name %>, <%= data.home_address %></h1>
-            <br><hr><br>
 
             <% if (locals.data) { %>
+                <h1 class="display-3"><%= data.full_name %>, <%= data.home_address %></h1>
+                <br><hr><br>
+    
+
                 <form class="item" method="post" action="/updateCustomer/<%= data.id %>">
                     <div>
                         <label for="fullName">Full Name:</label>
@@ -34,7 +36,7 @@ views/customer.ejs
                     </div>
                     <div>
                         <label for="currentStatus">Current Status:</label>
-                        <input type="text" id="currentStatus" name="currentStatus" value="<%= data.current_status %>" disabled>
+                        <input type="text" id="currentStatus" name="currentStatus" value="<%= data.current_status %>" >
                     </div>
                     <div>
                         <label for="followUp">Follow Up:</label>
@@ -49,69 +51,103 @@ views/customer.ejs
                         <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
                     </div>
                 </form>
+
+                <!-- List builds against the customer -->
+                <table class="table table-hover table-dark">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Product</th>
+                            <th scope="col">Enquiry Date</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (locals.builds) { %>
+                            <% for (let i in builds) { %>
+                                <tr class="build-row">
+                                    <form method="post" action="/updateBuild/<%= builds[i].id %>">
+                                        <th scope="row"><%= builds[i].id %>
+                                            <input type="hidden" name="id" value="<%= builds[i].id %>">
+                                            <input type="hidden" name="customer_id" value="<%= builds[i].customer_id %>">
+                                        </th>
+                                        <td>
+                                            <select name="product_id" id="product_id">
+                                                <% products.forEach(product => { %>
+                                                    <option value="<%= product.id %>" <% if (builds[i].product_id === product.id) { %> selected <% } %>><%= product.display_text %></option>
+                                                <% }); %>
+                                            </select>                                               
+                                        </td>
+                                        <td>
+                                            <input type="datetime-local" name="enquiry_date" value="<%= builds[i].enquiry_date.toISOString().substring(0, 16) %>">
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-light" type="submit" name="action" value="update">Update Site</button>
+                                            <button class="btn btn-light" type="submit" name="action" value="delete">Delete Site</button>
+                                            <button class="btn btn-light" type="submit" name="action" value="view">Task</button>
+                                            
+                                        </td>
+                                    </form>                       
+                                </tr>
+                                <tr class="detail-row" style="display: none;">
+                                    <td colspan="4">Details for build <%= builds[i].id %></td>
+                                </tr>
+                            <% } %>   
+                        <% } %>
+                    </tbody>
+                </table>
+
+
+
+
+
+                <form class="item" action="/addBuild" method="post">
+                    <!-- input type="text" name="id"  placeholder="builds.id" autocomplete="off"  / -->
+                    <select name="product_id" id="product_id" autofocus="true">
+                        <% products.forEach(product => { %>
+                            <option value="<%= product.id %>"><%= product.display_text %></option>
+                        <% }); %>
+                    </select >
+                    <input type="hidden" name="customer_id" placeholder="builds.customer_id" value="<%= data.id %>" autocomplete="off"  />
+                    <% let enquiryDate = new Date().toISOString().substring(0, 16); %>
+                    <input type="datetime-local" name="enquiry_date" value="<%= enquiryDate %>" autocomplete="off" />
+                    <button class="add" type="submit" name="list" value="submit">add</button>
+                </form>      
+            <% } else { %>
+                <h1 class="display-3">Add New Customer</h1>
+                <form class="item" method="post" action="/addCustomer" method="post">
+                    <div>
+                        <label for="fullName">Full Name:</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="customer name" autocomplete="off" autofocus="true" >
+                    </div>
+                    <div>
+                        <label for="homeAddress">Build Address:</label>
+                        <input type="text" id="homeAddress" name="homeAddress" placeholder="build address" autocomplete="off" >
+                    </div>
+                    <div>
+                        <label for="primaryPhone">Primary Phone:</label>
+                        <input type="text" id="primaryPhone" name="primaryPhone" placeholder="primary phone" autocomplete="off" >
+                    </div>
+                    <div>
+                        <label for="primaryEmail">Primary Email:</label>
+                        <input type="text" id="primaryEmail" name="primaryEmail" placeholder="primary email" autocomplete="off" >
+                    </div>
+                    <div>
+                        <label for="contactOther">Contact Other:</label>
+                        <input type="text" id="contactOther" name="contactOther" placeholder="jobNum" autocomplete="off" >
+                    </div>
+                    <div>
+                        <label for="currentStatus">Current Status:</label>
+                        <input type="text" id="currentStatus" name="currentStatus" placeholder="open" >
+                    </div>
+          
+                    
+                        <button class="add" type="submit" name="list" value="submit">add Customer</button>
+                    
+                </form>
             <% } %>
 
-            <!-- List builds against the customer -->
-            <table class="table table-hover table-dark">
-                <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Product</th>
-                        <th scope="col">Enquiry Date</th>
-                        <th scope="col"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% if (locals.builds) { %>
-                        <% for (let i in builds) { %>
-                            <tr class="build-row">
-                                <form method="post" action="/updateBuild/<%= builds[i].id %>">
-                                    <th scope="row"><%= builds[i].id %>
-                                        <input type="hidden" name="id" value="<%= builds[i].id %>">
-                                        <input type="hidden" name="customer_id" value="<%= builds[i].customer_id %>">
-                                    </th>
-                                    <td>
-                                        <select name="product_id" id="product_id">
-                                            <% products.forEach(product => { %>
-                                                <option value="<%= product.id %>" <% if (builds[i].product_id === product.id) { %> selected <% } %>><%= product.display_text %></option>
-                                            <% }); %>
-                                        </select>                                               
-                                    </td>
-                                    <td>
-                                        <input type="datetime-local" name="enquiry_date" value="<%= builds[i].enquiry_date.toISOString().substring(0, 16) %>">
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-light" type="submit" name="action" value="update">Update Site</button>
-                                        <button class="btn btn-light" type="submit" name="action" value="delete">Delete Site</button>
-                                        <button class="btn btn-light" type="submit" name="action" value="view">Task</button>
-                                        
-                                    </td>
-                                </form>                       
-                            </tr>
-                            <tr class="detail-row" style="display: none;">
-                                <td colspan="4">Details for build <%= builds[i].id %></td>
-                            </tr>
-                        <% } %>   
-                    <% } %>
-                </tbody>
-            </table>
 
-
-
-
-
-            <form class="item" action="/addBuild" method="post">
-                <!-- input type="text" name="id"  placeholder="builds.id" autocomplete="off"  / -->
-                <select name="product_id" id="product_id" autofocus="true">
-                    <% products.forEach(product => { %>
-                        <option value="<%= product.id %>"><%= product.display_text %></option>
-                    <% }); %>
-                </select >
-                <input type="hidden" name="customer_id" placeholder="builds.customer_id" value="<%= data.id %>" autocomplete="off"  />
-                <% let enquiryDate = new Date().toISOString().substring(0, 16); %>
-                <input type="datetime-local" name="enquiry_date" value="<%= enquiryDate %>" autocomplete="off" />
-                <button class="add" type="submit" name="list" value="submit">add</button>
-            </form>              
         </div>
     </div>
 

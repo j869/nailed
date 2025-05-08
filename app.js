@@ -771,7 +771,15 @@ app.get("/customer/:id", async (req, res) => {
     try {
       const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
       let customer = result.rows;
-      if (customer.length !== 1) {        console.error("Error: Expected 1 row, but received " + customer.length + " rows.");      }
+      if (customer.length !== 1) {
+        if (customer.length === 0) {       
+          //add new customer
+          console.log("c2      new customer being added: ", custID);
+          res.render("customer.ejs", { user : req.user });
+          return;
+        }
+        console.error("c28     Error: Expected 1 row, but received " + customer.length + " rows.");      
+      }
 
       const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
       let builds = qryBuilds.rows;
@@ -935,7 +943,8 @@ app.post("/updateCustomer/:id", async (req, res) => {
             "home_address='" + req.body.homeAddress + "', " +
             "primary_phone='" + req.body.primaryPhone + "', " +
             "primary_email='" + req.body.primaryEmail + "', " +
-            "contact_other='" + req.body.contactOther + "' " + 
+            "contact_other='" + req.body.contactOther + "', " + 
+            "current_status='" + req.body.currentStatus + "' " +
             "WHERE id=" + userID + " RETURNING *"    
             try {
               //  "UPDATE customers SET full_name='$1', primary_phone='$2', primary_email='$3', contact_other='$4', current_status='$5', contact_history='$6') WHERE id=$7 RETURNING *",
