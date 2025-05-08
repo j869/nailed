@@ -182,7 +182,7 @@ let allCustomers = [];
   
           if (buildID) {
               console.log("b2       retrieving all jobs for build("+buildID+")");
-              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 order by id", [buildID]);
+              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 order by sort_order", [buildID]);
 
               const jobIDArray = jobsResult.rows.map(job => job.id);
               const tasksResult = await db.query("SELECT id, job_id, precedence, display_text, free_text, current_status, owned_by, user_date, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, TO_CHAR(completed_date, 'DD-Mon-YY') AS completed_date, completed_by, completed_comment, change_log, task_template_id, task_id, completed_by_person, sort_order FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
@@ -222,176 +222,176 @@ let allCustomers = [];
               // If there is a search term, fetch matching customers and their builds
               const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
 
-              // console.log("b26   ")
-// Merge customer, build, and jobs data
-// Sort tasks by sort_order
-const sortedTasks = tasksResult.rows.sort((a, b) => {
-  if (a.sort_order === null) return -1; // Treat null as a lower value
-  if (b.sort_order === null) return 1;  // Treat null as a lower value
-  return a.sort_order.localeCompare(b.sort_order);
-});
+                          // console.log("b26   ")
+            // Merge customer, build, and jobs data
+            // Sort tasks by sort_order
+            const sortedTasks = tasksResult.rows.sort((a, b) => {
+              if (a.sort_order === null) return -1; // Treat null as a lower value
+              if (b.sort_order === null) return 1;  // Treat null as a lower value
+              return a.sort_order.localeCompare(b.sort_order);
+            });
 
-// Map through customers
-// allCustomers = customersResult.rows.map(customer => {
-//   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-//   const buildsWithJobs = builds.map(build => {
-//     const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
-//     const jobsWithTasks = jobs.map(job => {
-//       const tasks = sortedTasks.filter(task => task.job_id === job.id); // Use sortedTasks for sorting tasks
-//       const tasksWithReminders = tasks.map(task => {
-//         const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
-//         return {
-//           ...task,
-//           reminders: remindersForTask
-//         };
-//       });
-//       return {
-//         ...job,
-//         tasks: tasksWithReminders
-//       };
-//     });
-//     return {
-//       ...build,
-//       jobs: jobsWithTasks
-//     };
-//   });
-//   return {
-//     customer,
-//     builds: buildsWithJobs
-//   };
-// });
+            // Map through customers
+            // allCustomers = customersResult.rows.map(customer => {
+            //   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
+            //   const buildsWithJobs = builds.map(build => {
+            //     const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
+            //     const jobsWithTasks = jobs.map(job => {
+            //       const tasks = sortedTasks.filter(task => task.job_id === job.id); // Use sortedTasks for sorting tasks
+            //       const tasksWithReminders = tasks.map(task => {
+            //         const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
+            //         return {
+            //           ...task,
+            //           reminders: remindersForTask
+            //         };
+            //       });
+            //       return {
+            //         ...job,
+            //         tasks: tasksWithReminders
+            //       };
+            //     });
+            //     return {
+            //       ...build,
+            //       jobs: jobsWithTasks
+            //     };
+            //   });
+            //   return {
+            //     customer,
+            //     builds: buildsWithJobs
+            //   };
+            // });
 
 
 
-// Iterate through each customer
-for (const customer of customersResult.rows) {
-  // Initialize an empty array to hold builds for the current customer
-  let builds = [];
+            // Iterate through each customer
+            for (const customer of customersResult.rows) {
+              // Initialize an empty array to hold builds for the current customer
+              let builds = [];
 
-  // Iterate through each build
-  for (const build of buildsResult.rows) {
-    if (build.customer_id === customer.id) {
-      // Initialize an empty array to hold jobs for the current build
-      let jobs = [];
+              // Iterate through each build
+              for (const build of buildsResult.rows) {
+                if (build.customer_id === customer.id) {
+                  // Initialize an empty array to hold jobs for the current build
+                  let jobs = [];
 
-      // Iterate through each job
-      for (const job of jobsResult.rows) {
-        if (job.build_id === build.id) {
-          // Initialize an empty array to hold tasks for the current job
-          let tasks = [];
+                  // Iterate through each job
+                  for (const job of jobsResult.rows) {
+                    if (job.build_id === build.id) {
+                      // Initialize an empty array to hold tasks for the current job
+                      let tasks = [];
 
-          // Iterate through each task
-          for (const task of sortedTasks) {
-            if (task.job_id === job.id) {
-              // Initialize an empty array to hold reminders for the current task
-              let reminders = [];
+                      // Iterate through each task
+                      for (const task of sortedTasks) {
+                        if (task.job_id === job.id) {
+                          // Initialize an empty array to hold reminders for the current task
+                          let reminders = [];
 
-              // Iterate through each reminder
-              for (const reminder of remindersResult.rows) {
-                if (reminder.task_id === task.id) {
-                  reminders.push({
-                    id: reminder.id,
-                    task_id: reminder.task_id,
-                    reminder_text: reminder.reminder_text,
-                    reminder_date: reminder.reminder_date,
-                    completed_by: reminder.completed_by,
-                    completed_date: reminder.completed_date,
-                    current_status: reminder.current_status,
-                    change_log: reminder.change_log,
-                    completed_by_person: reminder.completed_by_person
+                          // Iterate through each reminder
+                          for (const reminder of remindersResult.rows) {
+                            if (reminder.task_id === task.id) {
+                              reminders.push({
+                                id: reminder.id,
+                                task_id: reminder.task_id,
+                                reminder_text: reminder.reminder_text,
+                                reminder_date: reminder.reminder_date,
+                                completed_by: reminder.completed_by,
+                                completed_date: reminder.completed_date,
+                                current_status: reminder.current_status,
+                                change_log: reminder.change_log,
+                                completed_by_person: reminder.completed_by_person
+                              });
+                            }
+                          }
+
+                          // Add the task with reminders to the tasks array
+                          tasks.push({
+                            id: task.id,
+                            job_id: task.job_id,
+                            precedence: task.precedence,
+                            display_text: task.display_text,
+                            free_text: task.free_text,
+                            current_status: task.current_status,
+                            owned_by: task.owned_by,
+                            user_date: task.user_date,
+                            target_date: task.target_date,
+                            completed_date: task.completed_date,
+                            completed_by: task.completed_by,
+                            completed_comment: task.completed_comment,
+                            change_log: task.change_log,
+                            task_template_id: task.task_template_id,
+                            task_id: task.task_id,
+                            completed_by_person: task.completed_by_person,
+                            sort_order: task.sort_order,
+                            reminders: reminders
+                          });
+                        }
+                      }
+
+                      // Add the job with tasks to the jobs array
+                      jobs.push({
+                        id: job.id,
+                        display_text: job.display_text,
+                        free_text: job.free_text,
+                        job_template_id: job.job_template_id,
+                        user_id: job.user_id,
+                        role_id: job.role_id,
+                        build_id: job.build_id,
+                        product_id: job.product_id,
+                        reminder_id: job.reminder_id,
+                        conversation_id: job.conversation_id,
+                        target_date: job.target_date,
+                        created_by: job.created_by,
+                        created_date: job.created_date,
+                        change_array: job.change_array,
+                        completed_by: job.completed_by,
+                        completed_date: job.completed_date,
+                        current_status: job.current_status,
+                        change_log: job.change_log,
+                        completed_by_person: job.completed_by_person,
+                        sort_order: job.sort_order,
+                        tasks: tasks
+                      });
+                    }
+                  }
+
+                  let missing = [];
+                  // Add missing jobs to the builds array
+                  for (const missingJob of missingJobsResult.rows) {
+                    missing.push({
+                      id: missingJob.id,
+                      display_text: missingJob.display_text,
+                    });
+                  }
+
+                  // Add the build with jobs to the builds array
+                  builds.push({
+                    id: build.id,
+                    customer_id: build.customer_id,
+                    product_id: build.product_id,
+                    enquiry_date: build.enquiry_date,
+                    job_id: build.job_id,
+                    current_status: build.current_status,
+                    product_description: build.product_description,
+                    jobs: jobs,
+                    missing_jobs: missing
                   });
+
                 }
               }
 
-              // Add the task with reminders to the tasks array
-              tasks.push({
-                id: task.id,
-                job_id: task.job_id,
-                precedence: task.precedence,
-                display_text: task.display_text,
-                free_text: task.free_text,
-                current_status: task.current_status,
-                owned_by: task.owned_by,
-                user_date: task.user_date,
-                target_date: task.target_date,
-                completed_date: task.completed_date,
-                completed_by: task.completed_by,
-                completed_comment: task.completed_comment,
-                change_log: task.change_log,
-                task_template_id: task.task_template_id,
-                task_id: task.task_id,
-                completed_by_person: task.completed_by_person,
-                sort_order: task.sort_order,
-                reminders: reminders
+              // Add the customer with builds to the allCustomers array
+              allCustomers.push({
+                id: customer.id,
+                full_name: customer.full_name,
+                home_address: customer.home_address,
+                primary_phone: customer.primary_phone,
+                primary_email: customer.primary_email,
+                contact_other: customer.contact_other,
+                current_status: customer.current_status,
+                follow_up: customer.follow_up,
+                builds: builds
               });
             }
-          }
-
-          // Add the job with tasks to the jobs array
-          jobs.push({
-            id: job.id,
-            display_text: job.display_text,
-            free_text: job.free_text,
-            job_template_id: job.job_template_id,
-            user_id: job.user_id,
-            role_id: job.role_id,
-            build_id: job.build_id,
-            product_id: job.product_id,
-            reminder_id: job.reminder_id,
-            conversation_id: job.conversation_id,
-            target_date: job.target_date,
-            created_by: job.created_by,
-            created_date: job.created_date,
-            change_array: job.change_array,
-            completed_by: job.completed_by,
-            completed_date: job.completed_date,
-            current_status: job.current_status,
-            change_log: job.change_log,
-            completed_by_person: job.completed_by_person,
-            sort_order: job.sort_order,
-            tasks: tasks
-          });
-        }
-      }
-
-      let missing = [];
-      // Add missing jobs to the builds array
-      for (const missingJob of missingJobsResult.rows) {
-        missing.push({
-          id: missingJob.id,
-          display_text: missingJob.display_text,
-        });
-      }
-
-      // Add the build with jobs to the builds array
-      builds.push({
-        id: build.id,
-        customer_id: build.customer_id,
-        product_id: build.product_id,
-        enquiry_date: build.enquiry_date,
-        job_id: build.job_id,
-        current_status: build.current_status,
-        product_description: build.product_description,
-        jobs: jobs,
-        missing_jobs: missing
-      });
-
-    }
-  }
-
-  // Add the customer with builds to the allCustomers array
-  allCustomers.push({
-    id: customer.id,
-    full_name: customer.full_name,
-    home_address: customer.home_address,
-    primary_phone: customer.primary_phone,
-    primary_email: customer.primary_email,
-    contact_other: customer.contact_other,
-    current_status: customer.current_status,
-    follow_up: customer.follow_up,
-    builds: builds
-  });
-}
 
 
 
@@ -1278,7 +1278,7 @@ app.get("/delJob", async (req, res) => {
 });
 
 app.get("/addjob", async (req, res) => {
-  console.log("j1      user("+ req.user.id +") is adding a new job on tier " + req.query.tier);
+  console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
   if (req.isAuthenticated()) {
     
     //Add a single job as a placeholder for further user input (and the relationship)

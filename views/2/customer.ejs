@@ -313,7 +313,7 @@ views/2/customer.ejs
                                                                                                             <% if (site.missing_jobs) { %>
                                                                                                                 <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                     <% if (missingjob) { %>
-                                                                                                                        <button onclick="window.location.href='test<%= missingjob.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                        <button onclick="window.location.href='/addjob?type=template<%= missingjob.id %>&jobnum=<%= job.id %>&tier=500&';">Add <%= missingjob.display_text %></button>
                                                                                                                     <% } %>
                                                                                                                 <% }); %>
                                                                                                             <% } %>
