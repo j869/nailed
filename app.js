@@ -169,6 +169,34 @@ app.get("/daytaskUpdate", (req, res) => {
     //main();     // trigger worksheet update from trigger2.js
 
 
+app.get("/checkemail", async (req, res) => {
+  if (req.isAuthenticated()) {
+    //<a href= "/checkemail?btn=103d&customer_id=<%= customer.id %>&returnto=customer/<%= customer.id %>" class="btn btn-primary">check for new emails</a>
+    console.log("ce1    USER("+ req.user.id +") clicked on Check Email button(" + req.query.btn + ") for customer("+ req.query.customer_id +") ");
+    const customerID = req.query.customer_id || 0;
+
+    //connect to email server and check for new emails
+    const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
+    console.log("ce2    ", emailResult.data);
+    if (emailResult.data) {
+      console.log("ce9    ", emailResult.data);
+    } else {
+      console.log("ce4    No new emails found for customer("+ customerID +") ");
+    }
+    
+    //redirect to customer page
+    console.log("ce5    redirecting to customer page ", req.query.returnto);
+    if (false) {
+      res.redirect("/builds/", req.query.returnto);
+    } else {
+      res.redirect("/2/build/264"); ;
+    }
+    // res.redirect("/customer/" + customerID); ;
+  }
+});
+
+
+
 //#region Bryans Excel UX style
 
 app.get("/2/build/:id", async (req, res) => {
@@ -221,6 +249,10 @@ let allCustomers = [];
 
               // If there is a search term, fetch matching customers and their builds
               const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
+
+              //read emails for the customer
+              const emailsResult = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
+
 
                           // console.log("b26   ")
             // Merge customer, build, and jobs data
@@ -377,6 +409,24 @@ let allCustomers = [];
                   });
 
                 }
+
+
+                let emails = [];
+                // Add emails to the builds array
+                for (const email of emailsResult.rows) {
+                  emails.push({
+                    id: email.id,
+                    display_name: email.display_name,
+                    person_id: email.person_id,
+                    message_text: email.message_text,
+                    has_attachment: email.has_attachment,
+                    visibility: email.visibility,
+                    job_id: email.job_id,
+                    post_date: email.post_date
+                  });
+                }
+
+
               }
 
               // Add the customer with builds to the allCustomers array
@@ -1306,7 +1356,11 @@ app.get("/jobDone/:id", async (req, res) => {
 
 app.get("/delJob", async (req, res) => {
   if (req.isAuthenticated()) {
-    // console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
+    if (req.query.btn) {
+      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
+    } else {
+      console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
+    }   
     const response = await axios.get(`${API_URL}/deleteJob?job_id=${req.query.jobnum}`);
     console.log("i9       USER("+ req.user.id +") deleted job("+req.query.jobnum+") with response: "+ response.data.status);
     if (req.query.returnto) {
@@ -1323,17 +1377,21 @@ app.get("/delJob", async (req, res) => {
 });
 
 app.get("/addjob", async (req, res) => {
-  console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
   if (req.isAuthenticated()) {
-    
+    if (req.query.btn) {
+      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job");
+    } else {
+      console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
+    }
+      
     //Add a single job as a placeholder for further user input (and the relationship)
     const response = await axios.get(`${API_URL}/addjob?tier=${req.query.tier}&precedence=${req.query.type}&id=${req.query.jobnum}`);
     console.log("j9       new job added:", response.data.id);
-    console.log("j39    ", req.query);
+    // console.log("j39    ", req.query);
     if (req.query.returnto && req.query.returnto.startsWith('build')) {
-      console.log("j41       redirecting to build_id: " + req.query.returnto);
+      // console.log("j41       redirecting to build_id: " + req.query.returnto);
       const build_id = req.query.returnto.replace('build',''); // Extract the build ID from the returnto URL
-      console.log("j42       redirecting to build_id: " + build_id);
+      console.log("j42       returning to build_id: " + build_id);
       res.redirect("/2/build/" + build_id);
     } else {
       res.redirect("/jobs/" + req.query.jobnum);
@@ -1341,6 +1399,7 @@ app.get("/addjob", async (req, res) => {
   } else {
     res.redirect("/login");
   }
+  
 });
 
 //#endregion

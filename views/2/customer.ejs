@@ -59,6 +59,9 @@ views/2/customer.ejs
                     Customers
                 </div>
 
+                <!-- -------------------------------------------------------------------------- -->
+                <!-- ---  Uploaded Files                                                        -->
+                <!-- -------------------------------------------------------------------------- -->
                 <h5 class="text-muted">Uploaded Files</h5>
                 <div id="fileList" class="list-group"></div>
                 
@@ -70,7 +73,7 @@ views/2/customer.ejs
                     <button type="submit" class="btn btn-primary">Upload</button>
                 </form>
                 <p id="message" class="mt-2"></p>
-                
+            
 
                 <!-- -------------------------------------------------------------------------- -->
                 <!-- ---  customers                                                             -->
@@ -152,7 +155,7 @@ views/2/customer.ejs
                                                                                     <thead>
                                                                                         <tr class="table-info">
                                                                                             <th>ID</th>
-                                                                                            <th>Job Group</th>
+                                                                                            <th>Job Group / Stage / Category</th>
                                                                                             <th> </th>
                                                                                             <th style="display: none;">Job Template ID</th>
                                                                                             <th>Assign</th>
@@ -215,7 +218,7 @@ views/2/customer.ejs
                                                                                                         <!-- -------------------------------------------------------------------------- -->
                                                                                                         <div class="accordian-body collapse" id="collapseJob<%= job.id %>">
                                                                                                             <button onclick="window.location.href='/job/<%= job.id %>';">Edit Job</button>
-                                                                                                            <button onclick="window.location.href='/delJob?jobnum=<%= job.id %>&returnto=build/<%= site.id %>';">Delete Job</button>
+                                                                                                            <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= job.id %>&returnto=build/<%= site.id %>';">Delete Job</button>
                                                                                                             <table class="table nested-table">
                                                                                                                 <thead>
                                                                                                                     <tr class="">
@@ -243,7 +246,7 @@ views/2/customer.ejs
                                                                                                                                 <td>
                                                                                                                                     <div class="form-check">
                                                                                                                                         <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= task.id %>" data-task-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                        <label class="form-check-label" for="taskComplete<%= task.id %>">Done</label>
+                                                                                                                                        <label class="form-check-label" for="taskComplete<%= task.id %>"> </label>
                                                                                                                                     </div>
                                                                                                                                 </td>       
                                                                                                                             </tr>
@@ -310,10 +313,11 @@ views/2/customer.ejs
                                                                                                                     <% }); %>
                                                                                                                 </tbody>
                                                                                                             </table>
+                                                                                                            <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= job.id %>&tier=500&returnto=build<%= site.id %>';">Add Job</button>
                                                                                                             <% if (site.missing_jobs) { %>
                                                                                                                 <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                     <% if (missingjob) { %>
-                                                                                                                        <button onclick="window.location.href='/addjob?type=template<%= missingjob.id %>&jobnum=<%= job.id %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                        <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= job.id %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
                                                                                                                     <% } %>
                                                                                                                 <% }); %>
                                                                                                             <% } %>
@@ -347,12 +351,61 @@ views/2/customer.ejs
                     </table>
                 </div>
 
+
+                <!-- -------------------------------------------------------------------------- -->
+                <!-- ---  Customer Emails                                                       -->
+                <!-- -------------------------------------------------------------------------- -->
+                <div>
+                    <h3>Customer Emails</h3>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr class="table-primary">
+                                <th>ID</th>
+                                <th>Customer ID</th>
+                                <th>Subject</th>
+                                <th>Body</th>
+                                <th>Created By</th>
+                                <th>Created Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% locals.tableData.forEach(function(customer) { %>
+                                <a href= "/checkemail?btn=103d&customer_id=<%= customer.id %>&returnto=customer/<%= customer.id %>" class="btn btn-primary">check for new emails</a>
+                                <% if (customer && customer.emails) { %>
+                                    <% customer.emails.forEach(function(email) { %>
+                                        <tr class="accordion-toggle" data-toggle="collapse" data-target="#collapseEmail<%= email.id %>">
+                                            <td><%= email.id %></td>
+                                            <td><%= email.customer_id %></td>
+                                            <td><%= email.subject %></td>
+                                            <td><%= email.body %></td>
+                                            <td><%= email.created_by %></td>
+                                            <td><%= email.created_date %></td>
+                                        </tr>
+                                    <% }); %>
+                                <% } %>
+                            <% }); %>
+                        </tbody>
+                    </table>
+
+                </div>
             </div>
 
         </div>
     </div>
 
 </div>
+
+
+
+
+
+
+
+
+
+
+
+
 
     <!-- JavaScript to handle the API request -->
     <script>
@@ -366,6 +419,7 @@ views/2/customer.ejs
                 // Determine if checkbox is checked
                 var isChecked = $(this).prop('checked');
                 console.log("a3   ", isChecked);
+                var label = $(this).next('label');
                 // Send API request to update task status
                 $.ajax({
                     url: '<%= locals.baseUrl %>/taskComplete', 
@@ -377,6 +431,11 @@ views/2/customer.ejs
                     success: function(response) {
                         // Handle success response if needed
                         console.log('a9    Task status updated successfully');
+                        if (isChecked) {
+                            label.text('Done');
+                        } else {
+                            label.text('');
+                        }                        
                     },
                     error: function(xhr, status, error) {
                         // Handle error response if needed

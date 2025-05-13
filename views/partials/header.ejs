@@ -36,13 +36,21 @@
       padding: 4px;
       font-size: 0.75rem;
       }
+
+    /* Add this CSS class for the fixed header */
+    .fixed-header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000; /* Ensure the header stays above other content */
+    }      
   </style>
 
 </head>
 
 
 
-  <div class="bg-dark">
+  <div class="bg-dark fixed-header">
     <header class="d-flex justify-content-center py-3">
       <ul class="nav nav-pills">
         <li class="nav-item"><a href="/" class="nav-link link-light">Day Task List</a></li> 

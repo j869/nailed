@@ -1,11 +1,13 @@
 //#region middleware
-import express from "express";
+import express, { response } from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 import session from "express-session";
 import env from "dotenv";
 import multer from "multer";
 import cors from "cors";
+import nodemailer from "nodemailer";
+import { ImapFlow } from 'imapflow';
 
 
 export const app = express();
@@ -23,6 +25,20 @@ if (process.env.SESSION_SECRET) {
   console.log("       npm cache clean --force");
   console.log("       npm i");
 }
+
+const imapConfig = {
+  host: 'mail.privateemail.com',
+  port: 993,
+  secure: true,
+  auth: {
+      user: process.env.SMTP_EMAIL, 
+      pass: process.env.SMTP_PASSWORD 
+  },
+  logger: process.env.NODE_ENV === 'development' ? console : false  //  Only logs in development
+};
+
+
+  
 
 app.use(cors({
   origin:  `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
@@ -170,6 +186,178 @@ app.get("/download/:id", async (req, res) => {
 /**
  * Main Route - Shows Upload Form & File List
  */
+
+
+
+app.get("/email/:id", async (req, res) => {
+  console.log("ge1    connecting to email client  ", req.params)
+  const customerID = parseInt(req.params.id);
+
+  // Look up the customerID in the database
+  const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
+  if (result.rows.length === 0) {
+    console.error("ge18  No email found for customerID:", customerID);
+    return res.status(404).json({ success: false, message: "Email not found" });
+  }
+
+  const email = result.rows[0].primary_email;
+  console.log("ge2    Found email:", email);
+
+  const client = new ImapFlow(imapConfig);
+  console.log("ge28    configured imap successfully");
+  
+  try {
+    // Connect to IMAP server
+    await client.connect();
+    console.log("ge3    Connected to IMAP server");
+    
+    // Open mailbox
+    const mailbox = await client.mailboxOpen('INBOX');
+    console.log("ge4    Mailbox opened");
+
+    // Search for messages
+    const messages = await client.fetch({
+      or: [
+        { seen: false },
+        { from: email },
+        { to: email }
+      ]
+    }, { uid: false });
+
+    console.log("ge5    Messages found:", messages);
+    console.log("ge5a   IMAP user authenticated:", client.authenticated);
+    console.log("ge5b   IMAP mailbox opened:", mailbox.name);
+    console.log("ge5c   IMAP mailbox exists:", mailbox.exists);
+    console.log("ge5d   IMAP mailbox flags:", mailbox.flags);
+    console.log("ge5e   secureConnection:", client.secureConnection);
+    console.log("ge5f   client.connection:", client.connection);
+    console.log("ge5g   client.connection.state:", client.serverInfo);
+    let list = await client.list();
+    list.forEach(mailbox=>console.log("ge5f  ", mailbox.path));
+    let tree = await client.listTree();
+    tree.folders.forEach(mailbox=>console.log("ge5h     ", mailbox.path));
+    console.log("ge5i   ", mailbox);
+    let status = await client.status('INBOX', {unseen: true});
+    console.log("ge6    mailbox status  ", status.unseen);
+
+
+    const uid = messages[0] || 12237; 
+    const message = await client.fetch(messages, { source: false });
+    
+    // fetch UID for all messages in a mailbox
+    for await (let msg of client.fetch('1:*', {uid: true})){
+        console.log("ge7c    ", msg.uid);
+        console.log("ge7d    ", msg);
+        // NB! You can not run any IMAP commands in this loop
+        // otherwise you will end up in a deadloop
+    }
+
+    // use OR modifier (array of 2 or more search queries)
+    let msglist = await client.search({
+      seen: false,
+      or: [
+        {flagged: true},
+        // {from: 'andris'},
+        // {subject: 'test'}
+    ]});
+    //print subjects of all found messages
+    for await (let msg of client.fetch(msglist, {source: true})){
+      console.log("ge7e    ", msg.subject);
+    }
+
+    // const envelope = message.envelope;
+    // console.log("ge6a    envelope: ", envelope);
+    // const hasAttachment = message.bodyStructure.childNodes?.some(n => n.disposition === 'attachment');
+    // console.log("ge6b    hasAttachment: ", hasAttachment);
+    // const messageText = message.source ? message.source.toString('utf8').slice(0, 1000) : 'empty';
+    // console.log(`ge7a    documentation: ${messageText}`);
+    // console.log(`ge7b    Subject: ${envelope.subject}`);
+    
+
+    return res.json({ success: true, message: "Email processed successfully!" });
+
+
+    let processedCount = 0;
+    for (const uid of messages) {
+      try {
+        console.log(`ge6    Processing UID ${uid}`);
+        
+        // Verify UID exists
+        // const exists = await client.messageExists(uid.toString());
+        // if (!exists) {
+        //   console.error(`ge82   UID ${uid} does not exist`);
+        //   continue;
+        // }
+
+
+        const message = await client.fetchOne(uid.toString(), {
+          source: true,
+          envelope: true,
+          bodyStructure: true
+        });
+
+        // Log the subject, to, from, and UID
+        console.log(`ge12   Subject: ${message.envelope.subject}`);
+        console.log(`ge13   From: ${message.envelope.from[0]?.name || ''} <${message.envelope.from[0]?.address || 'unknown'}>`);
+        console.log(`ge14   To: ${message.envelope.to[0]?.name || ''} <${message.envelope.to[0]?.address || 'unknown'}>`);
+        console.log(`ge15   UID: ${uid}`);
+
+        const envelope = message.envelope;
+        const hasAttachment = message.bodyStructure.childNodes?.some(
+          n => n.disposition === 'attachment'
+        );
+        const messageText = message.source 
+          ? message.source.toString('utf8').slice(0, 1000) 
+          : '';
+
+        await pool.query(`
+          INSERT INTO public.conversations (
+            id, display_name, person_id, message_text, 
+            has_attachment, visibility, job_id, post_date
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            uid.toString(),
+            envelope.from[0]?.name || envelope.from[0]?.address || 'unknown',
+            customerID,
+            messageText,
+            hasAttachment,
+            'private',
+            null,
+            envelope.date || new Date()
+          ]
+        );
+
+        await client.messageFlagsAdd(uid.toString(), ['\\Seen']);
+        processedCount++;
+        console.log(`ge7    Processed UID ${uid}`);
+      } catch (fetchErr) {
+        console.error(`Failed to process UID ${uid}:`, fetchErr);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Processed ${processedCount} of ${messages.length} emails` 
+    });
+  } catch (err) {
+    console.error('ge8   Error processing emails:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: "ge83   Error processing emails",
+      error: err.message 
+    });
+  } finally {
+    try {
+      if (client && client.connection) {
+        await client.logout();
+        console.log("ge9    Disconnected from IMAP server");
+      }
+    } catch (logoutErr) {
+      console.error("ge10   Error during logout:", logoutErr);
+    }
+  }
+});
+
 
 
 
