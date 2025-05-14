@@ -361,10 +361,8 @@ views/2/customer.ejs
                         <thead>
                             <tr class="table-primary">
                                 <th>ID</th>
-                                <th>Customer ID</th>
+                                <th>From</th>
                                 <th>Subject</th>
-                                <th>Body</th>
-                                <th>Created By</th>
                                 <th>Created Date</th>
                             </tr>
                         </thead>
@@ -375,11 +373,9 @@ views/2/customer.ejs
                                     <% customer.emails.forEach(function(email) { %>
                                         <tr class="accordion-toggle" data-toggle="collapse" data-target="#collapseEmail<%= email.id %>">
                                             <td><%= email.id %></td>
-                                            <td><%= email.customer_id %></td>
-                                            <td><%= email.subject %></td>
-                                            <td><%= email.body %></td>
-                                            <td><%= email.created_by %></td>
-                                            <td><%= email.created_date %></td>
+                                            <td><%= email.display_name %></td>
+                                            <td><%= email.message_text %></td>
+                                            <td><%= email.post_date %></td>
                                         </tr>
                                     <% }); %>
                                 <% } %>

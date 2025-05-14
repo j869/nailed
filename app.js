@@ -178,18 +178,21 @@ app.get("/checkemail", async (req, res) => {
     //connect to email server and check for new emails
     const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
     console.log("ce2    ", emailResult.data);
-    if (emailResult.data) {
-      console.log("ce9    ", emailResult.data);
+    if (emailResult.data.success) {
+      console.log("ce9    ", emailResult.data.message);
     } else {
       console.log("ce4    No new emails found for customer("+ customerID +") ");
     }
     
     //redirect to customer page
     console.log("ce5    redirecting to customer page ", req.query.returnto);
-    if (false) {
-      res.redirect("/builds/", req.query.returnto);
+    if (req.query.returnto.search("build") > -1) {
+      // res.redirect("/builds/", req.query.returnto);
+      res.redirect("2/build/" + emailResult.data.build_id);
     } else {
-      res.redirect("/2/build/264"); ;
+      // res.redirect("/2/build/264"); 
+      console.log("ce6    redirecting to builds page ", req.query.returnto);
+      res.redirect(""+ req.query.returnto);
     }
     // res.redirect("/customer/" + customerID); ;
   }
@@ -252,7 +255,7 @@ let allCustomers = [];
 
               //read emails for the customer
               const emailsResult = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
-
+              // console.log("b26   emails for CustID(" + custID + ") " , emailsResult.rows);
 
                           // console.log("b26   ")
             // Merge customer, build, and jobs data
@@ -299,6 +302,7 @@ let allCustomers = [];
             for (const customer of customersResult.rows) {
               // Initialize an empty array to hold builds for the current customer
               let builds = [];
+              let emails = [];
 
               // Iterate through each build
               for (const build of buildsResult.rows) {
@@ -411,7 +415,7 @@ let allCustomers = [];
                 }
 
 
-                let emails = [];
+                
                 // Add emails to the builds array
                 for (const email of emailsResult.rows) {
                   emails.push({
@@ -439,7 +443,8 @@ let allCustomers = [];
                 contact_other: customer.contact_other,
                 current_status: customer.current_status,
                 follow_up: customer.follow_up,
-                builds: builds
+                builds: builds,
+                emails: emails
               });
             }
 
@@ -837,12 +842,18 @@ app.get("/customer/:id", async (req, res) => {
       const qryProducts = await db.query("SELECT id, display_text FROM products ");
       let products = qryProducts.rows;
 
+      //read emails for the customer
+      const qryEmails = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
+      let emails = qryEmails.rows;
+
+
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
       res.render("customer.ejs", {
         data : customer[0],
         builds : builds,
-        products : products
+        products : products,
+        emails : emails
       });
 
     } catch (err) {
