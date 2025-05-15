@@ -10,6 +10,7 @@ import session from "express-session";
 import env from "dotenv";
 import { main }  from './trigger2.js';
 import moment from 'moment';
+import e from "express";
 
 
 
@@ -174,9 +175,16 @@ app.get("/daytaskUpdate", (req, res) => {
       console.log("gp1    ", req.user);
       const smtpResult = await db.query("SELECT id, email, smtp_host, smtp_password FROM users WHERE id = $1", [req.user.id]);
       console.log("gp2    ", smtpResult.rows[0]);
-      const decrypted_password = await axios.get(`${API_URL}/decrypt/${smtpResult.rows[0].smtp_password}`);
-      console.log("gp3    ", decrypted_password.data);
-      res.render("smtp.ejs", { user: req.user, data: smtpResult.rows[0], decrypted_password : decrypted_password.data.decryptedText });
+      let encrypted_password = smtpResult.rows[0].smtp_password;
+      let decrypted_password = "";
+      if (encrypted_password == null) {
+        decrypted_password = "";
+      } else {
+        const result = await axios.get(`${API_URL}/decrypt/${encrypted_password}`);
+        decrypted_password = result.data.decryptedText;
+      }
+      console.log("gp3    ", decrypted_password);
+      res.render("smtp.ejs", { user: req.user, data: smtpResult.rows[0], decrypted_password : decrypted_password });
     }
   });
 
