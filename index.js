@@ -32,6 +32,11 @@ if (process.env.SESSION_SECRET) {
 // Encryption function
 function encrypt(text, key) {
   console.log("ey1    encrypting: ", text);
+  //check if text is a string
+  if (typeof text !== 'string') {
+    console.error("ey2    Encryption failed: text is not a string");
+    return null; // Return null or handle the error as needed
+  }
   const cipher = crypto.createCipher('aes-256-cbc', key);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
