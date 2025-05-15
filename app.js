@@ -192,8 +192,9 @@ app.get("/daytaskUpdate", (req, res) => {
     if (req.isAuthenticated()) {
       console.log("up1    ", req.body);
       const { id, email, host, password } = req.body;
+      console.log("up1a   password ", password);
       const encryptedPassword = await axios.get(`${API_URL}/encrypt/${password}`); 
-      console.log("up2    ", encryptedPassword.data.encryptedText);
+      console.log("up2    ", encryptedPassword.data);
       const result = await db.query("UPDATE users SET email = $1, smtp_host = $2, smtp_password = $3 WHERE id = $4", [email, host, encryptedPassword.data.encryptedText, id]);
       console.log("up3    ", result);
       const connectionResult = await axios.get(`${API_URL}/testSMTP/${id}`);
@@ -1571,7 +1572,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/2/build/264",      // "/2/customers",    //"/jobs/94",     //2/build/264,
+    successRedirect: "/2/customers",      // "/2/customers",    //"/jobs/94",     //2/build/264,
     failureRedirect: "/login",
   })
 );

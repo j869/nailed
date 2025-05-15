@@ -105,23 +105,33 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 
 app.get("/encrypt/:text", async (req, res) => {
-  console.log("en1    encrypting: ", req.params);
-  const text = req.params.text;
-  const key = process.env.SMTP_ENCRYPTION_KEY;
-  const encryptedText = encrypt(text, key);
-  console.log("en91    encrypted: ", encryptedText);
-  const decryptedText = decrypt(encryptedText, key);
-  console.log("en92    decrypted: ", decryptedText);
-  res.json({ encryptedText });
+  try {
+    console.log("en1    encrypting: ", req.params);
+    const text = req.params.text;
+    const key = process.env.SMTP_ENCRYPTION_KEY;
+    const encryptedText = encrypt(text, key);
+    console.log("en91    encrypted: ", encryptedText);
+    const decryptedText = decrypt(encryptedText, key);
+    console.log("en92    decrypted: ", decryptedText);
+    res.json({ encryptedText });
+  } catch (error) {
+    console.error("en8    Encryption failed:", error);
+    res.status(500).json({ error: "Encryption failed" });
+  }
 });
 
 app.get("/decrypt/:text", async (req, res) => {
-  console.log("ef1    decrypting: ", req.params);
-  const text = req.params.text;
-  const key = process.env.SMTP_ENCRYPTION_KEY;
-  const decryptedText = decrypt(text, key);
-  console.log("ef9    decrypted: ", decryptedText);
-  res.json({ decryptedText });
+  try {
+    console.log("ef1    decrypting: ", req.params);
+    const text = req.params.text;
+    const key = process.env.SMTP_ENCRYPTION_KEY;
+    const decryptedText = decrypt(text, key);
+    console.log("ef9    decrypted: ", decryptedText);
+    res.json({ decryptedText });
+  } catch (error) {
+    console.error("ef8    Decryption failed:", error);
+    res.status(500).json({ error: "Decryption failed" });
+  }
 });
 
 
