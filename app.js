@@ -169,6 +169,33 @@ app.get("/daytaskUpdate", (req, res) => {
     //main();     // trigger worksheet update from trigger2.js
 
 
+  app.get("/updateSMTP", async (req, res) => {
+    if (req.isAuthenticated()) {
+      console.log("gp1    ", req.user);
+      const smtpResult = await db.query("SELECT id, email, smtp_host, smtp_password FROM users WHERE id = $1", [req.user.id]);
+      console.log("gp2    ", smtpResult.rows[0]);
+      const decrypted_password = await axios.get(`${API_URL}/decrypt/${smtpResult.rows[0].smtp_password}`);
+      console.log("gp3    ", decrypted_password.data);
+      res.render("smtp.ejs", { user: req.user, data: smtpResult.rows[0], decrypted_password : decrypted_password.data.decryptedText });
+    }
+  });
+
+  app.post("/updateSMTP", async (req, res) => {
+    if (req.isAuthenticated()) {
+      console.log("up1    ", req.body);
+      const { id, email, host, password } = req.body;
+      const encryptedPassword = await axios.get(`${API_URL}/encrypt/${password}`); 
+      console.log("up2    ", encryptedPassword.data.encryptedText);
+      const result = await db.query("UPDATE users SET email = $1, smtp_host = $2, smtp_password = $3 WHERE id = $4", [email, host, encryptedPassword.data.encryptedText, id]);
+      console.log("up3    ", result);
+      const connectionResult = await axios.get(`${API_URL}/testSMTP/${id}`);
+      console.log("up4    ", connectionResult.data);
+      res.redirect("/updateSMTP");
+
+    }
+  });
+  
+
 app.get("/checkemail", async (req, res) => {
   if (req.isAuthenticated()) {
     //<a href= "/checkemail?btn=103d&customer_id=<%= customer.id %>&returnto=customer/<%= customer.id %>" class="btn btn-primary">check for new emails</a>
@@ -176,22 +203,26 @@ app.get("/checkemail", async (req, res) => {
     const customerID = req.query.customer_id || 0;
 
     //connect to email server and check for new emails
-    const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
+    // pass userID and custID to the email server to check for new emails
+    const emailResult = await axios.get(`${API_URL}/email/${customerID}/${req.user.id}`);
+    //const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
     console.log("ce2    ", emailResult.data);
     if (emailResult.data.success) {
       console.log("ce9    ", emailResult.data.message);
     } else {
-      console.log("ce4    No new emails found for customer("+ customerID +") ");
+      console.log("ce4    No new emails (or) problem reading emails for customer("+ customerID +") ");
     }
     
     //redirect to customer page
     console.log("ce5    redirecting to customer page ", req.query.returnto);
     if (req.query.returnto.search("build") > -1) {
       // res.redirect("/builds/", req.query.returnto);
-      res.redirect("2/build/" + emailResult.data.build_id);
+      // res.redirect("2/build/" + emailResult.data.build_id);
+      console.log("ce6    redirecting to build page ", req.query.returnto);
+      res.redirect(""+ req.query.returnto);
     } else {
       // res.redirect("/2/build/264"); 
-      console.log("ce6    redirecting to builds page ", req.query.returnto);
+      console.log("ce6    redirecting to customer page ", req.query.returnto);
       res.redirect(""+ req.query.returnto);
     }
     // res.redirect("/customer/" + customerID); ;
@@ -1532,7 +1563,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/2/customers",    //"/jobs/94",     //,
+    successRedirect: "/2/build/264",      // "/2/customers",    //"/jobs/94",     //2/build/264,
     failureRedirect: "/login",
   })
 );

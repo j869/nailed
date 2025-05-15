@@ -4,12 +4,13 @@
 
 views/customer.ejs
 
-
+<br><br><br>
     <div class="jumbotron text-center">
         <div class="container">
 
             <% if (locals.data) { %>
-                <h1 class="display-3"><%= data.full_name %>, <%= data.home_address %></h1>
+                <h1 class="display-4"><%= data.full_name %></h1>
+                <p class="lead"><%= data.home_address %></p>
                 <br><hr><br>
     
 
@@ -148,33 +149,35 @@ views/customer.ejs
             <% } %>
 
             <br><hr><br>
-            <div>
-                <h3>Customer Emails</h3>
-                <table class="table table-striped table-bordered">
-                    <thead>
-                        <tr class="table-primary">
-                            <th>ID</th>
-                            <th>From</th>
-                            <th>Subject</th>
-                            <th>Created Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if (locals.emails) { %>
-                            <% for (let i in emails) { %>
-                                <tr class="email-row">
-                                    <td><%= emails[i].id %></td>
-                                    <td><%= emails[i].display_name %></td>
-                                    <td><%= emails[i].message_text %></td>
-                                    <td><%= emails[i].post_date %></td>
-                                </tr>
-                            <% } %>   
-                        <% } %>
-                        
-                    </tbody>
-                </table>               
-                <a href= "/checkemail?btn=105a&customer_id=<%= data.id %>&returnto=customer/<%= data.id %>" class="btn btn-primary">check for new emails</a>
-            </div>
+            <!-- If you are looking at an existing customer then add a div to update and display the customer emails / -->
+            <% if (locals && locals.data ) { %>
+                <div>
+                    <h3>Customer Emails</h3>
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr class="table-primary">
+                                <th>ID</th>
+                                <th>From</th>
+                                <th>Subject</th>
+                                <th>Created Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (locals.emails) { %>
+                                <% for (let i in emails) { %>
+                                    <tr class="email-row">
+                                        <td><%= emails[i].id %></td>
+                                        <td><%= emails[i].display_name %></td>
+                                        <td><%= emails[i].message_text %></td>
+                                        <td><%= emails[i].post_date %></td>
+                                    </tr>
+                                <% } %>   
+                            <% } %>
+                        </tbody>
+                    </table>               
+                    <a href= "/checkemail?btn=105a&customer_id=<%= data.id %>&returnto=customer/<%= data.id %>" class="btn btn-primary">check for new emails</a>
+                </div>
+            <% } %>
 
         </div>
     </div>

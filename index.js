@@ -8,6 +8,7 @@ import multer from "multer";
 import cors from "cors";
 import nodemailer from "nodemailer";
 import { ImapFlow } from 'imapflow';
+import crypto from 'crypto';   //const crypto = require('crypto');
 
 
 export const app = express();
@@ -26,19 +27,43 @@ if (process.env.SESSION_SECRET) {
   console.log("       npm i");
 }
 
-const imapConfig = {
-  host: 'mail.privateemail.com',
-  port: 993,
-  secure: true,
-  auth: {
-      user: process.env.SMTP_EMAIL, 
-      pass: process.env.SMTP_PASSWORD 
-  },
-  logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
-};
 
 
-  
+// Encryption function
+function encrypt(text, key) {
+  console.log("ey1    encrypting: ", text);
+  const cipher = crypto.createCipher('aes-256-cbc', key);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+// Decryption function
+// function decrypt(encryptedText, key) {
+//   console.log("de1    decrypting: ", key, key.substring(1,32));
+//   // let keyBuffer = Buffer.from(key.substring(1,32), 'hex');
+//   // console.log("de2    decrypting: ", keyBuffer);
+//   // const iv = Buffer.alloc(16, 0);
+//   const decipher = crypto.createDecipher('aes-256-cbc', key);
+//   let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+//   decrypted += decipher.final('utf8');
+//   return decrypted;
+// }  
+
+// Decryption function
+function decrypt(encryptedText, key) {
+  console.log("de1    decrypting: ", encryptedText);
+  let decrypted = "";
+  try {
+    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+  } catch (error) {
+    console.error("de2    Decryption failed:", error);
+    decrypted = "null"; // Set decrypted to null if decryption fails
+  }
+  return decrypted;
+}
 
 app.use(cors({
   origin:  `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
@@ -72,6 +97,28 @@ export const pool = new Pool({
 
 // Multer Setup for File Uploads (storing in memory)
 const upload = multer({ storage: multer.memoryStorage() });
+
+
+app.get("/encrypt/:text", async (req, res) => {
+  console.log("en1    encrypting: ", req.params);
+  const text = req.params.text;
+  const key = process.env.SMTP_ENCRYPTION_KEY;
+  const encryptedText = encrypt(text, key);
+  console.log("en91    encrypted: ", encryptedText);
+  const decryptedText = decrypt(encryptedText, key);
+  console.log("en92    decrypted: ", decryptedText);
+  res.json({ encryptedText });
+});
+
+app.get("/decrypt/:text", async (req, res) => {
+  console.log("ef1    decrypting: ", req.params);
+  const text = req.params.text;
+  const key = process.env.SMTP_ENCRYPTION_KEY;
+  const decryptedText = decrypt(text, key);
+  console.log("ef9    decrypted: ", decryptedText);
+  res.json({ decryptedText });
+});
+
 
 /**
  * Route to Upload a File
@@ -187,11 +234,44 @@ app.get("/download/:id", async (req, res) => {
  * Main Route - Shows Upload Form & File List
  */
 
+app.get("/testSMTP/:user_id", async (req, res) => {
+  console.log("gx1    connectEmail");
+  const userID = parseInt(req.params.user_id);
+  const smtpInfo = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
+  const { smtp_host, email, smtp_password } = smtpInfo.rows[0];
+  const decryptedPassword = decrypt(smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+  console.log("gx2    SMTP connection details: ", smtp_host, email, decryptedPassword);
 
+  const imapConfig = {
+    host: smtp_host,     //smtpHost,
+    port: 993,
+    secure: true,
+    auth: {
+        user: email, 
+        pass: decryptedPassword 
+    },
+    logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+  };
+  let countInserted = 0;
+  const client = new ImapFlow(imapConfig);
+  console.log("gx4    Connecting to IMAP server...");
+  await client.connect();
+  console.log("gx4a   Connected to IMAP server.");
+  //check if connection is ok
+  if (!client.authenticated) {
+    console.error("gx83    Failed to connect to IMAP server.");
+    return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
+  }  else {
+    console.log("gx83    Successfully connected to IMAP server.", client.authenticated);
+    await client.logout();
+    return res.json({ success: true, message: "Email connected successfully!" });
+  }
+});
 
-app.get("/email/:id", async (req, res) => {
-  console.log("ge1    fetching emails for CustID(" + req.params.id + ")");
-  const customerID = parseInt(req.params.id);
+app.get("/email/:cust_id/:user_id", async (req, res) => {
+  console.log("ge1    fetching emails for CustID(" +  ")", req.params);
+  const customerID = parseInt(req.params.cust_id);
+  const userID = parseInt(req.params.user_id);
 
   // Look up the customerID in the database
   const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
@@ -200,11 +280,41 @@ app.get("/email/:id", async (req, res) => {
     return res.status(404).json({ success: false, message: "Email not found" });
   }
   const email = result.rows[0].primary_email;
-  // console.log("ge2    Found email:", email);
+  // console.log("ge2    Looking up user:", userID);
+  const userResult = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
+  // console.log("ge2a   ", userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+  let smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+  let smtpEmail = userResult.rows[0].email;
+  let smtpHost = userResult.rows[0].smtp_host;
+  console.log("ge3    SMTP connection details: ", smtpHost, smtpEmail, smtpPassword);
+  const imapConfig = {
+    host: smtpHost,       //"mail.privateemail.com",     //smtpHost,
+    port: 993,
+    secure: true,
+    auth: {
+        user: smtpEmail, 
+        pass: smtpPassword 
+    },
+    logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+  };
   let countInserted = 0;
   const client = new ImapFlow(imapConfig);
+  console.log("ge4    Connecting to IMAP server...");
   await client.connect();
+  console.log("ge4a   Connected to IMAP server.");
+  //check if connection is ok
+  if (!client.authenticated) {
+    console.error("ge83    Failed to connect to IMAP server.");
+    return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
+  }
   const lock = await client.getMailboxLock('INBOX');
+  console.log("ge4b   Lock acquired for mailbox INBOX.");
+  //check if mailbox is ok
+  if (!lock) {
+    console.error("ge84    Failed to lock mailbox.");
+    return res.status(500).json({ success: false, message: "Failed to lock mailbox" });
+  }
+  console.log("ge5    Fetching emails from INBOX where sender = " + email);
   try {
     // replace all conversations for this customerID
     await pool.query("DELETE FROM conversations where person_id = $1", [customerID]);
@@ -241,6 +351,7 @@ app.get("/email/:id", async (req, res) => {
      }
   } catch (err) {
     console.error("ge8    Error processing emails:", err);
+    return res.status(500).json({ success: false, message: "Error processing emails: " + err.response });
   } finally {
     lock.release();
     await client.logout();
