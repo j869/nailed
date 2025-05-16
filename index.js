@@ -289,7 +289,7 @@ app.get("/testSMTP/:user_id", async (req, res) => {
 });
 
 app.get("/email/:cust_id/:user_id", async (req, res) => {
-  try {
+  
   console.log("ge1    fetching emails for CustID(" +  ")", req.params);
   const customerID = parseInt(req.params.cust_id);
   const userID = parseInt(req.params.user_id);
