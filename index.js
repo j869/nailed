@@ -251,86 +251,93 @@ app.get("/download/:id", async (req, res) => {
 
 app.get("/testSMTP/:user_id", async (req, res) => {
   console.log("gx1    connectEmail");
-  const userID = parseInt(req.params.user_id);
-  const smtpInfo = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
-  const { smtp_host, email, smtp_password } = smtpInfo.rows[0];
-  const decryptedPassword = decrypt(smtp_password, process.env.SMTP_ENCRYPTION_KEY);
-  console.log("gx2    SMTP connection details: ", smtp_host, email, decryptedPassword);
+  try {
+    const userID = parseInt(req.params.user_id);
+    const smtpInfo = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
+    const { smtp_host, email, smtp_password } = smtpInfo.rows[0];
+    const decryptedPassword = decrypt(smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+    console.log("gx2    SMTP connection details: ", smtp_host, email, decryptedPassword);
 
-  const imapConfig = {
-    host: smtp_host,     //smtpHost,
-    port: 993,
-    secure: true,
-    auth: {
-        user: email, 
-        pass: decryptedPassword 
-    },
-    logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
-  };
-  let countInserted = 0;
-  const client = new ImapFlow(imapConfig);
-  console.log("gx4    Connecting to IMAP server...");
-  await client.connect();
-  console.log("gx4a   Connected to IMAP server.");
-  //check if connection is ok
-  if (!client.authenticated) {
-    console.error("gx83    Failed to connect to IMAP server.");
-    return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
-  }  else {
-    console.log("gx83    Successfully connected to IMAP server.", client.authenticated);
-    await client.logout();
-    return res.json({ success: true, message: "Email connected successfully!" });
+    const imapConfig = {
+      host: smtp_host,     //smtpHost,
+      port: 993,
+      secure: true,
+      auth: {
+          user: email, 
+          pass: decryptedPassword 
+      },
+      logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+    };
+    let countInserted = 0;
+    const client = new ImapFlow(imapConfig);
+    console.log("gx4    Connecting to IMAP server...");
+    await client.connect();
+    console.log("gx4a   Connected to IMAP server.");
+    //check if connection is ok
+    if (!client.authenticated) {
+      console.error("gx83    Failed to connect to IMAP server.");
+      return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
+    }  else {
+      console.log("gx83    Successfully connected to IMAP server.", client.authenticated);
+      await client.logout();
+      return res.json({ success: true, message: "Email connected successfully!" });
+    }
+  } catch (error) {
+    console.error("gx8    Error connecting to email server:", error);
+    return res.status(500).json({ success: false, message: "Error connecting to email server: " + error });
   }
 });
 
 app.get("/email/:cust_id/:user_id", async (req, res) => {
+  try {
   console.log("ge1    fetching emails for CustID(" +  ")", req.params);
   const customerID = parseInt(req.params.cust_id);
   const userID = parseInt(req.params.user_id);
 
-  // Look up the customerID in the database
-  const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
-  if (result.rows.length === 0) {
-    console.error("ge18  No email found for customerID:", customerID);
-    return res.status(404).json({ success: false, message: "Email not found" });
-  }
-  const email = result.rows[0].primary_email;
-  // console.log("ge2    Looking up user:", userID);
-  const userResult = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
-  // console.log("ge2a   ", userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
-  let smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
-  let smtpEmail = userResult.rows[0].email;
-  let smtpHost = userResult.rows[0].smtp_host;
-  console.log("ge3    SMTP connection details: ", smtpHost, smtpEmail, smtpPassword);
-  const imapConfig = {
-    host: smtpHost,       //"mail.privateemail.com",     //smtpHost,
-    port: 993,
-    secure: true,
-    auth: {
-        user: smtpEmail, 
-        pass: smtpPassword 
-    },
-    logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
-  };
-  let countInserted = 0;
-  const client = new ImapFlow(imapConfig);
-  console.log("ge4    Connecting to IMAP server...");
-  await client.connect();
-  console.log("ge4a   Connected to IMAP server.");
-  //check if connection is ok
-  if (!client.authenticated) {
-    console.error("ge83    Failed to connect to IMAP server.");
-    return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
-  }
-  const lock = await client.getMailboxLock('INBOX');
-  console.log("ge4b   Lock acquired for mailbox INBOX.");
-  //check if mailbox is ok
-  if (!lock) {
-    console.error("ge84    Failed to lock mailbox.");
-    return res.status(500).json({ success: false, message: "Failed to lock mailbox" });
-  }
-  console.log("ge5    Fetching emails from INBOX where sender = " + email);
   try {
+    // Look up the customerID in the database
+    const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
+    if (result.rows.length === 0) {
+      console.error("ge18  No email found for customerID:", customerID);
+      return res.status(404).json({ success: false, message: "Email not found" });
+    }
+    const email = result.rows[0].primary_email;
+    // console.log("ge2    Looking up user:", userID);
+    const userResult = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
+    // console.log("ge2a   ", userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+    let smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+    let smtpEmail = userResult.rows[0].email;
+    let smtpHost = userResult.rows[0].smtp_host;
+    console.log("ge3    SMTP connection details: ", smtpHost, smtpEmail, smtpPassword);
+    const imapConfig = {
+      host: smtpHost,       //"mail.privateemail.com",     //smtpHost,
+      port: 993,
+      secure: true,
+      auth: {
+          user: smtpEmail, 
+          pass: smtpPassword 
+      },
+      logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+    };
+    let countInserted = 0;
+    const client = new ImapFlow(imapConfig);
+    console.log("ge4    Connecting to IMAP server...");
+    await client.connect();
+    console.log("ge4a   Connected to IMAP server.");
+    //check if connection is ok
+    if (!client.authenticated) {
+      console.error("ge83    Failed to connect to IMAP server.");
+      return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
+    }
+    const lock = await client.getMailboxLock('INBOX');
+    console.log("ge4b   Lock acquired for mailbox INBOX.");
+    //check if mailbox is ok
+    if (!lock) {
+      console.error("ge84    Failed to lock mailbox.");
+      return res.status(500).json({ success: false, message: "Failed to lock mailbox" });
+    }
+    console.log("ge5    Fetching emails from INBOX where sender = " + email);
+  
     // replace all conversations for this customerID
     await pool.query("DELETE FROM conversations where person_id = $1", [customerID]);
     for await (const message of client.fetch('1:*', { 
