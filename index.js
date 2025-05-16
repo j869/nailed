@@ -340,7 +340,12 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
   
     // replace all conversations for this customerID
     await pool.query("DELETE FROM conversations where person_id = $1", [customerID]);
-    for await (const message of client.fetch('1:*', { 
+    for await (const message of client.fetch(
+    { or: [
+      { from: email }, 
+      { to: email }
+    ] }, 
+    { 
       envelope: true,
       bodyParts: true,
       bodyStructure: true
