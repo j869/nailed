@@ -296,7 +296,7 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
   let lock; 
   let client;
   let countInserted = 0;
-  
+
   try {
     // Look up the customerID in the database
     const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
@@ -353,7 +353,8 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
       bodyParts: true,
       bodyStructure: true
      })) {
-      if (message.envelope.from.some(sender => sender.address === email)) {
+      
+      //if (message.envelope.from.some(sender => sender.address === email)) {
         let display_name = message.envelope.from[0].name;
         if (display_name.length > 15) {display_name = display_name.substring(0, 12) + "...";}
         let msgDate = message.envelope.date || new Date();
@@ -374,9 +375,9 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
           ]
         );        
         countInserted++;
-      } else {
-        // console.log("ge7m    ", message.envelope.from[0].address);
-      }
+      // } else {
+      //   console.log("ge7m    Email not inserted: ", message.envelope.subject);
+      // }
           
      }
   } catch (err) {
