@@ -293,7 +293,10 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
   console.log("ge1    fetching emails for CustID(" +  ")", req.params);
   const customerID = parseInt(req.params.cust_id);
   const userID = parseInt(req.params.user_id);
-
+  let lock; 
+  let client;
+  let countInserted = 0;
+  
   try {
     // Look up the customerID in the database
     const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
@@ -319,8 +322,8 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
       },
       logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
     };
-    let countInserted = 0;
-    const client = new ImapFlow(imapConfig);
+    countInserted = 0;
+    client = new ImapFlow(imapConfig);
     console.log("ge4    Connecting to IMAP server...");
     await client.connect();
     console.log("ge4a   Connected to IMAP server.");
@@ -329,7 +332,7 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
       console.error("ge83    Failed to connect to IMAP server.");
       return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
     }
-    const lock = await client.getMailboxLock('INBOX');
+    lock = await client.getMailboxLock('INBOX');
     console.log("ge4b   Lock acquired for mailbox INBOX.");
     //check if mailbox is ok
     if (!lock) {
