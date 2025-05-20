@@ -201,7 +201,7 @@ async function updateJobsAt6pm() {
         hours = 0;
     }
 
-    let hoursUntil6PM = 18 - hours; // 18 represents 6 PM in 24-hour format
+    let hoursUntil6PM = 17 - hours; // 18 represents 6 PM in 24-hour format
     let minutesUntil6PM = 59 - minutes;
     let secondsUntil6PM = 59 - seconds;
 
