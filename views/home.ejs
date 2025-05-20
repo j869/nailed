@@ -11,9 +11,9 @@ home.ejs
 
     <% if (locals.data) { %>
       <% let view = locals.data.view || 0; %>
-      <button onclick="updateView(view - 1)">Previous</button>
+      
       <button onclick="updateView(0)">Today</button>
-      <button onclick="updateView(view + 1)">Next</button>
+      <button onclick="updateView(1)">Tomorrow</button>
 
     <div class="container">
       <table class="table">
