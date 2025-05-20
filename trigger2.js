@@ -13,7 +13,7 @@ const pool = new Pool({
   port: process.env.PG_PORT,
 });
 
-console.log("re1     STARTING ", process.env.PG_DATABASE);
+console.log("re1     STARTING on DB ", process.env.PG_DATABASE);
 
 
 async function handleTrigger(triggerData) {
@@ -100,14 +100,22 @@ async function handleTrigger(triggerData) {
 
   async function getNextTasks() {
     try {
+        console.log("gnt1    STARTING on DB ", process.env.PG_DATABASE);
         //rebuild user_id = 1 worksheet
         const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
+        console.log("gnt08    ", q1.rowCount + " rows deleted from worksheets");
 
         const buildQuery = await pool.query("SELECT * FROM builds;");
         const builds = buildQuery.rows;
+        console.log("gnt09    ", builds.length + " builds found");
 
         // Loop through each build
-        console.log("gnt11   user TRIGGERED update day_task_list matView")
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentSecond = now.getSeconds();
+        console.log(`gnt10    Current time: ${currentHour}:${currentMinute}:${currentSecond}`);
+        console.log("gnt11   updating day_task_list matView")
         for (const build of builds) {
             console.log("gnt31    adding worksheet for build_id: ", build.id)
             
@@ -131,11 +139,13 @@ async function handleTrigger(triggerData) {
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 const formattedDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
                 const targetDate = task.task_target ? task.task_target : formattedDate;
-                
+                console.log("gnt51    ", task.task_text, " target date: ", targetDate);
+
                 const q2 = await pool.query(`
                 INSERT INTO worksheets (title, description, user_id, date)
                 VALUES ($1, $2, $3, $4);
               `, ["Build("+build.id+") " + task.task_text, task, task.user_id, targetDate]);
+                console.log("gnt9      ", q2.rowCount + " rows inserted into worksheets for user_id: ", task.user_id);
 
               // console.log("gnt51      sucessfully add to worksheet for user:", task.user_id);
 
@@ -154,18 +164,72 @@ async function handleTrigger(triggerData) {
   
 
 
-
   async function main() {
-
-
-    await getNextTasks();
-
-
+    console.log("re2    manually triggered on DB ", process.env.PG_DATABASE);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+    console.log(`re5    Current time: ${currentHour}:${currentMinute}:${currentSecond}`);
+    
+        await getNextTasks();
 
   }
   
+
+async function updateJobsAt6pm() {
+    console.log("re2     STARTING ", process.env.PG_DATABASE);
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+
+    let hoursUntil6PM = 18 - currentHour; // 18 represents 6 PM in 24-hour format
+    let minutesUntil6PM = 59 - currentMinute;
+    let secondsUntil6PM = 59 - currentSecond;
+
+    if (hoursUntil6PM < 0 || (hoursUntil6PM === 0 && minutesUntil6PM < 0) || (hoursUntil6PM === 0 && minutesUntil6PM === 0 && secondsUntil6PM < 0)) {
+        // If the current time is already past 6 PM, schedule for the next day
+        hoursUntil6PM += 24;
+    }
+
+    const millisecondsUntil6PM = (hoursUntil6PM * 60 * 60 + minutesUntil6PM * 60 + secondsUntil6PM) * 1000;
+
+    console.log(`re5    Current time: ${currentHour}:${currentMinute}:${currentSecond}`);
+    console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
+
+    setTimeout(async () => {
+        await getNextTasks();
+        console.log("Task executed at 6 PM. Scheduling for the next day...");
+
+        // Calculate the time until 6 PM the next day
+        const nowNextDay = new Date();
+        nowNextDay.setDate(nowNextDay.getDate() + 1); // Move to the next day
+        const currentHourNextDay = nowNextDay.getHours();
+        const currentMinuteNextDay = nowNextDay.getMinutes();
+        const currentSecondNextDay = nowNextDay.getSeconds();
+
+        let hoursUntil6PMNextDay = 18 - currentHourNextDay;
+        let minutesUntil6PMNextDay = 59 - currentMinuteNextDay;
+        let secondsUntil6PMNextDay = 59 - currentSecondNextDay;
+
+        if (hoursUntil6PMNextDay < 0 || (hoursUntil6PMNextDay === 0 && minutesUntil6PMNextDay < 0) || (hoursUntil6PMNextDay === 0 && minutesUntil6PMNextDay === 0 && secondsUntil6PMNextDay < 0)) {
+            hoursUntil6PMNextDay += 24;
+        }
+
+        const millisecondsUntil6PMNextDay = (hoursUntil6PMNextDay * 60 * 60 + minutesUntil6PMNextDay * 60 + secondsUntil6PMNextDay) * 1000;
+
+        console.log(`Waiting until 6 PM tomorrow to run the task. Time remaining: ${hoursUntil6PMNextDay} hours, ${minutesUntil6PMNextDay} minutes, ${secondsUntil6PMNextDay} seconds`);
+
+        setTimeout(updateJobsAt6pm, millisecondsUntil6PMNextDay);
+    }, millisecondsUntil6PM);
+}
 
 
 
 
   export { main }; // Exporting `main` as a named export
+
+
+  
+  updateJobsAt6pm();
