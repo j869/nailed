@@ -179,7 +179,7 @@ views/2/customer.ejs
                                                                                         <% site.jobs.forEach(function(job) { %>
                                                                                             <% if (job) { %>
                                                                                                 <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
-                                                                                                    <td><%= job.id %></td>
+                                                                                                    <td><%= job.sort_order %></td>
                                                                                                     <td class="display-text-column"><%= job.display_text %></td>
                                                                                                     <td style="width: 40%;"><%= job.free_text %></td>
                                                                                                     <td style="display: none;"><%= job.job_template_id %></td>
