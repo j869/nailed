@@ -180,13 +180,30 @@ async function handleTrigger(triggerData) {
 async function updateJobsAt6pm() {
     console.log("re2     STARTING ", process.env.PG_DATABASE);
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const currentSecond = now.getSeconds();
+    const options = {
+        timeZone: 'Australia/Melbourne',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    const formatter = new Intl.DateTimeFormat('en-AU', options);
+    const melbourneTime = formatter.format(now);
 
-    let hoursUntil6PM = 18 - currentHour; // 18 represents 6 PM in 24-hour format
-    let minutesUntil6PM = 59 - currentMinute;
-    let secondsUntil6PM = 59 - currentSecond;
+    // Parse the Melbourne time to get hours, minutes, and seconds
+    const [time, period] = melbourneTime.split(' ');
+    let [hours, minutes, seconds] = time.split(':').map(Number);
+
+    // Convert to 24-hour format if necessary
+    if (period === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    let hoursUntil6PM = 18 - hours; // 18 represents 6 PM in 24-hour format
+    let minutesUntil6PM = 59 - minutes;
+    let secondsUntil6PM = 59 - seconds;
 
     if (hoursUntil6PM < 0 || (hoursUntil6PM === 0 && minutesUntil6PM < 0) || (hoursUntil6PM === 0 && minutesUntil6PM === 0 && secondsUntil6PM < 0)) {
         // If the current time is already past 6 PM, schedule for the next day
@@ -195,7 +212,7 @@ async function updateJobsAt6pm() {
 
     const millisecondsUntil6PM = (hoursUntil6PM * 60 * 60 + minutesUntil6PM * 60 + secondsUntil6PM) * 1000;
 
-    console.log(`re5    Current time: ${currentHour}:${currentMinute}:${currentSecond}`);
+    console.log(`re5    Current time: ${hours}:${minutes}:${seconds}`);
     console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
 
     setTimeout(async () => {
