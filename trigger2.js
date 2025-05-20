@@ -226,7 +226,7 @@ async function updateJobsAt6pm() {
         const currentMinuteNextDay = nowNextDay.getMinutes();
         const currentSecondNextDay = nowNextDay.getSeconds();
 
-        let hoursUntil6PMNextDay = 18 - currentHourNextDay;
+        let hoursUntil6PMNextDay = 17 - currentHourNextDay;
         let minutesUntil6PMNextDay = 59 - currentMinuteNextDay;
         let secondsUntil6PMNextDay = 59 - currentSecondNextDay;
 
