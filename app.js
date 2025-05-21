@@ -1408,7 +1408,7 @@ app.get("/jobDone/:id", async (req, res) => {
 app.get("/delJob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
+      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
     } else {
       console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
     }   
@@ -1433,6 +1433,11 @@ app.get("/addjob", async (req, res) => {
       console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job");
     } else {
       console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
+      if (!req.query.tier || isNaN(Number(req.query.tier))) {
+        console.error("j81       no tier specified or tier is not a number");
+        res.redirect("/jobs/" + req.query.jobnum);
+        return;
+      }
     }
       
     //Add a single job as a placeholder for further user input (and the relationship)

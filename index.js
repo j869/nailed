@@ -427,15 +427,20 @@ app.get("/jobs/:id", async (req, res) => {
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
-      vSQL = "SELECT * from jobs WHERE id = " + job_id + ";";
+      vSQL = "SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-MON-YY') as target_date, created_by, TO_CHAR(created_date, 'DD-MON-YY') AS created_date, change_log, completed_by, TO_CHAR(completed_date, 'DD-MON-YY') AS completed_date, current_status, sort_order, completed_by_person, tier, change_array from jobs WHERE id = " + job_id + ";";
       result = await pool.query(vSQL);       
       const tier = result.rows[0].tier 
       const build_id= result.rows[0].build_id 
       const changeArray = result.rows[0].change_array;
+      const jobStatus = result.rows[0].current_status;
+      
 
       vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier > "+ tier +" ORDER BY tier ASC;";
       result = await pool.query(vSQL);       
-      const decendantTier = result.rows.length > 0 ? result.rows[0].tier : null;
+      let decendantTier = result.rows.length > 0 ? result.rows[0].tier : null;
+      if (isNaN(decendantTier)) {
+        decendantTier = null;
+      }
 
       vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier < "+ tier +" ORDER BY tier DESC;";
       result = await pool.query(vSQL);       
@@ -467,7 +472,7 @@ app.get("/jobs/:id", async (req, res) => {
       
       // console.log("gd5   adding decendants")
       let job_decendants = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + tier + " and r.antecedent_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + tier + " and r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
@@ -506,7 +511,8 @@ app.get("/jobs/:id", async (req, res) => {
       let task_decendants = [];
       // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
       // vSQL = "SELECT id, display_text, current_status, free_text FROM jobs WHERE tier = " + decendantTier + " and build_id = " + build_id + ";";
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + decendantTier + " and r.antecedent_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + decendantTier + " and r.antecedent_id = " + job_id + ";";
+      console.log("gd7    ", vSQL)
       result = await pool.query(vSQL);        
       task_decendants = result.rows;
 
@@ -519,6 +525,7 @@ app.get("/jobs/:id", async (req, res) => {
           display_name : jobUser, 
           free_text : jobText, 
           target_date : targetDate, 
+          current_status : jobStatus ? jobStatus : "null",
           change_array : changeArray,
           reminder : reminder,      //{escalation1_interval : 7, escalation2_interval : 21},
           conversation : conversation,
@@ -845,6 +852,7 @@ app.get("/addjob", async (req, res) => {
         console.log("a30     new job is a child to job("+ jobID +")");
         //console.log(req.query);
         const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+        
         console.log("a31     based on template_id(" + q4.rows[0].job_template_id + ") for job("+ jobID +")");
         let oldJobTemplateID = q4.rows[0].job_template_id;
         const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
@@ -866,8 +874,8 @@ app.get("/addjob", async (req, res) => {
         }
         console.log("a34     working with parentJob!build_id=" + q4.rows[0].build_id + ", parentjob!product_id=" + q4.rows[0].product_id);
         newJobID = newJob.rows[0].id;
-        const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id) VALUES (" + jobID + ", " + newJobID + ") ;");
-        console.log("a39     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " ")
+        const newRelationship = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES (" + jobID + ", " + newJobID + ", " + tier + ") ;");
+        console.log("a39     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " on " + tier);
     } else if (precedence == "template") {
         console.log("a40     new job is a child to job("+ jobID +") based on template(" + templateId + ")");
         //console.log(req.query);
