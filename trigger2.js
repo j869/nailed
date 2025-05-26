@@ -212,8 +212,10 @@ async function updateJobsAt6pm() {
 
     const millisecondsUntil6PM = (hoursUntil6PM * 60 * 60 + minutesUntil6PM * 60 + secondsUntil6PM) * 1000;
 
-    console.log(`re5    Current time: ${hours}:${minutes}:${seconds}`);
-    console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
+    console.log(`\x1b[re5    Starting trigger2.js    \x1b[0m]`);
+    console.log(`\x1b[re5     - Current time: ${hours}:${minutes}:${seconds}\x1b[0m]`);
+    // console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
+    console.log(`\x1b[32mre6     - Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds\x1b[0m`);
 
     setTimeout(async () => {
         await getNextTasks();
