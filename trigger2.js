@@ -170,7 +170,6 @@ async function handleTrigger(triggerData) {
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentSecond = now.getSeconds();
-    console.log(`re5    Current time: ${currentHour}:${currentMinute}:${currentSecond}`);
     
         await getNextTasks();
 
@@ -178,7 +177,7 @@ async function handleTrigger(triggerData) {
   
 
 async function updateJobsAt6pm() {
-    console.log("re2     STARTING ", process.env.PG_DATABASE);
+    console.log("\x1b[re2     STARTING on \x1b[0m", process.env.PG_DATABASE);
     const now = new Date();
     const options = {
         timeZone: 'Australia/Melbourne',
@@ -189,6 +188,7 @@ async function updateJobsAt6pm() {
     };
     const formatter = new Intl.DateTimeFormat('en-AU', options);
     const melbourneTime = formatter.format(now);
+    console.log(`\x1b[re3     Current time: ${hours}:${minutes}:${seconds}\x1b[0m]`);
 
     // Parse the Melbourne time to get hours, minutes, and seconds
     const [time, period] = melbourneTime.split(' ');
@@ -219,7 +219,7 @@ async function updateJobsAt6pm() {
 
     setTimeout(async () => {
         await getNextTasks();
-        console.log("Task executed at 6 PM. Scheduling for the next day...");
+        console.log("\x1b[Task executed at 6 PM. Scheduling for the next day...\x1b[0m");
 
         // Calculate the time until 6 PM the next day
         const nowNextDay = new Date();
