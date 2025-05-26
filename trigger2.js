@@ -188,7 +188,7 @@ async function updateJobsAt6pm() {
     };
     const formatter = new Intl.DateTimeFormat('en-AU', options);
     const melbourneTime = formatter.format(now);
-    console.log(`\x1b[re3     Current time: ${hours}:${minutes}:${seconds}\x1b[0m]`);
+    console.log(`\x1b[re3     Current time: ${hours}:${minutes}:${seconds}\x1b[0m`);
 
     // Parse the Melbourne time to get hours, minutes, and seconds
     const [time, period] = melbourneTime.split(' ');
