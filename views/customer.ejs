@@ -11,6 +11,10 @@ views/customer.ejs
             <% if (locals.data) { %>
                 <h1 class="display-4"><%= data.full_name %></h1>
                 <p class="lead"><%= data.home_address %></p>
+                <div class="d-flex justify-content-between">
+                    <button class="update btn btn-primary" type="submit" name="action" value="update">Update Customer</button>
+                    <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
+                </div>
                 <br><hr><br>
     
 
@@ -47,10 +51,6 @@ views/customer.ejs
                         } %>
                         <input type="datetime-local" id="followUp" name="followUp" value="<%= followUp %>">
                     </div>            
-                    <div class="d-flex justify-content-between">
-                        <button class="update btn btn-primary" type="submit" name="action" value="update">Update Customer</button>
-                        <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
-                    </div>
                 </form>
 
                 <!-- List builds against the customer -->
