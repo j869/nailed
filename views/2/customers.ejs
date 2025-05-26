@@ -1,6 +1,29 @@
 <%- include('../partials/header') %>
 
-views/2/customers.ejs
+
+<style>
+.btn-green-slim {
+    background-color: #2E8B57; /* Dark green color */
+    color: white; /* White text for contrast */
+    border: none; /* Remove default button border */
+    padding: 4px 8px; /* Reduced padding for a slimline appearance */
+    border-radius: 4px; /* Rounded corners */
+    text-decoration: none; /* Remove underline from link */
+    display: inline-block; /* Ensure proper display */
+    text-align: left; /* Align text to the left */
+    width: auto; /* Ensure the button width fits the content */
+    margin-left: 0; /* Align to the left */
+}
+
+.btn-green-slim:hover {
+    background-color: #3CB371; /* Slightly lighter green on hover */
+    color: white; /* Keep text color white on hover */
+}
+
+</style>
+
+
+
     <div class="jumbotron text-center">
         <div class="container">
             <br><br><br>
@@ -56,13 +79,14 @@ views/2/customers.ejs
                             <table class="table table-condensed ">
                                 <thead>
                                     <tr class="table-primary">
-                                        <th scope="col">Job#</th>
-                                        <th scope="col">Full Name</th>
-                                        <th scope="col">Build Address</th>
-                                        <th scope="col">Primary Phone</th>
-                                        <th scope="col">Primary Email</th>
-                                        <th scope="col">Current Status</th>
-                                        <th scope="col">Follow-up Date</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Job#</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Full Name</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Build Address</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Primary Phone</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Primary Email</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Current Status</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Follow-up Date</th>
+                                        <th style="background-color:#77dd7783;" scope="col">Actions</th>
                                     </tr>
                                 </thead>
 
@@ -71,13 +95,16 @@ views/2/customers.ejs
                                         <% locals.tableData.forEach(function(data) { %>
                                             <% if (data.customer.current_status == status) { %>
                                                 <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
-                                                    <td class="editable" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
-                                                    <td class="editable" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
-                                                    <td class="editable" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
-                                                    <td class="editable" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
-                                                    <td class="editable" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
-                                                    <td class="editable" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
-                                                    <td class="editable" id="customerFollowUpDate" data-record-id="<%= data.customer.id %>"><%= data.customer.follow_up %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="contactEmail" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_email %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="contactStatus" data-record-id="<%= data.customer.id %>"><%= data.customer.current_status %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="customerFollowUpDate" data-record-id="<%= data.customer.id %>"><%= data.customer.follow_up %></td>
+                                                    <td style="background-color:#77DD77;" id="actions" >
+                                                        <a href="/customer/<%= data.customer.id %>" class="btn btn-green-slim"><i class="fas fa-edit"></i> </a>
+                                                    </td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="12" class="hiddenRow">
@@ -92,7 +119,7 @@ views/2/customers.ejs
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody>
-                                                                    <a href="/customer/<%= data.customer.id %>" class="btn btn-primary">Edit Customer</a>
+                                                                    
                                                                     <% data.builds.forEach(function(build) { %>
                                                                         <% if (build) { %>
                                                                             <tr class="accordion-toggle table-secondary" onclick="window.location.href = '/2/build/<%= build.id %>'">
@@ -127,10 +154,34 @@ views/2/customers.ejs
 </div>
 
     
-
-
 <script>
-    let draggedElement = null;
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all accordion headers
+    document.querySelectorAll('.accordion-toggle').forEach(function(header) {
+        header.addEventListener('click', function() {
+            
+            // Get the customer ID from the data-target attribute
+            var customerId = this.getAttribute('data-target').replace('#collapseCust', '');
+
+            // Find the builds for the current customer
+            var builds = document.querySelectorAll('#collapseCust' + customerId + ' .nested-table tbody tr');
+
+            // Check the number of builds
+            if (builds.length === 1) {
+                // Get the build ID from the first build row
+                var buildId = builds[0].querySelector('td:first-child').textContent;
+
+                // Navigate to the build link
+                window.location.href = '/2/build/' + buildId;
+            }
+        
+        });
+    });
+});
+
+
+
+let draggedElement = null;
 
     function dragStart(event) {
         draggedElement = event.target.closest(".accordion-status-item");
@@ -223,5 +274,7 @@ views/2/customers.ejs
 
 
 </script>
+
+views/2/customers.ejs   <br>
 
 <%- include('../partials/footer') %>
