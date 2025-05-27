@@ -480,7 +480,7 @@ app.get("/jobs/:id", async (req, res) => {
       // console.log("gd6 adding tasks")
       let task_antecedents = [];
       if (antecedentTier) {
-        vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = " + antecedentTier + " and r.decendant_id = " + job_id + ";";
+        vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array, r.id as flow_id FROM jobs j INNER JOIN job_process_flow r ON j.id = r.antecedent_id WHERE j.tier = " + antecedentTier + " and r.decendant_id = " + job_id + ";";
         result = await pool.query(vSQL);        
         task_antecedents = result.rows;
       } else {
@@ -511,8 +511,8 @@ app.get("/jobs/:id", async (req, res) => {
       let task_decendants = [];
       // vSQL = "SELECT id, display_text, current_status, free_text FROM tasks WHERE precedence = 'postask' AND job_id = " + job_id + ";";
       // vSQL = "SELECT id, display_text, current_status, free_text FROM jobs WHERE tier = " + decendantTier + " and build_id = " + build_id + ";";
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + decendantTier + " and r.antecedent_id = " + job_id + ";";
-      console.log("gd7    ", vSQL)
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array, r.id as flow_id FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + decendantTier + " and r.antecedent_id = " + job_id + ";";
+      console.log("gd7    ")
       result = await pool.query(vSQL);        
       task_decendants = result.rows;
 
@@ -623,8 +623,11 @@ app.get("/update", async (req, res) => {
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
-      console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
-      console.log("ud5    succesfully modified the " + table + " record: ");
+      // console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+      console.log("ud9    succesfully modified the " + table + " record: ");
+    } else {
+      console.error("ud8     No records were modified. Check your SQL.");
+      res.status(404).json({ msg: 'No records were modified' });
     }
 
     if (table === "jobs") {
@@ -785,11 +788,15 @@ app.get("/addjob", async (req, res) => {
   console.log("a001   USER is adding a new job", req.query);
   const title = req.query.title || 'UNNAMED';
   let precedence = req.query.precedence;
-  const tier = req.query.tier;
+  let tier = req.query.tier;
   let buildID;
   let jobID;
   let templateId;
 
+  if (tier == "" || tier == undefined) {
+    console.error("a2      No tier provided, defaulting to 0");
+    tier = 0; // Default tier if not provided
+  }
   if (precedence.startsWith("template")) {
     templateId = precedence.replace("template", ""); // Extract the trailing number
     precedence = "template"; // Set precedence to "template"
@@ -1019,8 +1026,11 @@ app.get("/deleteJob", async (req, res) => {
     const q1 = await client.query("SELECT * FROM job_process_flow WHERE antecedent_id = $1;", [job_id]);  
     console.log("ii3     this job has ["+ q1.rowCount + "] children")
     const q2 = await client.query("SELECT * FROM job_process_flow WHERE decendant_id = $1;", [job_id]);  
-    let parentID = q2.rows[0].antecedent_id
-    console.log("ii4     job parent is ", parentID )
+    let parentID = 0; 
+    if (q2.rows.length !== 0) {
+      parentID = q2.rows[0].antecedent_id
+      console.log("ii4     job parent is ", parentID )
+    }
     const result = await client.query("DELETE FROM jobs WHERE id = $1 RETURNING *;", [job_id]);  
     
     // Check if rowCount is not equal to 1

@@ -1822,6 +1822,28 @@ app.get("/update", async (req,res) => {
         value = newValue;
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
+      case "jobTier":
+        console.log("ufg43     [" + newValue + "] ")
+        table = "jobs"
+        columnName = "tier"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
+        q = await db.query("SELECT id from job_process_flow where decendant_id = $1", [rowID]);
+        for (const row of q.rows) {
+          console.log("ufg431     update job_process_flow " + row.id);
+          table = "job_process_flow"
+          columnName = "tier"          
+          q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${row.id}`);
+        }
+        break;
+      case "processChangeArray":
+        console.log("ufg45     [" + newValue + "] ")
+        table = "job_process_flow"
+        columnName = "change_array"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
       case "jobDesc":
         console.log("ufg43")
         table = "jobs";
@@ -1859,6 +1881,13 @@ app.get("/update", async (req,res) => {
         value = encodeURIComponent(newValue);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
+      case "jobStatus":
+        console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        table = "tasks";
+        columnName = "current_status"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
       case "taskTitle":
         table = "tasks";
         columnName = "display_text"
@@ -1878,7 +1907,20 @@ app.get("/update", async (req,res) => {
         value = newValue;
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
-
+      case "flowChangeArray":
+        console.log("ufg46     [" + newValue + "] ")
+        table = "job_process_flow";
+        columnName = "change_array"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "flowTier":
+        console.log("ufg47     [" + newValue + "] ")
+        table = "job_process_flow";
+        columnName = "tier"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
       case "otherContact":
         table = "customers";
         columnName = "contact_other"
@@ -1913,6 +1955,13 @@ app.get("/update", async (req,res) => {
       case "contactEmail":
         table = "customers";
         columnName = "primary_email"
+        value = newValue;
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "nextJob":
+        console.log("ufg45    User("+req.user.id+") changed next job to " + newValue + " for rowID: " + rowID )
+        table = "builds";
+        columnName = "job_id"
         value = newValue;
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;

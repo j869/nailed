@@ -1,5 +1,4 @@
 <%- include('../partials/header') %>
-views/2/customer.ejs
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,6 +8,17 @@ views/2/customer.ejs
     <title>Customer Form</title>
 
     <style>
+        .d-flex {
+            display: flex;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+        .me-2 {
+            margin-right: 0.5rem; /* Add some spacing between the input and button */
+        }
 
         #scrollableTableContainer {
             height: 400px; /* Adjust height as needed */
@@ -61,25 +71,11 @@ views/2/customer.ejs
     <div class="container">
         <div class="col-md-12">
             <div class="panel panel-default">
-                <div class="panel-heading">
+                <h3  class="text-muted" >
                     Customers
-                </div>
+                </h3>
 
-                <!-- -------------------------------------------------------------------------- -->
-                <!-- ---  Uploaded Files                                                        -->
-                <!-- -------------------------------------------------------------------------- -->
-                <h5 class="text-muted">Uploaded Files</h5>
-                <div id="fileList" class="list-group"></div>
-                
-                <form id="uploadForm" class="mt-3">
-                    <div class="mb-3">
-                        <label for="fileInput" class="form-label">Choose a file to upload:</label>
-                        <input type="file" id="fileInput" name="file" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Upload</button>
-                </form>
-                <p id="message" class="mt-2"></p>
-            
+
 
                 <!-- -------------------------------------------------------------------------- -->
                 <!-- ---  customers                                                             -->
@@ -128,7 +124,7 @@ views/2/customer.ejs
                                                                 <th>Product ID</th>
                                                                 <th>Product Description</th>
                                                                 <th>Enquiry Date</th>
-                                                                <th>Job ID</th>
+                                                                <th>Next Job</th>
                                                                 <th>Current Status</th>
                                                             </tr>
                                                         </thead>                                                        
@@ -141,7 +137,7 @@ views/2/customer.ejs
                                                                         <td><%= site.product_id %></td>
                                                                         <td><%= site.product_description %></td>
                                                                         <td><%= site.enquiry_date %></td>
-                                                                        <td><%= site.job_id %></td>
+                                                                        <td class="editable" id="nextJob" data-record-id="<%= site.id %>"><%= site.job_id %></td>
                                                                         <td>  
                                                                             <div class="form-check">
                                                                                 <input class="form-check-input build-checkbox" type="checkbox" id="buildComplete<%= site.id %>" data-build-id="<%= site.id %>" <% if (site.current_status === 'complete') { %> checked <% } %>> 
@@ -156,39 +152,40 @@ views/2/customer.ejs
                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                             <!-- ---  jobs                                                                  -->
                                                                             <!-- -------------------------------------------------------------------------- -->
-                                                                            <div id="scrollableTableContainer" style="height: 400px; overflow-y: auto;">
+                                                                            
                                                                                 <div class="accordian-body collapse show " id="collapseBuild<%= site.id %>">
-                                                                                    <table class="table nested-table">
+                                                                                    <table id="jobsTable" class="table nested-table">
                                                                                         <thead>
                                                                                             <tr class="table-info">
-                                                                                                <th>ID</th>
-                                                                                                <th>Job Group / Stage / Category</th>
-                                                                                                <th> </th>
+                                                                                                <th style="background-color:#77dd7783;">ID</th>
+                                                                                                <th style="background-color:#77dd7783;">Job Group / Stage / Category</th>
+                                                                                                <th style="background-color:#77dd7783;"> </th>
                                                                                                 <th style="display: none;">Job Template ID</th>
-                                                                                                <th>Assign</th>
-                                                                                                <th>Role ID</th>
+                                                                                                <th style="background-color:#77dd7783;">Assign</th>
+                                                                                                <th style="background-color:#77dd7783;">Role ID</th>
                                                                                                 <th style="display: none;">Build ID</th>
                                                                                                 <th style="display: none;">Product ID</th>
                                                                                                 <th style="display: none;">Reminder ID</th>
                                                                                                 <th style="display: none;">Conversation ID</th>
-                                                                                                <th>Target Date</th>
+                                                                                                <th style="background-color:#77dd7783;">Target Date</th>
                                                                                                 <th style="display: none;">Created By</th>
                                                                                                 <th style="display: none;">Created Date</th>
                                                                                                 <th style="display: none;">Change Array</th>
                                                                                                 <th style="display: none;">Completed By</th>
                                                                                                 <th style="display: none;">Completed Date</th>
-                                                                                                <th>Current Status</th>
+                                                                                                <th style="background-color:#77dd7783;">Current Status</th>
                                                                                             </tr>
                                                                                         </thead>                                                        
                                                                                         <tbody>
                                                                                             <% site.jobs.forEach(function(job) { %>
                                                                                                 <% if (job) { %>
+                                                                                                    
                                                                                                     <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
-                                                                                                        <td><%= job.sort_order %></td>
-                                                                                                        <td class="display-text-column"><%= job.display_text %></td>
-                                                                                                        <td style="width: 40%;"><%= job.free_text %></td>
+                                                                                                        <td style="background-color:#77DD77;"><%= job.sort_order %></td>
+                                                                                                        <td style="background-color:#77DD77;" class="display-text-column"><%= job.display_text %></td>
+                                                                                                        <td style="background-color:#77DD77;" style="width: 40%;"><%= job.free_text %></td>
                                                                                                         <td style="display: none;"><%= job.job_template_id %></td>
-                                                                                                        <td>
+                                                                                                        <td style="background-color:#77DD77;">
                                                                                                             <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= job.id %>" onclick="event.stopPropagation()">
                                                                                                             <option value="" <% if (!job.user_id) { %> selected <% } %>>Unspecified</option>
                                                                                                             <option value="12" <% if (job.user_id === 12) { %> selected <% } %>>Bryan</option>
@@ -198,18 +195,18 @@ views/2/customer.ejs
                                                                                                             <option value="1" <% if (job.user_id === 1) { %> selected <% } %>>John</option>
                                                                                                             </select>
                                                                                                         </td>
-                                                                                                        <td><%= job.role_id %></td>
+                                                                                                        <td style="background-color:#77DD77;"><%= job.role_id %></td>
                                                                                                         <td style="display: none;"><%= job.build_id %></td>
                                                                                                         <td style="display: none;"><%= job.product_id %></td>
                                                                                                         <td style="display: none;"><%= job.reminder_id %></td>
                                                                                                         <td style="display: none;"><%= job.conversation_id %></td>
-                                                                                                        <td class="editable" id="jobTargetDate" data-record-id="<%= job.id %>"><%= job.target_date %></td>
+                                                                                                        <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= job.id %>"><%= job.target_date %></td>
                                                                                                         <td style="display: none;"><%= job.created_by %></td>
                                                                                                         <td style="display: none;"><%= job.created_date %></td>
                                                                                                         <td style="display: none;"><%= job.change_array %></td>
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
-                                                                                                        <td>
+                                                                                                        <td style="background-color:#77DD77;">
                                                                                                             <div class="form-check">
                                                                                                                 <input class="form-check-input job-checkbox" type="checkbox" id="jobComplete<%= job.id %>" data-job-id="<%= job.id %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                 <label class="form-check-label" for="jobComplete<%= job.id %>"></label>
@@ -332,13 +329,14 @@ views/2/customer.ejs
 
                                                                                                         </td>
                                                                                                     </tr>
+                                                                                                
                                                                                                 <% } %>
                                                                                             <% }); %>
 
                                                                                         </tbody>
                                                                                     </table>
                                                                                 </div>
-                                                                            </div>
+                                                                            
                                                                         </td>
                                                                     </tr>
                                                                 <% } %>
@@ -360,11 +358,30 @@ views/2/customer.ejs
                 </div>
 
 
+
+                <!-- -------------------------------------------------------------------------- -->
+                <!-- ---  Uploaded Files                                                        -->
+                <!-- -------------------------------------------------------------------------- -->
+                <h3 class="text-muted">Uploaded Files</h3>
+                <form id="uploadForm" class="mt-3">
+                    <div class="mb-3 d-flex w-50 align-items-center">
+                        <!-- <label for="fileInput" class="form-label">Choose a file to upload:</label> -->
+                        <input type="file" id="fileInput" name="file" class="form-control me-2" required>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+                <p id="message" class="mt-2"></p>
+                <div id="fileList" class="list-group"></div>
+                <br><br>
+            
+
+
+
                 <!-- -------------------------------------------------------------------------- -->
                 <!-- ---  Customer Emails                                                       -->
                 <!-- -------------------------------------------------------------------------- -->
                 <div>
-                    <h3>Customer Emails</h3>
+                    <h3 class="text-muted">Customer Emails</h3>
                     <table class="table table-striped table-bordered">
                         <thead>
                             <tr class="table-primary">
@@ -413,33 +430,56 @@ views/2/customer.ejs
 
     <!-- JavaScript to handle the API request -->
     <script>
-
         document.addEventListener('DOMContentLoaded', function() {
-            // Assuming you have a way to determine if a row is incomplete
-            // For example, a data attribute or a specific class
-            var rows = document.querySelectorAll('#yourTableId tbody tr');
+            var table = document.getElementById('jobsTable');
+            var rows = table.querySelectorAll('tbody tr');
+            var visibleRowCount = 10; // Initial number of visible rows
+            var totalRows = rows.length;
 
-            rows.forEach(function(row) {
-                // Check if the row is incomplete (you need to define this logic)
-                if (isRowIncomplete(row)) {
-                    row.style.display = ''; // Show incomplete rows
+            // Function to update the visibility of rows
+            function updateVisibleRows() {
+                console.log("gu1    updating rows ");
+                
+                rows.forEach(function(row, index) {
+                    if (index < visibleRowCount || index === totalRows - 1) {
+                        row.style.display = ''; // Show row
+                        
+                        var jobTargetDateCell = row.querySelector('td#jobTargetDate');
+                        console.log("jobTargetDate cell:", jobTargetDateCell);
+                        console.log("gu2    ", row.style.display);
+
+                    } else {
+                        row.style.display = 'none'; // Hide row
+                        console.log("gu3    ", row.style.display);
+                    }
+                });
+            }
+
+            // Initial setup
+            updateVisibleRows();
+
+            // Add mouse wheel event listener to the table
+            table.addEventListener('wheel', function(event) {
+                // Prevent the default scroll behavior
+                event.preventDefault();
+                console.log("gt1    Mouse wheel event detected. DeltaY: ", event.deltaY);
+
+                // Adjust the number of visible rows based on the wheel delta
+                if (event.deltaY > 0) {
+                    // Scrolling down: show more rows
+                    visibleRowCount = Math.min(visibleRowCount + 1, totalRows);
+                    console.log("gt2    adding rows ", visibleRowCount);
                 } else {
-                    row.style.display = 'none'; // Hide complete rows
+                    // Scrolling up: show fewer rows, but ensure at least one row is visible
+                    visibleRowCount = Math.max(visibleRowCount - 1, 1);
+                    console.log("gt3    removing rows ", visibleRowCount);
                 }
-            });
 
-            // Scroll to the bottom of the container to show the last incomplete rows
-            var container = document.getElementById('scrollableTableContainer');
-            container.scrollTop = container.scrollHeight;
+                // Update the visibility of rows
+                updateVisibleRows();
+            });
         });
 
-        // Example function to determine if a row is incomplete
-        function isRowIncomplete(row) {
-            // Implement your logic to determine if a row is incomplete
-            // For example, check a specific cell or data attribute
-            var statusCell = row.querySelector('td:nth-child(6)'); // Assuming the 6th cell contains the status
-            return statusCell && statusCell.textContent.trim() !== 'Completed'; // Example condition
-        }
 
 
 
@@ -732,3 +772,5 @@ document.addEventListener("DOMContentLoaded", async function () {
 </script>
 
 <%- include('../partials/footer') %>
+
+<br>views/2/customer.ejs

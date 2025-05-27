@@ -79,9 +79,7 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
 
                 
                 <div class="d-flex flex-row">
-                    <div class="card-body">
-                        <p class="card-text"><div class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.free_text %></div></p>
-                    </div>
+
                     
                     <!-- Conversation and attachments -->
                     <ul class="list-group list-group-flush">
@@ -99,18 +97,14 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                     </ul>   
                 </div>  
                 <div>
-                    current_status = <%= siteContent.job.current_status %><br>
-                    tier = <%= siteContent.job.tier %><br>
-                    change_array = [<%= siteContent.job.change_array %>]<br>
-                    target_date = <%= siteContent.job.target_date %><br>
-                </div>
-                <div>
-                    Person Responsible
-                    <h5 class="card-title"><div class="editable" id="jobOwner" contenteditable="true" data-record-id="<%= siteContent.job.id  %>"><%= siteContent.job.display_name %></div></h5>
-                </div>
-                <div>
-                    Change Array
-                    <h5 class="card-title"><div class="editable" id="changeArray" contenteditable="true" data-record-id="<%= siteContent.job.id  %>"><%= siteContent.job.change_array %></div></h5>
+                    Free Text= <label class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.free_text != null ? siteContent.job.free_text : "null" %></label><br>
+                    current_status = <label class="editable" id="jobStatus" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.current_status != null ? siteContent.job.current_status : "null" %></label><br>
+                    tier = <label class="editable" id="jobTier" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.tier != null ? siteContent.job.tier : "null" %></label><br>
+                    change_array = <label class="editable" id="changeArray" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.change_array != null ? siteContent.job.change_array : "{}" %></label><br>
+                    target_date = <label class="editable" id="jobTargetDate" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.target_date != null ? siteContent.job.target_date : "null" %></label><br>
+                    Person Responsible = <label class="editable" id="jobOwner" contenteditable="true" data-record-id="<%= siteContent.job.id  %>"><%= siteContent.job.display_name %></label><br>
+
+
                 </div>
 
                 <!-- SLIDER  -->
@@ -150,7 +144,9 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                                 <a href="<%= baseURL %>/delJob?jobnum=<%= siteContent.task_decendants[po].id %>"  class="btn btn-light">D</a>
                                 <a href="<%= baseURL %>/jobs/<%= siteContent.task_decendants[po].id  %>" class="btn btn-light">E</a>
                             </h5>
-                            tier <%= siteContent.task_decendants[po].tier %>, change_array [<%= siteContent.task_decendants[po].change_array %>]
+                            tier = <label class="editable" id="flowTier" data-record-id="<%= siteContent.task_decendants[po].flow_id %>"><%= siteContent.task_decendants[po].tier != null ? siteContent.task_decendants[po].tier : "null" %></label><br>
+                            change_array = <label class="editable" id="flowChangeArray" data-record-id="<%= siteContent.task_decendants[po].flow_id %>"><%= siteContent.task_decendants[po].change_array != null ? siteContent.task_decendants[po].change_array : "{trigger : null}" %></label><br>
+
                             <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                             <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
                         </div>
@@ -185,7 +181,7 @@ Next Task
             </div>
         </div>
     <% } %>
-    <a href="<%= baseURL %>/addJob?tier=<%= siteContent.job.tier %>&type=child&jobnum=<%= siteContent.job.id %>" class="btn btn-secondary">Add</a>
+    <a href="<%= baseURL %>/addJob?tier=<%= siteContent.job.tier %>&type=child&jobnum=<%= siteContent.job.id %>&btn=7a" class="btn btn-secondary">Add</a>
 </div>
 
 
