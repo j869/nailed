@@ -165,8 +165,8 @@ async function handleTrigger(triggerData) {
 
 
   async function main() {
-    console.log("re2    manually triggered on DB ", process.env.PG_DATABASE);
     const now = new Date();
+    console.log(`re2    manually triggered at ${now}  `, process.env.PG_DATABASE);
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     const currentSecond = now.getSeconds();
@@ -177,8 +177,8 @@ async function handleTrigger(triggerData) {
   
 
 async function updateJobsAt6pm() {
-    console.log("\x1b[re2     STARTING on \x1b[0m", process.env.PG_DATABASE);
     const now = new Date();
+    console.log(`\x1b[32mre21     updateJobsAt6pm() STARTING at ${now} \x1b[0m`, process.env.PG_DATABASE);
     const options = {
         timeZone: 'Australia/Melbourne',
         hour: '2-digit',
@@ -192,7 +192,7 @@ async function updateJobsAt6pm() {
     // Parse the Melbourne time to get hours, minutes, and seconds
     const [time, period] = melbourneTime.split(' ');
     let [hours, minutes, seconds] = time.split(':').map(Number);
-    console.log(`\x1b[re3     Current time: ${hours}:${minutes}:${seconds}\x1b[0m`);
+    console.log(`\x1b[32mre31     Current time: ${hours}:${minutes}:${seconds}\x1b[0m`);
 
     // Convert to 24-hour format if necessary
     if (period === 'PM' && hours !== 12) {
@@ -212,14 +212,14 @@ async function updateJobsAt6pm() {
 
     const millisecondsUntil6PM = (hoursUntil6PM * 60 * 60 + minutesUntil6PM * 60 + secondsUntil6PM) * 1000;
 
-    console.log(`\x1b[re5    Starting trigger2.js    \x1b[0m]`);
-    console.log(`\x1b[re5     - Current time: ${hours}:${minutes}:${seconds}\x1b[0m]`);
+    console.log(`\x1b[32mre61    Starting trigger2.js    \x1b[0m]`);
+    console.log(`\x1b[32mre62     - Current time: ${now} \x1b[0m]`);
     // console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
-    console.log(`\x1b[32mre6     - Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds\x1b[0m`);
+    console.log(`\x1b[32mre63     - Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds\x1b[0m`);
 
     setTimeout(async () => {
         await getNextTasks();
-        console.log("\x1b[Task executed at 6 PM. Scheduling for the next day...\x1b[0m");
+        console.log("\x1b[32mre64   Task executed at 6 PM. Scheduling for the next day...\x1b[0m");
 
         // Calculate the time until 6 PM the next day
         const nowNextDay = new Date();
@@ -238,7 +238,7 @@ async function updateJobsAt6pm() {
 
         const millisecondsUntil6PMNextDay = (hoursUntil6PMNextDay * 60 * 60 + minutesUntil6PMNextDay * 60 + secondsUntil6PMNextDay) * 1000;
 
-        console.log(`Waiting until 6 PM tomorrow to run the task. Time remaining: ${hoursUntil6PMNextDay} hours, ${minutesUntil6PMNextDay} minutes, ${secondsUntil6PMNextDay} seconds`);
+        console.log(`re9    Waiting until 6 PM tomorrow to run the task. Time remaining: ${hoursUntil6PMNextDay} hours, ${minutesUntil6PMNextDay} minutes, ${secondsUntil6PMNextDay} seconds`);
 
         setTimeout(updateJobsAt6pm, millisecondsUntil6PMNextDay);
     }, millisecondsUntil6PM);

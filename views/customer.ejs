@@ -11,14 +11,14 @@
             <% if (locals.data) { %>
                 <h1 class="display-4"><%= data.full_name %></h1>
                 <p class="lead"><%= data.home_address %></p>
-                <div class="d-flex justify-content-between">
-                    <button class="update btn btn-primary" type="submit" name="action" value="update">Update Customer</button>
-                    <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
-                </div>
                 <br><hr><br>
     
 
                 <form class="item" method="post" action="/updateCustomer/<%= data.id %>">
+                    <div class="d-flex justify-content-between">
+                        <button class="update btn btn-primary" type="submit" name="action" value="update">Update Customer</button>
+                        <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
+                    </div>
                     <div>
                         <label for="fullName">Full Name:</label>
                         <input type="text" id="fullName" name="fullName" value="<%= data.full_name %>">
