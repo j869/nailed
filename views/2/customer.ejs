@@ -432,9 +432,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var table = document.getElementById('jobsTable');
+            var headerRow = table.querySelector('thead tr'); // Select the header row
             var rows = table.querySelectorAll('tbody tr');
-            var visibleRowCount = 10; // Initial number of visible rows
             var totalRows = rows.length;
+            var visibleRowCount = totalRows; // Initial number of visible rows
 
             // Function to update the visibility of rows
             function updateVisibleRows() {
@@ -445,8 +446,8 @@
                         row.style.display = ''; // Show row
                         
                         var jobTargetDateCell = row.querySelector('td#jobTargetDate');
-                        console.log("jobTargetDate cell:", jobTargetDateCell);
-                        console.log("gu2    ", row.style.display);
+                        console.log("gu21   jobTargetDate cell:", jobTargetDateCell);
+                        console.log("gu22    ", row.style.display);
 
                     } else {
                         row.style.display = 'none'; // Hide row
@@ -459,20 +460,20 @@
             updateVisibleRows();
 
             // Add mouse wheel event listener to the table
-            table.addEventListener('wheel', function(event) {
+            headerRow.addEventListener('wheel', function(event) {
                 // Prevent the default scroll behavior
                 event.preventDefault();
                 console.log("gt1    Mouse wheel event detected. DeltaY: ", event.deltaY);
 
                 // Adjust the number of visible rows based on the wheel delta
                 if (event.deltaY > 0) {
-                    // Scrolling down: show more rows
-                    visibleRowCount = Math.min(visibleRowCount + 1, totalRows);
-                    console.log("gt2    adding rows ", visibleRowCount);
-                } else {
                     // Scrolling up: show fewer rows, but ensure at least one row is visible
-                    visibleRowCount = Math.max(visibleRowCount - 1, 1);
+                    visibleRowCount = Math.max(visibleRowCount - 6, 1);
                     console.log("gt3    removing rows ", visibleRowCount);
+                } else {
+                    // Scrolling down: show more rows
+                    visibleRowCount = Math.min(visibleRowCount + 6, totalRows);
+                    console.log("gt2    adding rows ", visibleRowCount);
                 }
 
                 // Update the visibility of rows
