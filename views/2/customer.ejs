@@ -207,11 +207,12 @@
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
+
                                                                                                             <div class="form-check">
-                                                                                                                <input class="form-check-input job-checkbox" type="checkbox" id="jobComplete<%= job.id %>" data-job-id="<%= job.id %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                <label class="form-check-label" for="jobComplete<%= job.id %>"></label>
-                                                                                                                <%= job.current_status %>      
+                                                                                                                <input class="editable form-check-input task-checkbox" type="checkbox" id="jobStatus" data-record-id="<%= job.id %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <label class="form-check-label" for="jobComplete<%= job.id %>"><%= job.current_status == 'complete' ? 'Done' : '' %></label>
                                                                                                             </div>
+
                                                                                                         </td>
                                                                                                     </tr>
                                                                                                     <tr>
@@ -240,17 +241,17 @@
                                                                                                                         <% job.tasks.forEach(function(task) { %>
                                                                                                                             <% if (task) { %>
                                                                                                                                 <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= task.id %>" >
-                                                                                                                                    <td class="editable" contenteditable="true" id="taskOrder" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="taskTitle" data-record-id="<%= task.id %>" style="width: 25%;"><%= task.display_text %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="taskDesc" data-record-id="<%= task.id %>"  style="width: 25%;"><%= task.free_text %></td>
-                                                                                                                                    <td class="editable" id="taskTargetDate" data-record-id="<%= task.id %>"><%= task.target_date %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= task.id %>" style="width: 25%;"><%= task.display_text %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= task.id %>"  style="width: 25%;"><%= task.free_text %></td>
+                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= task.id %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="taskPerson" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
                                                                                                                                     <td><%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
-                                                                                                                                            <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= task.id %>" data-task-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                            <label class="form-check-label" for="taskComplete<%= task.id %>"> </label>
+                                                                                                                                            <input class="editable form-check-input task-checkbox" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                                            <label class="form-check-label" for="taskComplete<%= task.id %>"><%= task.current_status == 'complete' ? 'Done' : '' %></label>
                                                                                                                                         </div>
                                                                                                                                     </td>       
                                                                                                                                 </tr>
@@ -484,71 +485,6 @@
 
 
 
-        $(document).ready(function() {
-            console.log("a1   ");
-            // Add click event listener to the checkbox with class 'task-checkbox'
-            $('.task-checkbox').click(function() {
-                // Get the task ID from the data attribute
-                var taskId = $(this).data('task-id');
-                console.log("a2   ", taskId);
-                // Determine if checkbox is checked
-                var isChecked = $(this).prop('checked');
-                console.log("a3   ", isChecked);
-                var label = $(this).next('label');
-                // Send API request to update task status
-                $.ajax({
-                    url: '<%= locals.baseUrl %>/taskComplete', 
-                    method: 'POST', 
-                    data: {
-                        taskId: taskId,
-                        status: isChecked
-                    },
-                    success: function(response) {
-                        // Handle success response if needed
-                        console.log('a9    Task status updated successfully');
-                        if (isChecked) {
-                            label.text('Done');
-                        } else {
-                            label.text('');
-                        }                        
-                    },
-                    error: function(xhr, status, error) {
-                        // Handle error response if needed
-                        console.error('a8    Error updating task status:', error);
-                    }
-                });
-            });
-        });
-
-        $(document).ready(function() {
-            console.log("b1     USER changed status of job");
-            // Add click event listener to the checkbox with class 'job-checkbox'
-            $('.job-checkbox').click(function() {
-                // Get the job ID from the data attribute
-                var jobId = $(this).data('job-id');
-                // console.log("b2   ", jobId);
-                // Determine if checkbox is checked
-                var isChecked = $(this).prop('checked');
-                // console.log("b3   ", isChecked);
-                // Send API request to update job status
-                $.ajax({
-                    url: '<%= locals.baseUrl %>/jobComplete', 
-                    method: 'POST', 
-                    data: {
-                        jobId: jobId,
-                        status: isChecked
-                    },
-                    success: function(response) {
-                        // Handle success response if needed
-                        console.log('b9    job(' + jobId + ') status updated to ' + isChecked + ' successfully');
-                    },
-                    error: function(xhr, status, error) {
-                        // Handle error response if needed
-                        console.error('b8    Error updating job status:', error);
-                    }
-                });
-            });
-        });
         
         $(document).ready(function() {
             console.log("c1   ");
@@ -595,34 +531,37 @@
         console.log("lf3     apiUrl: ", apiUrl);
                 
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("d1   " )
+            console.log("id1   " )
             const editableElements = document.querySelectorAll('.editable');
             editableElements.forEach(function(element) {
                 element.addEventListener('dblclick', function(event) {
-                    console.log("d2   ")
+                    console.log("id2   ")
                     event.preventDefault();    // Prevent default behavior
                     event.target.contentEditable = true;  // Make the element editable
                     event.target.focus();    // Set focus to the element
                 });
                 element.addEventListener('blur', function(event) {
-                    console.log("d3   ")
+                    console.log("id3   ")
                     // When the element loses focus, save the updated value
                     let newValue;
 
                     // Check if the target is a <select> dropdown
+                    console.log("id4   ", event.target.tagName, event.target.type);
                     if (event.target.tagName === "SELECT") {
                         newValue = event.target.value;  // For dropdown list
+                    } else if (event.target.tagName === "INPUT" && event.target.type === "checkbox") {
+                        newValue = event.target.checked ? 'complete' : 'pending';  // For checkboxes
                     } else {
                         newValue = event.target.textContent;  // For contenteditable elements
                     }                    
                     const fieldID = event.target.id;
                     const recordID = event.target.getAttribute('data-record-id');
                     // Make an HTTP GET request to the server to update the database
-                    console.log("d4   ", fieldID, newValue, recordID)
+                    console.log("id4   ", fieldID, newValue, recordID)
                     fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
                         .then(response => {
                             if (response.ok) {
-                                console.log('Database updated successfully.');
+                                console.log('id9  Database updated successfully.');
                             } else {
                                 throw new Error('Failed to update database.');
                             }

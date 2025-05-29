@@ -253,12 +253,14 @@ let allCustomers = [];
   
           if (buildID) {
               console.log("b2       retrieving all jobs for build("+buildID+")");
-              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 order by sort_order", [buildID]);
+              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 and (tier = null or tier = 500) order by sort_order", [buildID]);
+              const jobIDArray =  jobsResult.rows.map(job => job.id);
 
-              const jobIDArray = jobsResult.rows.map(job => job.id);
-              const tasksResult = await db.query("SELECT id, job_id, precedence, display_text, free_text, current_status, owned_by, user_date, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, TO_CHAR(completed_date, 'DD-Mon-YY') AS completed_date, completed_by, completed_comment, change_log, task_template_id, task_id, completed_by_person, sort_order FROM tasks WHERE job_id = ANY ($1) order by id", [jobIDArray]);
+              let tasksResult = await db.query("SELECT id, job_id,                       precedence,                    display_text,   free_text,   current_status, owned_by,              user_date,           TO_CHAR(target_date, 'DD-Mon-YY') AS target_date,   TO_CHAR(completed_date, 'DD-Mon-YY') AS completed_date,   completed_by,   completed_comment,         change_log, task_template_id,         task_id,           completed_by_person,   sort_order FROM tasks WHERE job_id = ANY ($1) order by sort_order", [jobIDArray]);
+              let tasksResult2 = await db.query("SELECT j.id, f.antecedent_id as job_id, 'jobflow' as precedence,     j.display_text, j.free_text, j.current_status, j.user_id as owned_by, null as user_date, TO_CHAR(j.target_date, 'DD-Mon-YY') AS target_date, TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date, j.completed_by, null as completed_comment, j.change_log, null as task_template_id, null as task_id, j.completed_by_person, j.sort_order FROM jobs j INNER JOIN job_process_flow f ON j.id = f.decendant_id WHERE f.tier > 500 and f.antecedent_id = ANY($1) order by sort_order", [jobIDArray]);
+              tasksResult = [...tasksResult.rows, ...tasksResult2.rows];
 
-              const taskIDArray = tasksResult.rows.map(task => task.id);
+              const taskIDArray = tasksResult.map(task => task.id);
               const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
               
 
@@ -300,11 +302,14 @@ let allCustomers = [];
                           // console.log("b26   ")
             // Merge customer, build, and jobs data
             // Sort tasks by sort_order
-            const sortedTasks = tasksResult.rows.sort((a, b) => {
+            const sortedTasks = tasksResult.sort((a, b) => {
               if (a.sort_order === null) return -1; // Treat null as a lower value
               if (b.sort_order === null) return 1;  // Treat null as a lower value
               return a.sort_order.localeCompare(b.sort_order);
             });
+            const q = sortedTasks.map(task => task.job_id);
+            // console.log("b20   ", q);
+            console.log("b22   ", sortedTasks.length, " tasks found for buildID: ", buildID);
 
             // Map through customers
             // allCustomers = customersResult.rows.map(customer => {
@@ -1122,106 +1127,6 @@ app.post("/updateCustomer/:id", async (req, res) => {
 
 
 
-app.post("/taskComplete", async (req, res) => {
-  try {
-      console.log("ta1    USER changed task status ", req.body);
-      const taskID = req.body.taskId;
-      const status = req.body.status;    //string 'true' or 'false'
-
-      // Fetch the current status of the task from the database
-      const result = await db.query("SELECT current_status FROM tasks WHERE id = $1", [taskID]);
-      const currentStatus = result.rows[0].current_status;
-
-      // Update logic based on currentStatus and status values
-      let newStatus;
-      let newCompleteDate;
-      let newCompleteBy;
-      if (status === 'true') {
-          // console.log("ta2");
-          // if (currentStatus === null || currentStatus === 'pending') {
-          //     newStatus = 'active';
-          // } else if (currentStatus === 'active') {
-          //     newStatus = 'complete';
-          // }
-          newStatus = 'complete';
-          newCompleteDate = new Date();
-          newCompleteBy = req.user.id;
-      } else {
-        // console.log("ta3");
-        // If status is not 'true', keep the current status unchanged
-          newStatus = 'pending';
-          newCompleteDate = null;
-          newCompleteBy = req.user.id;
-      }
-
-      // Update the tasks table in your database
-      const updateResult = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE id = $2", [newStatus, taskID, newCompleteDate, newCompleteBy]);
-      // console.log("ta4");
-
-      // Check if the update was successful
-      if (updateResult.rowCount === 1) {
-          const q4 = await db.query(`DELETE FROM worksheets WHERE description LIKE '%' || '"task_id":' || $1 || ',' || '%'`,[taskID]);
-          console.log(`ta9      Task ${taskID} status updated to ${newStatus}`);
-          res.status(200).json({ message: `Task ${taskID} status updated to ${newStatus}` });
-      } else {
-          console.log(`ta8     Task ${taskID} not found or status not updated`);
-          res.status(404).json({ error: `Task ${taskID} not found or status not updated` });
-      }
-  } catch (error) {
-      console.error("ta84     Error updating task status:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-
-
-app.post("/jobComplete", async (req, res) => {
-  console.log("tb1      USER is updating status", req.body);
-  try {
-    const jobID = req.body.jobId;
-    const status = req.body.status;    //string 'true' or 'false'
-
-    // Fetch the current status of the job from the database
-    const result = await db.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
-    const currentStatus = result.rows[0].current_status;
-
-    // Update logic based on currentStatus and status values
-    // Update logic based on currentStatus and status values
-    let newCompleteDate;
-    let newCompleteBy;
-    let newStatus;
-    if (status === 'true') {
-        newCompleteDate = new Date();
-        newStatus = 'complete';
-    } else {
-        newCompleteDate = null;  
-        newStatus = 'pending';
-    }
-    newCompleteBy = req.user.id || 1;
-
-
-    // Update the jobs table in your database
-    // console.log("tb2   ", newStatus, jobID);
-    const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
-
-    // Check if the update was successful
-    if (updateResult.rowCount === 1) {
-        // update the status of all child tasks 
-        // console.log("tb71      ", jobID, newStatus);  
-    //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
-        const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
-        // console.log("tb72      ", result.rowCount);  
-        res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
-        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
-
-    } else {
-        console.log(`tb8     job ${jobID} not found or status not updated`);
-        res.status(404).json({ error: `job ${jobID} not found or status not updated` });
-    }
-  } catch (error) {
-    console.error("tb84     Error updating job status:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
 
 
 app.post("/buildComplete", async (req, res) => {
@@ -1788,52 +1693,60 @@ app.get("/update", async (req,res) => {
 
     switch (fieldID) {
       case "customerFollowUpDate":
-        console.log("ufg41     [" + newValue + "] ")
+        // console.log("ufg41     [" + newValue + "] ")
         table = "customers"
         columnName = "follow_up"
         value = newValue;
+        console.log("ufg410     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "jobTargetDate":
-        console.log("ufg411     [" + newValue + "] ")
+        // console.log("ufg411     [" + newValue + "] ")
         table = "jobs"
         columnName = "target_date"
         value = newValue;
+        console.log("ufg411     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "taskTargetDate":
-        console.log("ufg412     [" + newValue + "] ")
+        // console.log("ufg412     [" + newValue + "] ")
         table = "tasks"
         columnName = "target_date"
         value = newValue;
+        console.log("ufg412     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "dueDate": 
-        console.log("ufg42    ")
+        // console.log("ufg42    ")
         table = "jobs";
         columnName = "target_date"
         value = newValue;
+        console.log("ufg413     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "changeArray":
-        console.log("ufg425    ")
+        // console.log("ufg425    ")
         table = "jobs";
         columnName = "change_array"
         value = newValue;
+        console.log("ufg414     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "jobTier":
-        console.log("ufg43     [" + newValue + "] ")
+        // console.log("ufg43     [" + newValue + "] ")
         table = "jobs"
         columnName = "tier"
         value = newValue;
+        console.log("ufg415     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
         q = await db.query("SELECT id from job_process_flow where decendant_id = $1", [rowID]);
         for (const row of q.rows) {
-          console.log("ufg431     update job_process_flow " + row.id);
+          // console.log("ufg431     update job_process_flow " + row.id);
           table = "job_process_flow"
-          columnName = "tier"          
+          columnName = "tier"   
+          value = newValue;       
+          console.log("ufg416     update "+ table + " set "+ columnName + " = " + value);
           q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${row.id}`);
         }
         break;
@@ -1842,6 +1755,7 @@ app.get("/update", async (req,res) => {
         table = "job_process_flow"
         columnName = "change_array"
         value = newValue;
+        console.log("ufg417     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
 
       case "jobDesc":
@@ -1849,6 +1763,7 @@ app.get("/update", async (req,res) => {
         table = "jobs";
         columnName = "free_text"
         value = encodeURIComponent(newValue);
+        console.log("ufg418     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "jobOwner":
@@ -1859,39 +1774,41 @@ app.get("/update", async (req,res) => {
           } else {
             value = "'" + newValue + "'";
           }
-          // console.log("ufg51   set jobs.user_id = " + newValue)
-          // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-
-          // console.log("ufg52      UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");
+          // console.log("ufg51     update jobs set user_id = " + newValue);
+          console.log("ufg419     update "+ table + " set "+ columnName + " = " + value);          
           const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
-          // console.log('ufg53');
+          console.log("ufg420     update "+ table + " set "+ columnName + " = " + value);          
           const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
-          console.log('ufg54    Updated job('+ rowID +')');
+          // console.log('ufg54    Updated job('+ rowID +')');
               
           break;
       case "taskDesc":
         table = "tasks";
         columnName = "free_text"
         value = encodeURIComponent(newValue);
+        console.log("ufg421     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;      
       case "jobTitle":
         table = "jobs";
         columnName = "display_text"
         value = encodeURIComponent(newValue);
+        console.log("ufg422     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
-      case "jobStatus":
-        console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+      case "taskStatus":
+        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
         table = "tasks";
         columnName = "current_status"
         value = newValue;
+        console.log("ufg423     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "taskTitle":
         table = "tasks";
         columnName = "display_text"
         value = encodeURIComponent(newValue);
+        console.log("ufg424     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
     
@@ -1899,12 +1816,19 @@ app.get("/update", async (req,res) => {
         table = "tasks";
         columnName = "sort_order"
         value = newValue;
+        console.log("ufg425     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q.status === 422) {
+          table = "jobs";
+          console.log("ufg426     update "+ table + " set "+ columnName + " = " + value);          
+          q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        }
         break;
       case "taskPerson":
         table = "tasks";
         columnName = "completed_by_person"
         value = newValue;
+        console.log("ufg427     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "flowChangeArray":
@@ -1912,6 +1836,7 @@ app.get("/update", async (req,res) => {
         table = "job_process_flow";
         columnName = "change_array"
         value = newValue;
+        console.log("ufg428     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "flowTier":
@@ -1919,18 +1844,21 @@ app.get("/update", async (req,res) => {
         table = "job_process_flow";
         columnName = "tier"
         value = newValue;
+        console.log("ufg429     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "otherContact":
         table = "customers";
         columnName = "contact_other"
         value = newValue;
+        console.log("ufg430     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "contactStatus":
         table = "customers";
         columnName = "current_status"
         value = encodeURIComponent(newValue);
+        console.log("ufg431     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
     
@@ -1938,31 +1866,36 @@ app.get("/update", async (req,res) => {
         table = "customers";
         columnName = "full_name"
         value = encodeURIComponent(newValue);
+        console.log("ufg432     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "contactAddress":
         table = "customers";
         columnName = "home_address"
         value = encodeURIComponent(newValue);
+        console.log("ufg433     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "contactPhone":
         table = "customers";
         columnName = "primary_phone"
         value = newValue;
+        console.log("ufg434     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "contactEmail":
         table = "customers";
         columnName = "primary_email"
         value = newValue;
+        console.log("ufg435     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "nextJob":
-        console.log("ufg45    User("+req.user.id+") changed next job to " + newValue + " for rowID: " + rowID )
+        // console.log("ufg45    User("+req.user.id+") changed next job to " + newValue + " for rowID: " + rowID )
         table = "builds";
         columnName = "job_id"
         value = newValue;
+        console.log("ufg436     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
 
@@ -1970,7 +1903,8 @@ app.get("/update", async (req,res) => {
         table = "worksheets";
         columnName = "title"
         value =  encodeURIComponent(newValue) ;
-        console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        // console.log(`ufg77   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        console.log("ufg437     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "daytaskPerson":
@@ -1980,7 +1914,8 @@ app.get("/update", async (req,res) => {
               table = "worksheets";
               columnName = "user_id";
               value = "" + newValue + "";
-              console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+              // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+              console.log("ufg438     update "+ table + " set "+ columnName + " = " + value);          
               let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
               
               // Execute q2 to retrieve the task_id
@@ -1990,13 +1925,14 @@ app.get("/update", async (req,res) => {
                   const description = q2.rows[0].description;
                   const parsedDescription = JSON.parse(description);
                   task_id = parsedDescription.task_id;
-                  console.log("ufg787     Task ID:", task_id);
+                  console.log("ufg439     Task ID:", task_id);
               }
               
               table = "tasks";
               columnName = "owned_by";
               value = "" + newValue + "";
-              console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              // console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              console.log("ufg440     update "+ table + " set "+ columnName + " = " + value);          
               let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
               
               await db.query('COMMIT'); // Commit transaction
@@ -2012,25 +1948,22 @@ app.get("/update", async (req,res) => {
         table = "worksheets";
         columnName = "date"
         value =  newValue ;
-        // console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-        // q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-
-        console.log('ufg00076');
+        console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);          
         const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
-        console.log('ufg00077');
+        // console.log('ufg00077');
         const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
         if (a2.rows.length > 0 && a2.rows[0].description !== null) {
           try {
                 const descriptionJson = JSON.parse(a2.rows[0].description);
                 const taskId = descriptionJson.task_id;
-                console.log("ufg00071   Task ID:", taskId);
+                console.log("ufg442   update tasks set target_date = " + value);
                 const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
-                console.log('ufg00079');
+                // console.log('ufg443');
             } catch (error) {
-                console.error("ufg00078 Error parsing JSON:", error);
+                console.error("ufg443  Error parsing JSON:", error);
             }
         } else {
-            console.log("ufg00072  Description is null or no record found, breaking out.");
+            console.log("ufg444     Description is null or no record found, breaking out.");
         }      
                   
 
@@ -2039,9 +1972,54 @@ app.get("/update", async (req,res) => {
         table = "worksheets";
         columnName = "archive"
         value = (newValue == 1) ? true : false;
-        console.log(`ufg78   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        console.log("ufg445     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;      
+      case "jobOrder":
+        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        table = "jobs";
+        columnName = "sort_order"
+        value = newValue;
+        console.log("ufg446     update "+ table + " set "+ columnName + " = " + value);          
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "jobPerson":
+        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        table = "jobs";
+        columnName = "user_id"
+        value = newValue;
+        console.log("ufg447     update "+ table + " set "+ columnName + " = " + value);          
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+      case "jobStatus":
+        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        table = "jobs";
+        columnName = "current_status"
+        if (newValue === '1') {
+          value = true;
+        } else if (newValue === '0') {
+          value = false;
+        } else {
+          value = newValue;
+        }
+        console.log("ufg448     update "+ table + " set "+ columnName + " = " + value + " for rowID: " + rowID);          
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        columnName = "completed_date";
+        if (newValue === 'complete') {
+          const dateObj = new Date();
+          value = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+          // value = "TO_DATE('"+formattedDate+"', 'YYYY-MM-DD')"
+        } else {
+          value = '';
+        }
+        console.log("ufg449     update "+ table + " set "+ columnName + " = " + value );          
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        columnName = "user_id";
+        value = req.user.id;        
+        console.log("ufg450     update "+ table + " set "+ columnName + " = " + value );          
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        break;
+
 
       default:
         console.error("ufg8    Unknown field was edited: " + fieldID );

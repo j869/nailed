@@ -620,14 +620,16 @@ app.get("/update", async (req, res) => {
     }    
 
     //update table
-    const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);      
+    const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);   
+    // console.log("ud3    UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";  updated(" + q.rowCount + ") records");
+
     if (q.rowCount == 1) {
       res.status(201).json({msg : 'succesfully modified 1 record'});
       // console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
-      console.log("ud9    succesfully modified the " + table + " record: ");
+      console.log("ud9    records succesfully modified in " + table + " table: 1");
     } else {
-      console.error("ud8     No records were modified. Check your SQL.");
-      res.status(404).json({ msg: 'No records were modified' });
+      console.error(`ud8     ${q.rowCount} records were modified. Check your SQL.`);
+      res.status(422).json({ msg: 'Unprocessable Entity: No records were modified' });
     }
 
     if (table === "jobs") {
