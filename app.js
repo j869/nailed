@@ -240,7 +240,462 @@ app.get("/checkemail", async (req, res) => {
 
 
 
+
+
 //#region Bryans Excel UX style
+
+
+async function getJobs(parentID, parentTier, logString) {
+  try {
+    console.log("bb10" + logString + "getting jobID: ", parentID);
+    let jobTier = 500;
+    let jobsResult;
+    let jobsArray = [];
+    let children = [];
+    let jobID = parentID.substring(1);
+
+    // Get children for parent job
+    jobsResult = await db.query(`
+      SELECT 
+        't' || t.id as id,
+        t.display_text,
+        $2 as tier,
+        t.sort_order,
+        t.job_id,
+        t.precedence,
+        t.free_text,
+        t.current_status,
+        t.owned_by,
+        t.user_date,
+        TO_CHAR(t.target_date, 'DD-Mon-YY') AS target_date,
+        TO_CHAR(t.completed_date, 'DD-Mon-YY') AS completed_date,
+        t.completed_by,
+        t.completed_comment,
+        t.change_log,
+        t.task_template_id,
+        t.task_id,
+        t.completed_by_person
+      FROM tasks t
+      WHERE t.job_id = $1
+      UNION SELECT
+        'j' || f.decendant_id AS id,
+        j.display_text, 
+        f.tier,
+        j.sort_order,
+        j.id as job_id,
+        'jobflow' as precedence,
+        j.free_text,
+        j.current_status,
+        j.user_id as owned_by,
+        null as user_date,
+        TO_CHAR(j.target_date, 'DD-Mon-YY') AS target_date,
+        TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date,
+        j.completed_by,
+        null as completed_comment,
+        j.change_log,
+        null as task_template_id,
+        null as task_id,
+        j.completed_by_person
+      FROM jobs j 
+      INNER JOIN job_process_flow f ON j.id = f.decendant_id 
+      WHERE f.antecedent_id = $1 AND f.tier = $2
+      ORDER BY sort_order
+    `, [jobID, '' + (parentTier + 1)]);
+
+    console.log("bb21" + logString + " job("+jobID+") checking job_process_flow on tier("+(parentTier+1)+") child relationships. Found: ", jobsResult.rows.length);
+    
+    if (jobsResult.rows.length > 0) {
+      let daughters = jobsResult.rows;
+      // console.table(daughters);
+      
+      // Check for pet-sister relationships
+      for (const daughter of daughters) {
+        console.log("bb30" + logString + "checking daughter: ", daughter.id);
+        let childJobID = daughter.id.substring(1);
+        
+        const tier = parentTier + 1;
+        jobsResult = await db.query(`
+          SELECT
+            'j' || f.decendant_id AS id,
+            j.display_text, 
+            f.tier,
+            j.sort_order,
+            j.id as job_id,
+            'jobflow' as precedence,
+            j.free_text,
+            j.current_status,
+            j.user_id as owned_by,
+            null as user_date,
+            TO_CHAR(j.target_date, 'DD-Mon-YY') AS target_date,
+            TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date,
+            j.completed_by,
+            null as completed_comment,
+            j.change_log,
+            null as task_template_id,
+            null as task_id,
+            j.completed_by_person
+          FROM jobs j 
+          INNER JOIN job_process_flow f ON j.id = f.decendant_id 
+          WHERE f.antecedent_id = $1 AND f.tier = $2
+          ORDER BY sort_order
+        `, [childJobID, tier]);
+        
+        if (jobsResult.rows.length > 0) {
+          console.log("bb31" + logString + "sisters found: ", jobsResult.rows.length);
+          for (const petDaughter of jobsResult.rows) {
+            console.log("bb32" + logString + "appending sister: ", petDaughter.id, petDaughter.display_text);
+            daughters.push(petDaughter);
+          }
+        }
+      }
+
+      // Process all daughters (original + sisters)
+      for (const daughter of daughters) {
+        let childJobID = daughter.id;
+        const tier = parentTier + 1;
+        console.log("bb5 " + logString + "diving deep to get jobID(" + childJobID + ") on tier ", tier);  
+        
+        const grandDaughters = await getJobs(childJobID, tier, logString + "  ");        
+        jobsArray.push({
+          ...daughter,
+          jobs: grandDaughters,
+          reminders: [] // Add empty reminders array to match structure
+        });
+      }  
+    } else {
+      console.log("bb91" + logString + " no children found for jobID: ", jobID);
+    }
+
+    return jobsArray;
+
+  } catch (error) {
+    console.error("bb8     Error in getJobData:", error);
+    throw error;
+  }
+}
+
+
+
+async function xxgetJobs(parentID, parentTier, logString ) {
+  try {
+    console.log("bb10" + logString + "getting jobID: ", parentID);
+    let jobTier = 500;
+    let jobsResult;
+    let jobsArray = [];
+    let children = [];
+    let jobID = parentID.substring(1); // Remove the prefix 't' for tasks and 'j' for jobs
+    let childTier = parentTier + 1;
+
+
+    // get children for parent job
+    jobsResult = await db.query(`
+      select 't' || t.id as id,
+      t.display_text,
+      $2 as tier,
+      t.sort_order
+      from tasks t
+      where t.job_id = $1
+      union select
+        'j' || f.decendant_id AS id,
+        j.display_text, 
+        f.tier,
+        j.sort_order
+      FROM 
+        jobs j inner join job_process_flow f on j.id = f.decendant_id 
+      where 
+        f.antecedent_id = $1 and f.tier = $2
+      order by 
+        sort_order
+    `, [jobID, childTier]);
+    console.log("bb21" + logString + " job("+jobID+") checking job_process_flow on tier("+childTier+") child relationships.  Found: ", jobsResult.rows.length);
+    if (jobsResult.rows.length > 0) {
+      let daughters = jobsResult.rows;
+      console.table(daughters);
+      //check if any children have a pet-sister relationship
+      for (const daughter of daughters) {
+        console.log("bb30" + logString + "checking daughter: ", daughter.id);
+        let jobID = daughter.id.substring(1); // Remove the prefix 't' for tasks and 'j' for jobs
+        const tier = childTier
+        jobsResult = await db.query(`
+          select
+            'j' || f.decendant_id AS id,
+            j.display_text, 
+            f.tier
+          FROM 
+            jobs j inner join job_process_flow f on j.id = f.decendant_id 
+          where 
+            f.antecedent_id = $1 and f.tier = $2
+        `, [jobID, tier]);
+        if (jobsResult.rows.length > 0) {
+          console.log("bb31" + logString + "sisters found: ", jobsResult.rows.length);
+
+          //append to sisters list if any pet-sisters found
+          for (const petDaughter of jobsResult.rows) {
+            console.log("bb32" + logString + "appending sister: ", petDaughter.id, petDaughter.display_text);
+            //append sisters to children
+            children.push(petDaughter);
+            daughters.push(petDaughter);
+          }
+          console.log("bb32" + logString + "children after appending sisters: ");
+          console.table(children);
+          console.table(daughters);
+        } else {
+          console.log("bb33" + logString + "no sisters found for jobID: ", jobID);
+          children.push(daughter);
+        }
+      }
+      // console.log("bb4 " + logString + "children after checking for sisters: ", children);
+
+      //check if any children have grandDaughters
+      for (const daughter of daughters) {
+        let jobID = daughter.id;
+        const tier = childTier
+        console.log("bb5 " + logString + "diving deep to get jobID(" + jobID + ") on tier ",  tier );  
+        const grandDaughters = await getJobs(jobID, tier, logString + "  ");        
+        jobsArray.push({
+          ...daughter,
+          jobs: grandDaughters 
+        });
+        // console.log("bb6 " + logString + "job " + parentID + " has " + children.length + " daughters and " + grandDaughters.length + " grandDaughters");
+      }  
+    } else {
+      console.log("bb91" + logString + " no children found for jobID: ", jobID);
+    }
+
+    // console.log("bb9       jobsArray: ", json.stringify(jobsArray, null, 2));
+    return jobsArray;
+
+  } catch (error) {
+    console.error("bb8     Error in getJobData:", error);
+    
+  }
+}
+
+async function xxgetBuildData(buildID) {
+  try {
+    console.log("bc1       getBuildData called for buildID: ", buildID);
+    // 1. Get build information
+    const buildResult = await db.query(`
+      SELECT 
+        b.id, 
+        b.customer_id, 
+        b.product_id, 
+        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
+        b.job_id,
+        b.current_status,
+        p.display_text AS product_description
+      FROM builds AS b
+      JOIN products AS p ON b.product_id = p.id
+      WHERE b.id = $1
+    `, [buildID]);
+
+
+    let buildMapping = {}
+    console.log("bc2       starting recursive process: ", JSON.stringify(buildMapping, null, 2));
+
+
+    //get all jobs directly linked under this build
+    const jobsResult = await db.query(`
+      select
+        'j' || j.id AS id,
+        j.display_text, 
+        j.tier,
+        j.sort_order
+      FROM 
+        jobs j  
+      where 
+        build_id = $1 and (tier IS NULL or tier = 500)
+      ORDER BY   
+        j.sort_order;
+    `, [buildID]);
+    const children = jobsResult.rows;    
+    console.table(children);
+    let jobsArray = [];
+    // console.log("bb29       getJobData jobResult: ", jobsResult.rows[0]);
+    // console.log("bb5   expecting tier to be " + childTier + " found, " + jobResult.rows[0].tier + "";    // Default to 500 if tier is null
+    for (const daughter of children) {
+      let jobID = daughter.id;
+      const tier = parseFloat(daughter.tier) || 500;     
+      console.log("bc5 diving deep to get jobID: ", jobID, " on tier: ", tier);  
+      const grandDaughters = await getJobs(jobID, tier, "  ");        
+      jobsArray.push({
+        ...daughter,
+        jobs: grandDaughters 
+      });
+      // console.log("bc6 job " + parentID + " has " + sister.length + " daughters and " + nieces.length + " grandDaughters");
+    }  
+
+    // const jobIDString = 'j' + buildResult.rows[0].job_id
+    //const jobsArray = await getJobs(jobIDString, 500, "  ");
+    // console.log("bc2    getBuildData jobs: ", JSON.stringify(jobsArray, null, 2));
+    buildMapping = {
+      build_id: buildID,
+      cust_id: buildResult.rows[0].customer_id,
+      jobs : jobsArray
+    }
+    return buildMapping;
+
+
+
+
+    return allCustomers;
+
+  } catch (error) {
+    console.error('Error fetching build data:', error);
+    throw error;
+  }
+}
+
+
+async function getBuildData(buildID) {
+  try {
+    console.log("bc1       getBuildData called for buildID: ", buildID);
+    
+    // 1. Get build information
+    const buildResult = await db.query(`
+      SELECT 
+        b.id, 
+        b.customer_id, 
+        b.product_id, 
+        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
+        b.job_id,
+        b.current_status,
+        p.display_text AS product_description
+      FROM builds AS b
+      JOIN products AS p ON b.product_id = p.id
+      WHERE b.id = $1
+    `, [buildID]);
+
+    if (buildResult.rows.length === 0) {
+      throw new Error(`Build ${buildID} not found`);
+    }
+
+    const buildData = buildResult.rows[0];
+    const customerID = buildData.customer_id;
+
+    // 2. Get customer information
+    const customerResult = await db.query(`
+      SELECT 
+        id, full_name, home_address, primary_phone, primary_email, 
+        contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
+      FROM customers 
+      WHERE id = $1
+    `, [customerID]);
+
+    // 3. Get missing jobs
+    const missingJobsResult = await db.query(`
+      SELECT id, display_text 
+      FROM job_templates 
+      WHERE product_id = $1 AND id NOT IN (
+        SELECT job_template_id FROM jobs WHERE build_id = $2
+      )
+    `, [buildData.product_id, buildID]);
+
+    // 4. Get emails
+    const emailsResult = await db.query(`
+      SELECT 
+        id, display_name, person_id, message_text, 
+        has_attachment, visibility, job_id, post_date 
+      FROM conversations 
+      WHERE person_id = $1
+    `, [customerID]);
+
+    // 5. Get all top-level jobs for this build
+    const jobsResult = await db.query(`
+      SELECT
+        'j' || j.id AS id,
+        j.display_text, 
+        j.tier,
+        j.sort_order,
+        j.id as job_id,
+        j.free_text,
+        j.job_template_id,
+        j.user_id,
+        j.role_id,
+        j.build_id,
+        j.product_id,
+        j.reminder_id,
+        j.conversation_id,
+        TO_CHAR(j.target_date, 'DD-Mon-YY') AS target_date,
+        j.created_by,
+        j.created_date,
+        j.change_array,
+        j.completed_by,
+        TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date,
+        j.current_status,
+        j.change_log,
+        j.completed_by_person
+      FROM jobs j  
+      WHERE build_id = $1 AND (tier IS NULL OR tier = 500)
+      ORDER BY j.sort_order
+    `, [buildID]);
+
+    // 6. Build the jobs hierarchy
+    let jobsArray = [];
+    for (const job of jobsResult.rows) {
+      const jobID = job.id;
+      const tier = parseFloat(job.tier) || 500;
+      const tasks = await getJobs(jobID, tier, "  ");
+      
+      jobsArray.push({
+        id: job.job_id,
+        display_text: job.display_text,
+        free_text: job.free_text,
+        job_template_id: job.job_template_id,
+        user_id: job.user_id,
+        role_id: job.role_id,
+        build_id: job.build_id,
+        product_id: job.product_id,
+        reminder_id: job.reminder_id,
+        conversation_id: job.conversation_id,
+        target_date: job.target_date,
+        created_by: job.created_by,
+        created_date: job.created_date,
+        change_array: job.change_array,
+        completed_by: job.completed_by,
+        completed_date: job.completed_date,
+        current_status: job.current_status,
+        change_log: job.change_log,
+        completed_by_person: job.completed_by_person,
+        sort_order: job.sort_order,
+        tasks: tasks
+      });
+    }
+
+    // 7. Build the final structure
+    const allCustomers = customerResult.rows.map(customer => ({
+      id: customer.id,
+      full_name: customer.full_name,
+      home_address: customer.home_address,
+      primary_phone: customer.primary_phone,
+      primary_email: customer.primary_email,
+      contact_other: customer.contact_other,
+      current_status: customer.current_status,
+      follow_up: customer.follow_up,
+      builds: [{
+        id: buildData.id,
+        customer_id: buildData.customer_id,
+        product_id: buildData.product_id,
+        enquiry_date: buildData.enquiry_date,
+        job_id: buildData.job_id,
+        current_status: buildData.current_status,
+        product_description: buildData.product_description,
+        jobs: jobsArray,
+        missing_jobs: missingJobsResult.rows
+      }],
+      emails: emailsResult.rows
+    }));
+
+    return allCustomers;
+
+  } catch (error) {
+    console.error('Error fetching build data:', error);
+    throw error;
+  }
+}
+
+
+
 
 app.get("/2/build/:id", async (req, res) => {
 // Initialize an empty array to hold all customers
@@ -252,253 +707,17 @@ let allCustomers = [];
       try {
   
           if (buildID) {
-              console.log("b2       retrieving all jobs for build("+buildID+")");
-              const jobsResult = await db.query("SELECT id, display_text, free_text, job_template_id, user_id, role_id, build_id, product_id, reminder_id, conversation_id, TO_CHAR(target_date, 'DD-Mon-YY') AS target_date, created_by, created_date, change_array, completed_by, completed_date, current_status, change_log, completed_by_person, sort_order, tier FROM jobs WHERE build_id = $1 and (tier = null or tier = 500) order by sort_order", [buildID]);
-              const jobIDArray =  jobsResult.rows.map(job => job.id);
+            console.log("b2       retrieving all jobs for build("+buildID+")");
 
-              let tasksResult = await db.query("SELECT id, job_id,                       precedence,                    display_text,   free_text,   current_status, owned_by,              user_date,           TO_CHAR(target_date, 'DD-Mon-YY') AS target_date,   TO_CHAR(completed_date, 'DD-Mon-YY') AS completed_date,   completed_by,   completed_comment,         change_log, task_template_id,         task_id,           completed_by_person,   sort_order FROM tasks WHERE job_id = ANY ($1) order by sort_order", [jobIDArray]);
-              let tasksResult2 = await db.query("SELECT j.id, f.antecedent_id as job_id, 'jobflow' as precedence,     j.display_text, j.free_text, j.current_status, j.user_id as owned_by, null as user_date, TO_CHAR(j.target_date, 'DD-Mon-YY') AS target_date, TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date, j.completed_by, null as completed_comment, j.change_log, null as task_template_id, null as task_id, j.completed_by_person, j.sort_order FROM jobs j INNER JOIN job_process_flow f ON j.id = f.decendant_id WHERE f.tier > 500 and f.antecedent_id = ANY($1) order by sort_order", [jobIDArray]);
-              tasksResult = [...tasksResult.rows, ...tasksResult2.rows];
+         
 
-              const taskIDArray = tasksResult.map(task => task.id);
-              const remindersResult = await db.query("SELECT * FROM reminders WHERE task_id = ANY ($1) order by id", [taskIDArray]);
-              
-
-              // fetch missing jobs based on job_templates table
-              const missingJobsResult = await db.query("SELECT id, display_text FROM job_templates WHERE product_id = 1 AND id NOT IN (SELECT job_template_id FROM jobs WHERE build_id = $1)", [buildID]);
-              // console.log("b21   ", missingJobsResult.rows);
-
-              // const buildsResult = await db.query("SELECT id, customer_id, product_id, enquiry_date, job_id FROM builds WHERE id = $1", [buildID]);
-              //  console.log("b23   ", buildID);
-              const buildsResult = await db.query(`
-                                    SELECT 
-                                        b.id, 
-                                        b.customer_id, 
-                                        b.product_id, 
-                                        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
-                                        b.job_id,
-                                        b.current_status,
-                                        p.display_text AS product_description
-                                    FROM 
-                                        builds AS b
-                                    JOIN 
-                                        products AS p ON b.product_id = p.id
-                                    WHERE 
-                                        b.id = $1
-                                    ORDER BY
-                                        b.id
-                                     `, [buildID]);
-
-              //  console.log("b25   ", buildsResult.rows[0]);
-              const custID = buildsResult.rows[0].customer_id
-
-              // If there is a search term, fetch matching customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers WHERE id = $1 ORDER BY id", [custID]);
-
-              //read emails for the customer
-              const emailsResult = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
-              // console.log("b26   emails for CustID(" + custID + ") " , emailsResult.rows);
-
-                          // console.log("b26   ")
-            // Merge customer, build, and jobs data
-            // Sort tasks by sort_order
-            const sortedTasks = tasksResult.sort((a, b) => {
-              if (a.sort_order === null) return -1; // Treat null as a lower value
-              if (b.sort_order === null) return 1;  // Treat null as a lower value
-              return a.sort_order.localeCompare(b.sort_order);
-            });
-            const q = sortedTasks.map(task => task.job_id);
-            // console.log("b20   ", q);
-            console.log("b22   ", sortedTasks.length, " tasks found for buildID: ", buildID);
-
-            // Map through customers
-            // allCustomers = customersResult.rows.map(customer => {
-            //   const builds = buildsResult.rows.filter(build => build.customer_id === customer.id);
-            //   const buildsWithJobs = builds.map(build => {
-            //     const jobs = jobsResult.rows.filter(job => job.build_id === build.id);
-            //     const jobsWithTasks = jobs.map(job => {
-            //       const tasks = sortedTasks.filter(task => task.job_id === job.id); // Use sortedTasks for sorting tasks
-            //       const tasksWithReminders = tasks.map(task => {
-            //         const remindersForTask = remindersResult.rows.filter(reminder => reminder.task_id === task.id);
-            //         return {
-            //           ...task,
-            //           reminders: remindersForTask
-            //         };
-            //       });
-            //       return {
-            //         ...job,
-            //         tasks: tasksWithReminders
-            //       };
-            //     });
-            //     return {
-            //       ...build,
-            //       jobs: jobsWithTasks
-            //     };
-            //   });
-            //   return {
-            //     customer,
-            //     builds: buildsWithJobs
-            //   };
-            // });
-
-
-
-            // Iterate through each customer
-            for (const customer of customersResult.rows) {
-              // Initialize an empty array to hold builds for the current customer
-              let builds = [];
-              let emails = [];
-
-              // Iterate through each build
-              for (const build of buildsResult.rows) {
-                if (build.customer_id === customer.id) {
-                  // Initialize an empty array to hold jobs for the current build
-                  let jobs = [];
-
-                  // Iterate through each job
-                  for (const job of jobsResult.rows) {
-                    if (job.build_id === build.id) {
-                      // Initialize an empty array to hold tasks for the current job
-                      let tasks = [];
-
-                      // Iterate through each task
-                      for (const task of sortedTasks) {
-                        if (task.job_id === job.id) {
-                          // Initialize an empty array to hold reminders for the current task
-                          let reminders = [];
-
-                          // Iterate through each reminder
-                          for (const reminder of remindersResult.rows) {
-                            if (reminder.task_id === task.id) {
-                              reminders.push({
-                                id: reminder.id,
-                                task_id: reminder.task_id,
-                                reminder_text: reminder.reminder_text,
-                                reminder_date: reminder.reminder_date,
-                                completed_by: reminder.completed_by,
-                                completed_date: reminder.completed_date,
-                                current_status: reminder.current_status,
-                                change_log: reminder.change_log,
-                                completed_by_person: reminder.completed_by_person
-                              });
-                            }
-                          }
-
-                          // Add the task with reminders to the tasks array
-                          tasks.push({
-                            id: task.id,
-                            job_id: task.job_id,
-                            precedence: task.precedence,
-                            display_text: task.display_text,
-                            free_text: task.free_text,
-                            current_status: task.current_status,
-                            owned_by: task.owned_by,
-                            user_date: task.user_date,
-                            target_date: task.target_date,
-                            completed_date: task.completed_date,
-                            completed_by: task.completed_by,
-                            completed_comment: task.completed_comment,
-                            change_log: task.change_log,
-                            task_template_id: task.task_template_id,
-                            task_id: task.task_id,
-                            completed_by_person: task.completed_by_person,
-                            sort_order: task.sort_order,
-                            reminders: reminders
-                          });
-                        }
-                      }
-
-                      // Add the job with tasks to the jobs array
-                      jobs.push({
-                        id: job.id,
-                        display_text: job.display_text,
-                        free_text: job.free_text,
-                        job_template_id: job.job_template_id,
-                        user_id: job.user_id,
-                        role_id: job.role_id,
-                        build_id: job.build_id,
-                        product_id: job.product_id,
-                        reminder_id: job.reminder_id,
-                        conversation_id: job.conversation_id,
-                        target_date: job.target_date,
-                        created_by: job.created_by,
-                        created_date: job.created_date,
-                        change_array: job.change_array,
-                        completed_by: job.completed_by,
-                        completed_date: job.completed_date,
-                        current_status: job.current_status,
-                        change_log: job.change_log,
-                        completed_by_person: job.completed_by_person,
-                        sort_order: job.sort_order,
-                        tasks: tasks
-                      });
-                    }
-                  }
-
-                  let missing = [];
-                  // Add missing jobs to the builds array
-                  for (const missingJob of missingJobsResult.rows) {
-                    missing.push({
-                      id: missingJob.id,
-                      display_text: missingJob.display_text,
-                    });
-                  }
-
-                  // Add the build with jobs to the builds array
-                  builds.push({
-                    id: build.id,
-                    customer_id: build.customer_id,
-                    product_id: build.product_id,
-                    enquiry_date: build.enquiry_date,
-                    job_id: build.job_id,
-                    current_status: build.current_status,
-                    product_description: build.product_description,
-                    jobs: jobs,
-                    missing_jobs: missing
-                  });
-
-                }
-
-
-                
-                // Add emails to the builds array
-                for (const email of emailsResult.rows) {
-                  emails.push({
-                    id: email.id,
-                    display_name: email.display_name,
-                    person_id: email.person_id,
-                    message_text: email.message_text,
-                    has_attachment: email.has_attachment,
-                    visibility: email.visibility,
-                    job_id: email.job_id,
-                    post_date: email.post_date
-                  });
-                }
-
-
-              }
-
-              // Add the customer with builds to the allCustomers array
-              allCustomers.push({
-                id: customer.id,
-                full_name: customer.full_name,
-                home_address: customer.home_address,
-                primary_phone: customer.primary_phone,
-                primary_email: customer.primary_email,
-                contact_other: customer.contact_other,
-                current_status: customer.current_status,
-                follow_up: customer.follow_up,
-                builds: builds,
-                emails: emails
-              });
-            }
-
-
-
-
+            const allCustomers = await getBuildData(buildID);
+            console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
+            // return allCustomers;
+            // printJobHierarchy(tableData);
+            console.log("b30   ");
+            res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
             
-
-              // console.log("b29   ")
           } else {
             console.log("b3   ");
             // If there's no search term, fetch all customers and their builds
@@ -532,11 +751,6 @@ let allCustomers = [];
                       builds
                   };
               });
-              console.log("b33    ");
-          }
-          
-          // Render the appropriate template based on the scenario
-          if (req.query.buildId) {
               console.log("b6   ");
 
               // If a build is clicked, render customer.ejs
@@ -545,11 +759,10 @@ let allCustomers = [];
               const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [req.query.buildId]);
               // Render customer.ejs with customer, builds, and jobs data
               res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
-          } else {
-              // console.log("b91      returning page");
-              // If no specific build is clicked, render customers.ejs
-              res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
+
           }
+          
+
       } catch (err) {
           console.log("b8   ");
           console.error(err);
@@ -1482,7 +1695,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login",
   passport.authenticate("local", {
-    successRedirect: "/2/customers",      // "/2/customers",    //"/jobs/94",     //2/build/264,
+    successRedirect: "/2/customers",      // "/2/customers",    //"/jobs/94",     //2/build/16,
     failureRedirect: "/login",
   })
 );
@@ -1992,16 +2205,12 @@ app.get("/update", async (req,res) => {
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         break;
       case "jobStatus":
-        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
         table = "jobs";
         columnName = "current_status"
-        if (newValue === '1') {
-          value = true;
-        } else if (newValue === '0') {
-          value = false;
-        } else {
-          value = newValue;
-        }
+        value = newValue;
+        // update the job status, completed_date, and register te user who completed the job
+        //#region update job status
         console.log("ufg448     update "+ table + " set "+ columnName + " = " + value + " for rowID: " + rowID);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         columnName = "completed_date";
@@ -2018,9 +2227,94 @@ app.get("/update", async (req,res) => {
         value = req.user.id;        
         console.log("ufg450     update "+ table + " set "+ columnName + " = " + value );          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        
+        //# endregion
+
+        //#region check job record for actions triggered by job status change
+        const q6 = await db.query("SELECT change_array from jobs where id = $1", [rowID]);
+        if (q6.rows.length > 0) {
+          console.log("ufg451     job record found for job_id: " + rowID);
+          const changeArray = q6.rows[0].change_array;
+          if (changeArray) {
+            try {
+              const changeArrayJson = JSON.parse(changeArray);
+              console.log("ufg4515     change_array for job_id: " + rowID + " - ", changeArrayJson);
+              if (changeArrayJson.on_me_status === "completed" && newValue === "complete") {
+                for (const action of changeArrayJson.actions) {
+                  if (action.set_job_status) {
+                    value = action.set_job_status ? '' : null;
+                    console.log(`ufg452     Setting status of job(${action.for_job_id}) to ${value} `);
+                    const updateStatus = await db.query(
+                      "UPDATE jobs SET current_status = $1 WHERE id = $2",
+                      [value, action.for_job_id]
+                    );
+                  }
+                  if (action.log_trigger) {
+                    console.log(`ufg453     Logging trigger for job(${rowID}): ${action.log_trigger}`);
+                    //append to jobs.change_log column as an array. include a date and user
+                    const logTrigger = await db.query(
+                      "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
+                      [`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, rowID]
+                    );
+                  }
+                }
+              }
+            } catch (error) {
+              console.error("ufg454     Error processing job actions:", error);
+            }
+          } else {
+            console.log("ufg455     No change_array found for job_id: " + rowID);
+          }
+        } else {
+          console.log("ufg456     No job record found for job_id: " + rowID);
+        }
+        //#endregion
+        //#region check job_process_flow for actions triggered by job status change
+        const q7 = await db.query("SELECT * from job_process_flow where antecedent_id = $1", [rowID]);
+        if (q7.rows.length > 0) {
+          console.log("ufg457     job_process_flow found for job_id: " + rowID);
+          for (const row of q7.rows) {
+            console.log("ufg458     job_process_flow row: ", row);
+            const flowID = row.id;
+            const flowAntecedentID = row.antecedent_id;
+            const flowDecendantID = row.decendant_id;
+            const flowAction = row.change_array;
+            const flowTier = row.tier;
+
+            // Perform actions based on the flowAction
+            try {
+              const flowActionJson = JSON.parse(flowAction);
+              if (flowActionJson.on_me_status === "completed" && newValue === "complete") {
+              for (const action of flowActionJson.actions) {
+                if (action.set_job_status) {
+                console.log(`ufg459     Setting status of job(${action.job_id}) to ${action.set_status} `);
+                const jobId = action.for_job_id || flowDecendantID;
+                const updateStatus = await db.query(
+                  "UPDATE jobs SET current_status = $1 WHERE id = $2",
+                  [action.set_status, jobId]
+                );
+                }
+                if (action.log_trigger) {
+                  console.log(`ufg460     Logging trigger for job(${flowDecendantID}): ${action.log_trigger}`);
+                  //append to jobs.change_log column as an array. include a date and user
+                    const logTrigger = await db.query(
+                    "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
+                    [`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, flowDecendantID]
+                    );
+                }
+              }
+              }
+            } catch (error) {
+              console.error("ufg461     Error processing job_process_flow actions:", error);
+            }
+
+          }
+        } else {
+          console.log("ufg462     No job_process_flow found for job_id: " + rowID);
+        }
+        //#endregion
+        
         break;
-
-
       default:
         console.error("ufg8    Unknown field was edited: " + fieldID );
     }
