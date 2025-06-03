@@ -179,14 +179,14 @@
                                                                                         <tbody>
                                                                                             <% site.jobs.forEach(function(job) { %>
                                                                                                 <% if (job) { %>
-                                                                                                    
-                                                                                                    <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= job.id %>">
-                                                                                                        <td style="background-color:#77DD77;"><%= job.sort_order %></td>
+                                                                                                    <% let jobID = job.id %>
+                                                                                                    <tr class="accordion-toggle table-info" data-toggle="collapse" data-target="#collapseJob<%= jobID %>">
+                                                                                                        <td style="background-color:#77DD77;" class="editable" id="jobOrder" data-record-id="<%= jobID %>"><%= job.sort_order %></td>
                                                                                                         <td style="background-color:#77DD77;" class="display-text-column"><%= job.display_text %></td>
                                                                                                         <td style="background-color:#77DD77;" style="width: 40%;"><%= job.free_text %></td>
                                                                                                         <td style="display: none;"><%= job.job_template_id %></td>
                                                                                                         <td style="background-color:#77DD77;">
-                                                                                                            <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= job.id %>" onclick="event.stopPropagation()">
+                                                                                                            <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= jobID %>" onclick="event.stopPropagation()">
                                                                                                             <option value="" <% if (!job.user_id) { %> selected <% } %>>Unspecified</option>
                                                                                                             <option value="12" <% if (job.user_id === 12) { %> selected <% } %>>Bryan</option>
                                                                                                             <option value="9" <% if (job.user_id === 9) { %> selected <% } %>>Alex</option>
@@ -200,7 +200,7 @@
                                                                                                         <td style="display: none;"><%= job.product_id %></td>
                                                                                                         <td style="display: none;"><%= job.reminder_id %></td>
                                                                                                         <td style="display: none;"><%= job.conversation_id %></td>
-                                                                                                        <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= job.id %>"><%= job.target_date %></td>
+                                                                                                        <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= jobID %>"><%= job.target_date %></td>
                                                                                                         <td style="display: none;"><%= job.created_by %></td>
                                                                                                         <td style="display: none;"><%= job.created_date %></td>
                                                                                                         <td style="display: none;"><%= job.change_array %></td>
@@ -209,8 +209,8 @@
                                                                                                         <td style="background-color:#77DD77;">
 
                                                                                                             <div class="form-check">
-                                                                                                                <input class="editable form-check-input task-checkbox" type="checkbox" id="jobStatus" data-record-id="<%= job.id %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                <label class="form-check-label" for="jobComplete<%= job.id %>"><%= job.current_status == 'complete' ? 'Done' : '' %></label>
+                                                                                                                <input class="editable form-check-input task-checkbox" type="checkbox" id="jobStatus" data-record-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <label class="form-check-label" for="jobComplete<%= jobID %>"><%= job.current_status %></label>
                                                                                                             </div>
 
                                                                                                         </td>
@@ -221,9 +221,9 @@
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <!-- ---  tasks                                                                 -->
                                                                                                             <!-- -------------------------------------------------------------------------- -->
-                                                                                                            <div class="accordian-body collapse" id="collapseJob<%= job.id %>">
-                                                                                                                <button onclick="window.location.href='/jobs/<%= job.id %>';">Edit Category</button>
-                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= job.id %>&returnto=build/<%= site.id %>';">Delete this Category</button>
+                                                                                                            <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
+                                                                                                                <button onclick="window.location.href='/jobs/<%= jobID %>';">Edit Category</button>
+                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';">Delete this Category</button>
                                                                                                                 <table class="table nested-table">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
@@ -240,18 +240,19 @@
                                                                                                                     <tbody>
                                                                                                                         <% job.tasks.forEach(function(task) { %>
                                                                                                                             <% if (task) { %>
-                                                                                                                                <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= task.id %>" >
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= task.id %>"><%= task.sort_order %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= task.id %>" style="width: 25%;"><%= task.display_text %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= task.id %>"  style="width: 25%;"><%= task.free_text %></td>
-                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= task.id %>"><%= task.target_date %></td>
+                                                                                                                                <% let taskID = task.id.substring(1) %>
+                                                                                                                                <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= taskID %>" >
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
+                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= task.id %>"><%= task.completed_by_person %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>"><%= task.completed_by_person %></td>
                                                                                                                                     <td><%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
-                                                                                                                                            <input class="editable form-check-input task-checkbox" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= task.id %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                            <label class="form-check-label" for="taskComplete<%= task.id %>"><%= task.current_status == 'complete' ? 'Done' : '' %></label>
+                                                                                                                                            <input class="editable form-check-input task-checkbox" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>"><%= task.current_status == 'complete' ? 'Done' : '' %></label>
                                                                                                                                         </div>
                                                                                                                                     </td>       
                                                                                                                                 </tr>
@@ -261,7 +262,7 @@
                                                                                                                                         <!-- -------------------------------------------------------------------------- -->
                                                                                                                                         <!-- ---  reminders                                                             -->
                                                                                                                                         <!-- -------------------------------------------------------------------------- -->
-                                                                                                                                        <div class="accordian-body collapse" id="xxcollapseTask<%= task.id %>">
+                                                                                                                                        <div class="accordian-body collapse" id="xxcollapseTask<%= taskID %>">
                                                                                                                                             
                                                                                                                                             <table class="table nested-table">
                                                                                                                                                 <thead>
@@ -318,11 +319,11 @@
                                                                                                                         <% }); %>
                                                                                                                     </tbody>
                                                                                                                 </table>
-                                                                                                                <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= job.id %>&tier=500&returnto=build<%= site.id %>';">Add Job</button>
+                                                                                                                <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add Job</button>
                                                                                                                 <% if (site.missing_jobs) { %>
                                                                                                                     <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                         <% if (missingjob) { %>
-                                                                                                                            <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= job.id %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                            <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
                                                                                                                         <% } %>
                                                                                                                     <% }); %>
                                                                                                                 <% } %>

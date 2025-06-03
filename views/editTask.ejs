@@ -145,7 +145,7 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                                 <a href="<%= baseURL %>/jobs/<%= siteContent.task_decendants[po].id  %>" class="btn btn-light">E</a>
                             </h5>
                             tier = <label class="editable" id="flowTier" data-record-id="<%= siteContent.task_decendants[po].flow_id %>"><%= siteContent.task_decendants[po].tier != null ? siteContent.task_decendants[po].tier : "null" %></label><br>
-                            change_array = <label class="editable" id="flowChangeArray" data-record-id="<%= siteContent.task_decendants[po].flow_id %>"><%= siteContent.task_decendants[po].change_array != null ? siteContent.task_decendants[po].change_array : "{trigger : null}" %></label><br>
+                            change_array = <label class="editable" id="flowChangeArray" data-record-id="<%= siteContent.task_decendants[po].flow_id %>"><%= siteContent.task_decendants[po].change_array != null ? siteContent.task_decendants[po].change_array : "{}" %></label><br>
 
                             <!-- <p class="card-text">This is another card with title and supporting text below. This card has some additional content to make it slightly taller overall.</p>
                             <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p> -->
@@ -174,7 +174,8 @@ Next Task
         <div class="card w-100">
             <div class="card-body">
             <h5 class="card-title"><%= siteContent.job_decendants[post].display_text %></h5>
-            tier <%= siteContent.job_decendants[post].tier %>, change_array [<%= siteContent.job_decendants[post].change_array %>]
+            tier(<%= siteContent.job_decendants[post].tier %>), 
+            change_array <label class="editable" id="flowChangeArray" data-record-id="<%= siteContent.job_decendants[post].flow_id %>"><%= siteContent.job_decendants[post].change_array != null ? siteContent.job_decendants[post].change_array : "{}" %></label>
             <p class="card-text"><div class="editable" id="jobDesc" contenteditable="true" data-record-id="<%= siteContent.job_decendants[post].id  %>"><%= siteContent.job_decendants[post].free_text %></div></p>
             <a href="<%= baseURL %>/jobs/<%= siteContent.job_decendants[post].id %>" class="btn btn-light">Edit</a>
             

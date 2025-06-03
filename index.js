@@ -472,7 +472,7 @@ app.get("/jobs/:id", async (req, res) => {
       
       // console.log("gd5   adding decendants")
       let job_decendants = [];
-      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + tier + " and r.antecedent_id = " + job_id + ";";
+      vSQL = "SELECT j.id, j.display_text, j.current_status, j.free_text, r.tier, r.change_array, r.id as flow_id FROM jobs j INNER JOIN job_process_flow r ON j.id = r.decendant_id WHERE j.tier = " + tier + " and r.antecedent_id = " + job_id + ";";
       result = await pool.query(vSQL);        
       job_decendants = result.rows;
 
