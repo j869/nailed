@@ -566,22 +566,203 @@ app.get("/jobs/:id", async (req, res) => {
   }
 });
 
+
+
+async function getJobFlow(parentID, parentTier, logString ) {
+  try {
+    console.log("bb10" + logString + "getting jobID: ", parentID);
+    let jobTier = 500;
+    let jobsResult;
+    let jobsArray = [];
+    let children = [];
+    let jobID = parentID.substring(1); // Remove the prefix 't' for tasks and 'j' for jobs
+    let childTier = parentTier + 1;
+
+
+    // get children for parent job
+    jobsResult = await db.query(`
+      select 't' || t.id as id,
+      t.display_text,
+      $2 as tier,
+      t.sort_order,
+      t.current_status
+      from tasks t
+      where t.job_id = $1
+      union select
+        'j' || f.decendant_id AS id,
+        j.display_text, 
+        f.tier,
+        j.sort_order,
+        j.current_status
+      FROM 
+        jobs j inner join job_process_flow f on j.id = f.decendant_id 
+      where 
+        f.antecedent_id = $1 and f.tier = $2
+      order by 
+        sort_order
+    `, [jobID, childTier]);
+    console.log("bb21" + logString + " job("+jobID+") checking job_process_flow on tier("+childTier+") child relationships.  Found: ", jobsResult.rows.length);
+    if (jobsResult.rows.length > 0) {
+      let daughters = jobsResult.rows;
+      console.table(daughters);
+      //check if any children have a pet-sister relationship
+      for (const daughter of daughters) {
+        console.log("bb30" + logString + "checking daughter: ", daughter.id);
+        let jobID = daughter.id.substring(1); // Remove the prefix 't' for tasks and 'j' for jobs
+        const tier = childTier
+        jobsResult = await db.query(`
+          select
+            'j' || f.decendant_id AS id,
+            j.display_text, 
+            f.tier,
+            j.sort_order,
+            j.current_status
+          FROM 
+            jobs j inner join job_process_flow f on j.id = f.decendant_id 
+          where 
+            f.antecedent_id = $1 and f.tier = $2
+        `, [jobID, tier]);
+        if (jobsResult.rows.length > 0) {
+          console.log("bb31" + logString + "sisters found: ", jobsResult.rows.length);
+
+          //append to sisters list if any pet-sisters found
+          for (const petDaughter of jobsResult.rows) {
+            console.log("bb32" + logString + "appending sister: ", petDaughter.id, petDaughter.display_text);
+            //append sisters to children
+            children.push(petDaughter);
+            daughters.push(petDaughter);
+          }
+          console.log("bb32" + logString + "children after appending sisters: ");
+          console.table(children);
+          console.table(daughters);
+        } else {
+          console.log("bb33" + logString + "no sisters found for jobID: ", jobID);
+          children.push(daughter);
+        }
+      }
+      // console.log("bb4 " + logString + "children after checking for sisters: ", children);
+
+      //check if any children have grandDaughters
+      for (const daughter of daughters) {
+        let jobID = daughter.id;
+        const tier = childTier
+        console.log("bb5 " + logString + "diving deep to get jobID(" + jobID + ") on tier ",  tier );  
+        const grandDaughters = await getJobs(jobID, tier, logString + "  ");        
+        jobsArray.push({
+          ...daughter,
+          jobs: grandDaughters 
+        });
+        // console.log("bb6 " + logString + "job " + parentID + " has " + children.length + " daughters and " + grandDaughters.length + " grandDaughters");
+      }  
+    } else {
+      console.log("bb91" + logString + " no children found for jobID: ", jobID);
+    }
+
+    // console.log("bb9       jobsArray: ", json.stringify(jobsArray, null, 2));
+    return jobsArray;
+
+  } catch (error) {
+    console.error("bb8     Error in getJobData:", error);
+    
+  }
+}
+
+async function getBuild(buildID) {
+  try {
+    console.log("bc1       getBuildData called for buildID: ", buildID);
+    // 1. Get build information
+    const buildResult = await db.query(`
+      SELECT 
+        b.id, 
+        b.customer_id, 
+        b.product_id, 
+        TO_CHAR(b.enquiry_date, 'DD-Mon-YY') as enquiry_date, 
+        b.job_id,
+        b.current_status,
+        p.display_text AS product_description
+      FROM builds AS b
+      JOIN products AS p ON b.product_id = p.id
+      WHERE b.id = $1
+    `, [buildID]);
+
+
+    let buildMapping = {}
+    console.log("bc2       starting recursive process: ", JSON.stringify(buildMapping, null, 2));
+
+
+    //get all jobs directly linked under this build
+    const jobsResult = await db.query(`
+      select
+        'j' || j.id AS id,
+        j.display_text, 
+        j.tier,
+        j.sort_order,
+        j.current_status
+      FROM 
+        jobs j  
+      where 
+        build_id = $1 and (tier IS NULL or tier = 500)
+      ORDER BY   
+        j.sort_order;
+    `, [buildID]);
+    const children = jobsResult.rows;    
+    console.table(children);
+    let jobsArray = [];
+    // console.log("bb29       getJobData jobResult: ", jobsResult.rows[0]);
+    // console.log("bb5   expecting tier to be " + childTier + " found, " + jobResult.rows[0].tier + "";    // Default to 500 if tier is null
+    for (const daughter of children) {
+      let jobID = daughter.id;
+      const tier = parseFloat(daughter.tier) || 500;     
+      console.log("bc5 diving deep to get jobID: ", jobID, " on tier: ", tier);  
+      const grandDaughters = await getJobs(jobID, tier, "  ");        
+      jobsArray.push({
+        ...daughter,
+        jobs: grandDaughters 
+      });
+      // console.log("bc6 job " + parentID + " has " + sister.length + " daughters and " + nieces.length + " grandDaughters");
+    }  
+
+    // const jobIDString = 'j' + buildResult.rows[0].job_id
+    //const jobsArray = await getJobs(jobIDString, 500, "  ");
+    // console.log("bc2    getBuildData jobs: ", JSON.stringify(jobsArray, null, 2));
+    buildMapping = {
+      build_id: buildID,
+      cust_id: buildResult.rows[0].customer_id,
+      jobs : jobsArray
+    }
+    return buildMapping;
+
+
+
+
+    return allCustomers;
+
+  } catch (error) {
+    console.error('Error fetching build data:', error);
+    throw error;
+  }
+}
+
+
 app.get("/jobDone/:id", async (req,res) => {
-  console.log(req.params);
+  console.log("jd1    " + req.params);
   const jobID = parseInt(req.params.id);
   try {
     //update table
-    const q = await pool.query("UPDATE jobs SET current_status = 'completed', completed_date = LOCALTIMESTAMP, completed_by = 'me' WHERE id = " + jobID + ";");      
+    const q = await pool.query("UPDATE jobs SET current_status = 'completed', completed_date = LOCALTIMESTAMP, completed_by = null WHERE id = " + jobID + ";");      
 
-//recursivly check all previous jobs in the chain - and set them to completed
-// also check pre-tasks and mark them done
-// also check all tasks attached to previous jobs and set them done
+    //recursivly check all previous jobs in the chain - and set them to completed
+    // also check pre-tasks and mark them done
+    // also check all tasks attached to previous jobs and set them done
+    const allCustomers = await getBuild(buildID);    
+    const jobFlowRelationships = await getJobFlow('j' + jobID, 500, "  ");
+    console.log("jd1    jobFlowRelationships: ", JSON.stringify(jobFlowRelationships, null, 2));
 
     if (q.rowCount == 1) {
-      res.status(201).json({msg : 'succesfully modified 1 record'});
+      res.status(201).json({msg : 'succesfully updated job status and checked relationships and job target dates'});
     }
   } catch (error) {
-    console.error('Error marking job as done:', error);
+    console.error('jd8    Error marking job as done:', error);
     res.status(500).json({ error: 'Failed to add job' });
   }  
 })
@@ -623,15 +804,6 @@ app.get("/update", async (req, res) => {
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [ value, id]);   
     // console.log("ud3    UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";  updated(" + q.rowCount + ") records");
 
-    if (q.rowCount == 1) {
-      res.status(201).json({msg : 'succesfully modified 1 record'});
-      // console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
-      console.log("ud9    records succesfully modified in " + table + " table: 1");
-    } else {
-      console.error(`ud8     ${q.rowCount} records were modified. Check your SQL.`);
-      res.status(422).json({ msg: 'Unprocessable Entity: No records were modified' });
-    }
-
     if (table === "jobs") {
       // console.log("ud55    updating table 'jobs' and column: " + column);
       if (column === "display_text") {
@@ -640,6 +812,16 @@ app.get("/update", async (req, res) => {
         console.log("ud7     ...we also modified the template to reflect this change. ");
       }
     }
+
+    if (q.rowCount == 1) {
+      console.log("ud9    records succesfully modified in " + table + " table: 1");
+      return res.status(201).json({msg : 'succesfully modified 1 record'});
+      // console.log("ud9   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+    } else {
+      console.error(`ud8     ${q.rowCount} records were modified. Check your SQL.`);
+      return res.status(422).json({ msg: 'Unprocessable Entity: No records were modified' });
+    }
+
     // console.log("ud99");
   } catch (error) {
     

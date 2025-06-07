@@ -207,12 +207,18 @@
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
-
                                                                                                             <div class="form-check">
-                                                                                                                <input class="editable form-check-input task-checkbox" type="checkbox" id="jobStatus" data-record-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <input class="editable " type="checkbox" id="jobStatus" data-record-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                 <label class="form-check-label" for="jobComplete<%= jobID %>"><%= job.current_status %></label>
                                                                                                             </div>
-
+                                                                                                            <div class="form-check d-none">
+                                                                                                                <input class="form-check-input job-checkbox" 
+                                                                                                                    type="checkbox" 
+                                                                                                                    id="jobComplete<%= jobID %>" 
+                                                                                                                    data-job-id="<%= jobID %>" 
+                                                                                                                    <%= job.current_status === 'complete' ? 'checked' : '' %>>
+                                                                                                                <label class="form-check-label" for="jobComplete<%= jobID %>"></label>
+                                                                                                            </div>                                                                                                         
                                                                                                         </td>
                                                                                                     </tr>
                                                                                                     <tr>
@@ -248,13 +254,30 @@
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>"><%= task.completed_by_person %></td>
-                                                                                                                                    <td><%= task.change_log %></td>
+                                                                                                                                    <td>ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
-                                                                                                                                            <input class="editable form-check-input task-checkbox" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>"><%= task.current_status == 'complete' ? 'Done' : '' %></label>
+                                                                                                                                            <input class="editable " type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>"><%= task.current_status %></label>
                                                                                                                                         </div>
-                                                                                                                                    </td>       
+
+                                                                                                                                        <div class="form-check d-none">
+                                                                                                                                            <input class="form-check-input <%= task.precedence === 'jobflow' ? 'job-checkbox' : 'task-checkbox' %>" 
+                                                                                                                                                    type="checkbox" 
+                                                                                                                                                    id="taskComplete<%= taskID %>" 
+                                                                                                                                                    data-<%= task.precedence === 'jobflow' ? 'job' : 'task' %>-id="<%= taskID %>"
+                                                                                                                                                    <%= task.current_status === 'complete' ? 'checked' : '' %>
+                                                                                                                                                    aria-label="Mark task as complete">
+                                                                                                                                            
+                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>">
+                                                                                                                                                <%= task.current_status === 'complete' ? 'Done' : '' %>
+                                                                                                                                            </label>
+                                                                                                                                            
+                                                                                                                                            <span class="spinner-border spinner-border-sm text-primary ms-2 d-none" 
+                                                                                                                                                    role="status"
+                                                                                                                                                    aria-hidden="true"></span>
+                                                                                                                                        </div>                                                                                                                                    
+                                                                                                                                    </td>                                                                                                                                         
                                                                                                                                 </tr>
                                                                                                                                 <tr>
                                                                                                                                     <td colspan="12" class="hiddenRow">
@@ -431,59 +454,163 @@
 
 
     <!-- JavaScript to handle the API request -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var table = document.getElementById('jobsTable');
-            var headerRow = table.querySelector('thead tr'); // Select the header row
-            var rows = table.querySelectorAll('tbody tr');
-            var totalRows = rows.length;
-            var visibleRowCount = totalRows; // Initial number of visible rows
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var table = document.getElementById('jobsTable');
+        var headerRow = table.querySelector('thead tr'); // Select the header row
+        var rows = table.querySelectorAll('tbody tr');
+        var totalRows = rows.length;
+        var visibleRowCount = totalRows; // Initial number of visible rows
 
-            // Function to update the visibility of rows
-            function updateVisibleRows() {
-                console.log("gu1    updating rows ");
-                
-                rows.forEach(function(row, index) {
-                    if (index < visibleRowCount || index === totalRows - 1) {
-                        row.style.display = ''; // Show row
-                        
-                        var jobTargetDateCell = row.querySelector('td#jobTargetDate');
-                        console.log("gu21   jobTargetDate cell:", jobTargetDateCell);
-                        console.log("gu22    ", row.style.display);
+        // Function to scroll rows - hids or shows rows based on scroll
+        function updateVisibleRows() {
+            console.log("gu1    updating rows ");
+            
+            rows.forEach(function(row, index) {
+                if (index < visibleRowCount || index === totalRows - 1) {
+                    row.style.display = ''; // Show row
+                    
+                    var jobTargetDateCell = row.querySelector('td#jobTargetDate');
+                    // console.log("gu21   jobTargetDate cell:", jobTargetDateCell);
+                    // console.log("gu22    ", row.style.display);
 
-                    } else {
-                        row.style.display = 'none'; // Hide row
-                        console.log("gu3    ", row.style.display);
-                    }
-                });
+                } else {
+                    row.style.display = 'none'; // Hide row
+                    // console.log("gu3    ", row.style.display);
+                }
+            });
+        }
+
+        // Initial setup
+        updateVisibleRows();
+
+        // Add mouse wheel event listener to the table
+        headerRow.addEventListener('wheel', function(event) {
+            // Prevent the default scroll behavior
+            event.preventDefault();
+            console.log("gt1    Mouse wheel event detected. DeltaY: ", event.deltaY);
+
+            // Adjust the number of visible rows based on the wheel delta
+            if (event.deltaY > 0) {
+                // Scrolling up: show fewer rows, but ensure at least one row is visible
+                visibleRowCount = Math.max(visibleRowCount - 6, 1);
+                console.log("gt3    removing rows ", visibleRowCount);
+            } else {
+                // Scrolling down: show more rows
+                visibleRowCount = Math.min(visibleRowCount + 6, totalRows);
+                console.log("gt2    adding rows ", visibleRowCount);
             }
 
-            // Initial setup
+            // Update the visibility of rows
             updateVisibleRows();
+        });
+    });
 
-            // Add mouse wheel event listener to the table
-            headerRow.addEventListener('wheel', function(event) {
-                // Prevent the default scroll behavior
-                event.preventDefault();
-                console.log("gt1    Mouse wheel event detected. DeltaY: ", event.deltaY);
 
-                // Adjust the number of visible rows based on the wheel delta
-                if (event.deltaY > 0) {
-                    // Scrolling up: show fewer rows, but ensure at least one row is visible
-                    visibleRowCount = Math.max(visibleRowCount - 6, 1);
-                    console.log("gt3    removing rows ", visibleRowCount);
-                } else {
-                    // Scrolling down: show more rows
-                    visibleRowCount = Math.min(visibleRowCount + 6, totalRows);
-                    console.log("gt2    adding rows ", visibleRowCount);
-                }
 
-                // Update the visibility of rows
-                updateVisibleRows();
+    $(document).ready(function() {
+    console.log("tb1    DOM ready - initializing task checkboxes");
+    
+    // Debouncing variables
+    let isProcessing = false;
+    let lastClickTime = 0;
+    const DEBOUNCE_DELAY = 500; // 0.5 seconds
+    
+    // Event delegation with debouncing
+    $(document).on('change', '.task-checkbox', function() {
+        const now = Date.now();
+        if (isProcessing || (now - lastClickTime) < DEBOUNCE_DELAY) {
+        $(this).prop('checked', !$(this).is(':checked')); // Revert checkbox
+        return;
+        }
+        
+        lastClickTime = now;
+        isProcessing = true;
+        
+        const $checkbox = $(this);
+        const taskId = $checkbox.attr('data-task-id');
+        const isChecked = $checkbox.is(':checked');
+        const $label = $checkbox.next('.form-check-label');
+        const $spinner = $checkbox.siblings('.spinner-border'); // Get spinner
+        
+        // Show spinner and disable checkbox during processing
+        $spinner.removeClass('d-none');
+        $checkbox.prop('disabled', true);
+        
+        console.log(`tb2    Updating task ${taskId} status to ${isChecked ? 'true' : 'false'}`);
+        
+        $.ajax({
+        url: '<%= locals.baseUrl %>/taskComplete',
+        method: 'POST',
+        data: {
+            taskId: taskId,
+            status: isChecked ? 'true' : 'false'
+        },
+        success: function(response) {
+            console.log(`tb3     Task ${taskId} updated successfully`);
+            $label.text(isChecked ? 'Done' : '');
+            
+            // Optional: Handle additional response data
+            if (response.message) {
+            showToast(response.message); // Example: Show notification
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error(`tb81   Error updating task ${taskId}:`, error);
+            // Revert UI state
+            $checkbox.prop('checked', !isChecked);
+            $label.text(isChecked ? '' : 'Done');
+            
+            // Show error message
+            showToast('tb82     Failed to update task status', 'error');
+        },
+        complete: function() {
+            // Always execute
+            $spinner.addClass('d-none');
+            $checkbox.prop('disabled', false);
+            isProcessing = false;
+        }
+        });
+    });
+    
+    // Example toast notification function
+    function showToast(message, type = 'success') {
+        // Implement your preferred toast/notification system
+        console.log(`ts5      ${type.toUpperCase()}: ${message}`);
+    }
+    });
+
+
+
+        $(document).ready(function() {
+        console.log("jb1     DOM ready - initializing job checkboxes");
+        
+        // Use event delegation for dynamic elements
+        $(document).on('change', '.job-checkbox', function() {
+            const jobId = $(this).attr('data-job-id');
+            const isChecked = $(this).is(':checked');
+            
+            console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
+            
+            $.ajax({
+            url: '<%= locals.baseUrl %>/jobComplete',
+            method: 'POST',
+            data: {
+                jobId: jobId,
+                status: isChecked ? 'true' : 'false' 
+            },
+            success: function(response) {
+                console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
+                // Optional: Update UI based on response
+            },
+            error: function(xhr, status, error) {
+                console.error(`jb8    Error updating job ${jobId}:`, error);
+                // Revert checkbox if error occurs
+                $(this).prop('checked', !isChecked);
+            }.bind(this) // Maintain checkbox context in error handler
             });
         });
-
-
+        });
 
 
         
@@ -526,53 +653,130 @@
 
 <script>
         console.log("locals ", <%- JSON.stringify(locals) %>);
-        //add listener to all editable fields.  When field changes, notify the database
+    
+        //---  add listener to all EDITABLE fields.  When field changes, notify the database
         const baseUrl = "<%= locals.baseUrl %>";
         const apiUrl = baseUrl.replace("3000", "4000") 
         console.log("lf3     apiUrl: ", apiUrl);
                 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("id1   " )
-            const editableElements = document.querySelectorAll('.editable');
-            editableElements.forEach(function(element) {
-                element.addEventListener('dblclick', function(event) {
-                    console.log("id2   ")
-                    event.preventDefault();    // Prevent default behavior
-                    event.target.contentEditable = true;  // Make the element editable
-                    event.target.focus();    // Set focus to the element
-                });
-                element.addEventListener('blur', function(event) {
-                    console.log("id3   ")
-                    // When the element loses focus, save the updated value
-                    let newValue;
-
-                    // Check if the target is a <select> dropdown
-                    console.log("id4   ", event.target.tagName, event.target.type);
-                    if (event.target.tagName === "SELECT") {
-                        newValue = event.target.value;  // For dropdown list
-                    } else if (event.target.tagName === "INPUT" && event.target.type === "checkbox") {
-                        newValue = event.target.checked ? 'complete' : 'pending';  // For checkboxes
-                    } else {
-                        newValue = event.target.textContent;  // For contenteditable elements
-                    }                    
-                    const fieldID = event.target.id;
-                    const recordID = event.target.getAttribute('data-record-id');
-                    // Make an HTTP GET request to the server to update the database
-                    console.log("id4   ", fieldID, newValue, recordID)
-                    fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
-                        .then(response => {
-                            if (response.ok) {
-                                console.log('id9  Database updated successfully.');
-                            } else {
-                                throw new Error('Failed to update database.');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                        });
-                });
-            });
+ document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded - initializing editable elements");
+    
+    // Debounce variables
+    let isUpdating = false;
+    let lastUpdateTime = 0;
+    const DEBOUNCE_DELAY = 1000; // 1 second delay
+    
+    // Store original values for rollback
+    const originalValues = new Map();
+    
+    const editableElements = document.querySelectorAll('.editable');
+    
+    editableElements.forEach(function(element) {
+        // Store initial values
+        if (element.tagName === "SELECT") {
+            originalValues.set(element, element.value);
+        } else if (element.type === "checkbox") {
+            originalValues.set(element, element.checked);
+        } else {
+            originalValues.set(element, element.textContent);
+        }
+        
+        element.addEventListener('dblclick', function(event) {
+            if (isUpdating) return;
+            
+            console.log("Double-click detected on editable element");
+            event.preventDefault();
+            event.target.contentEditable = true;
+            event.target.focus();
         });
+        
+        element.addEventListener('blur', async function(event) {
+            const now = Date.now();
+            if (isUpdating ) {      //   if (isUpdating || (now - lastUpdateTime) > DEBOUNCE_DELAY) { 
+                console.log("id2   Debounced blur event ignored");
+                resetToOriginalValue(event.target);
+                return;
+            }
+            
+            isUpdating = true;
+            lastUpdateTime = now;
+            
+            try {
+                console.log("id1   Processing blur event on editable element");
+                
+                let newValue;
+                const target = event.target;
+                
+                // Store current value for potential rollback
+                if (target.tagName === "SELECT") {
+                    originalValues.set(target, target.value);
+                } else if (target.type === "checkbox") {
+                    originalValues.set(target, target.checked);
+                } else {
+                    originalValues.set(target, target.textContent);
+                }
+                
+                // Determine new value
+                if (target.tagName === "SELECT") {
+                    newValue = target.value;
+                } else if (target.type === "checkbox") {
+                    newValue = target.checked ? 'complete' : 'pending';
+                } else {
+                    newValue = target.textContent;
+                    target.contentEditable = false; // Disable editing
+                }
+                
+                const fieldID = target.id;
+                const recordID = target.getAttribute('data-record-id');
+                
+                console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
+                
+                const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                console.log('id9    Update successful');
+                
+                // Update stored original value on success
+                if (target.tagName === "SELECT") {
+                    originalValues.set(target, target.value);
+                } else if (target.type === "checkbox") {
+                    originalValues.set(target, target.checked);
+                } else {
+                    originalValues.set(target, target.textContent);
+                }
+                
+            } catch (error) {
+                console.error('id8     Update failed:', error);
+                resetToOriginalValue(event.target);
+            } finally {
+                isUpdating = false;
+            }
+        });
+    });
+    
+    function resetToOriginalValue(element) {
+        console.log("rr1    Resetting to original value");
+        const originalValue = originalValues.get(element);
+        
+        if (element.tagName === "SELECT") {
+            element.value = originalValue;
+        } else if (element.type === "checkbox") {
+            element.checked = originalValue;
+        } else {
+            element.textContent = originalValue;
+            element.contentEditable = false;
+        }
+        
+        // Dispatch change event to ensure UI updates
+        const event = new Event('change');
+        element.dispatchEvent(event);
+    }
+});
+
 
 // Add event listener for the file upload
 document.addEventListener("DOMContentLoaded", function () {
