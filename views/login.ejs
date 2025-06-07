@@ -1,43 +1,53 @@
 <%- include('partials/header') %>
 
-  <div class="container mt-5">
-    <h1>Login</h1>
 
-    <div class="row">
-      <div class="col-sm-8">
-        <div class="card">
-          <div class="card-body">
+<div class="container mt-3 mt-md-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 p-md-5">
+          <h1 class="h3 mb-4 text-center">Login</h1>
+          
+          <!-- Login Form -->
+          <form action="/login" method="POST">
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control form-control-lg" 
+                     id="email" name="username" 
+                     placeholder="bsmi5622@gmail.com" 
+                     value="bsmi5622@gmail.com"
+                     required>
+            </div>
+            
+            <div class="mb-4">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" class="form-control form-control-lg" 
+                     id="password" name="password" 
+                     placeholder="Enter your password"
+                     autofocus
+                     required>
+            </div>
+            
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-dark btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+              </button>
+            </div>
+          </form>
 
-            <!-- Makes POST request to /login route -->
-            <form action="/login" method="POST">
-              <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" class="form-control" name="username" value="john@buildingbb.com.au">
-              </div>
-              <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" class="form-control" name="password" autofocus="true" >
-              </div>
-              <button type="submit" class="btn btn-dark">Login</button>
-            </form>
-
-          </div>
+          <!-- Optional Social Login (uncomment when needed) -->
+          <!-- <div class="mt-4 pt-3 border-top">
+            <p class="text-center text-muted mb-3">Or sign in with</p>
+            <div class="d-grid gap-2">
+              <a href="/auth/google" class="btn btn-outline-danger">
+                <i class="fab fa-google me-2"></i>Google
+              </a>
+            </div>
+          </div> -->
         </div>
       </div>
-<!-- 
-      <div class="col-sm-4">
-        <div class="card">
-          <div class="card-body">
-            <a class="btn btn-block" href="/auth/google" role="button">
-              <i class="fab fa-google"></i>
-              Sign In with Google
-            </a>
-          </div>
-        </div>
-      </div> -->
-
     </div>
   </div>
+</div>
 
-  <%- include('partials/footer') %>
-  login.ejs
+<%- include('partials/footer') %>
