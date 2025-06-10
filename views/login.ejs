@@ -15,7 +15,6 @@
               <input type="email" class="form-control form-control-lg" 
                      id="email" name="username" 
                      placeholder="bsmi5622@gmail.com" 
-                     value="bsmi5622@gmail.com"
                      required>
             </div>
             
@@ -40,5 +39,33 @@
     </div>
   </div>
 </div>
+
+<!-- Login Form -->
+<form action="/login" method="POST">
+  <div class="mb-3">
+    <label for="email" class="form-label">Email</label>
+    <input type="email" class="form-control form-control-lg" 
+           id="email" name="username" 
+           placeholder="bsmi5622@gmail.com" 
+           required>
+  </div>
+</form>
+
+<script>
+  // Check for saved email when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail) {
+      document.getElementById('email').value = savedEmail;
+    }
+  });
+
+  // Save email when form is submitted
+  document.querySelector('form').addEventListener('submit', function() {
+    const emailInput = document.getElementById('email');
+    localStorage.setItem('rememberedEmail', emailInput.value);
+  });
+</script>
+
 
 <%- include('partials/footer') %>
