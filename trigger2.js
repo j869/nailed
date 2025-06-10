@@ -222,7 +222,9 @@ async function handleTrigger(triggerData) {
 
 async function updateJobsAt6pm() {
     const now = new Date();
-    console.log(`\x1b[32mre21     updateJobsAt6pm() STARTING at ${now} \x1b[0m`, process.env.PG_DATABASE);
+    // console.log(`\x1b[32mre21     updateJobsAt6pm() STARTING at ${now} on database \x1b[0m `, process.env.PG_DATABASE);
+    const pad2 = n => String(n).padStart(2, '0');
+    console.log(`\x1b[32mre21     updateJobsAt6pm() STARTING at ${now.toISOString().split('T')[0]} ${pad2(now.getHours())}:${pad2(now.getMinutes())} on database\x1b[0m`, process.env.PG_DATABASE);
     const options = {
         timeZone: 'Australia/Melbourne',
         hour: '2-digit',
@@ -236,7 +238,6 @@ async function updateJobsAt6pm() {
     // Parse the Melbourne time to get hours, minutes, and seconds
     const [time, period] = melbourneTime.split(' ');
     let [hours, minutes, seconds] = time.split(':').map(Number);
-    console.log(`\x1b[32mre31     Current time: ${hours}:${minutes}:${seconds}\x1b[0m`);
 
     // Convert to 24-hour format if necessary
     if (period === 'PM' && hours !== 12) {
@@ -256,17 +257,18 @@ async function updateJobsAt6pm() {
 
     const millisecondsUntil6PM = (hoursUntil6PM * 60 * 60 + minutesUntil6PM * 60 + secondsUntil6PM) * 1000;
 
-    console.log(`\x1b[32mre61    Starting trigger2.js    \x1b[0m]`);
-    console.log(`\x1b[32mre62     - Current time: ${now} \x1b[0m]`);
-    // console.log(`re6    Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds`);
+    console.log(`\x1b[32mre61    Starting trigger2.js    \x1b[0m`);
     console.log(`\x1b[32mre63     - Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds\x1b[0m`);
 
     setTimeout(async () => {
         await getNextTasks();
         console.log("\x1b[32mre64   Task executed at 6 PM. Scheduling for the next day...\x1b[0m");
 
+
         // Calculate the time until 6 PM the next day
         const nowNextDay = new Date();
+        // console.log(`\x1b[32mre65     - Current date: ${nowNextDay.toISOString().split('T')[0]} ${nowNextDay.getHours()}:${nowNextDay.getMinutes()}:${nowNextDay.getSeconds()}\x1b[0m`);
+        console.log(`\x1b[32mre65     - Current date: ${nowNextDay.toISOString().split('T')[0]} ${pad2(nowNextDay.getHours())}:${pad2(nowNextDay.getMinutes())} `);
         nowNextDay.setDate(nowNextDay.getDate() + 1); // Move to the next day
         const currentHourNextDay = nowNextDay.getHours();
         const currentMinuteNextDay = nowNextDay.getMinutes();
