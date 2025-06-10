@@ -105,7 +105,8 @@ app.get("/", async (req, res) => {
     // Parse the JSON data and extract task_id, build_id, and job_id for each object
     const parsedData = [];
     for (const row of q1.rows) {
-      const description = JSON.parse(row.description || null); // Parse as null if row.description is empty or not valid
+      console.log("ws26     processing row: ", row.id, row.description);
+      const description = JSON.parse(row.description || null);         // Parse as null if row.description is empty or not valid
 
       // Format date to yyyy-mm-dd
       const dateObj = new Date(row.date);
@@ -2246,28 +2247,24 @@ app.get("/update", async (req,res) => {
         columnName = "date"
         value =  newValue ;
         console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);        
-        try {  
-          const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
-          // console.log('ufg00077');
-          const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
-        } catch (error) {
-            console.error("ufg442  Error updating date:", error);
-            res.status(500).send("Error updating date");
-        }
-        if (a2.rows.length > 0 && a2.rows[0].description !== null) {
-          try {
-                const descriptionJson = JSON.parse(a2.rows[0].description);
-                const taskId = descriptionJson.task_id;
-                console.log("ufg442   update tasks set target_date = " + value);
-                const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
-                // console.log('ufg443');
-            } catch (error) {
-                console.error("ufg443  Error parsing JSON:", error);
-                
+          try {  
+            const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
+            // console.log('ufg00077');
+            const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
+            if (a2.rows.length > 0 && a2.rows[0].description !== null) {
+              const descriptionJson = JSON.parse(a2.rows[0].description);
+              const taskId = descriptionJson.task_id;
+              console.log("ufg442   update tasks set target_date = " + value);
+              const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
+              // console.log('ufg443');
             }
-        } else {
-            console.log("ufg444     Description is null or no record found, breaking out.");
-        }      
+          } catch (error) {
+              console.error("ufg442  Error updating date:", error);
+              res.status(500).send("Error updating date");
+          }
+        // } else {
+        //     console.log("ufg444     Description is null or no record found, breaking out.");
+        // }      
                   
         res.status(200).send("Update successful");
         break;

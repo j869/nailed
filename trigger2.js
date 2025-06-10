@@ -98,6 +98,49 @@ async function handleTrigger(triggerData) {
     }
   }
 
+
+  async function getNextTasks2() {
+    console.log("gnf1    new get next tasks")
+    const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
+    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending';");
+
+    for (const job of pendingJobs.rows) {
+      try {
+        console.log("gnf2   processing job ", job.id, job.current_status, job.build_id, job.display_text, job.user_id)
+        let writeRecord = true;
+        const title = job.display_text;
+        const desc = job.description ? job.description : '{"message" : "No description provided"}';
+        let user_id;
+        let targetDate;
+        if (job.user_id) {
+          user_id = job.user_id;
+        } else {
+          console.log("gnf28    no user provided")
+          writeRecord = false;
+          const q3 = await pool.query("update jobs SET change_log = change_log || ',gnf28  missing responsible user' ")
+        }
+        
+        if (job.target_date) {
+          targetDate = job.target_date 
+        } else {
+          console.log("gnf38    target date was not provided")
+          writeRecord = false;
+          const q3 = await pool.query("update jobs SET change_log = change_log || ',gnf38  missing target date' ")
+        }
+        if (writeRecord) {
+          const q2 = await pool.query(`
+          INSERT INTO worksheets (title, description, user_id, date)
+          VALUES ($1, $2, $3, $4);
+          `, ["Job("+job.id+") " + title, desc, user_id, targetDate]);
+          console.log("gnf9      ", q2.rowCount + " rows inserted into worksheets for user_id: ", user_id);
+        }
+      } catch {
+        console.log("gnf8    failed on job" + job.id)
+      }
+    }
+
+  }
+
   async function getNextTasks() {
     try {
         console.log("gnt1    STARTING on DB ", process.env.PG_DATABASE);
@@ -171,7 +214,7 @@ async function handleTrigger(triggerData) {
     const currentMinute = now.getMinutes();
     const currentSecond = now.getSeconds();
     
-        await getNextTasks();
+        await getNextTasks2();
 
   }
   
