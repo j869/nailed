@@ -102,7 +102,7 @@ async function handleTrigger(triggerData) {
   async function getNextTasks2() {
     console.log("gnf1    new get next tasks")
     const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
-    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending' ";");
+    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending';");
 
     for (const job of pendingJobs.rows) {
       try {
@@ -115,7 +115,7 @@ async function handleTrigger(triggerData) {
         if (job.user_id) {
           user_id = job.user_id;
         } else {
-          const q1 = await pool.query("SELECT job_id from tasks WHERE id = $1", [job.build_id]);
+          // const q1 = await pool.query("SELECT job_id from tasks WHERE id = $1", [job.build_id]);
           console.log("gnf28    no user provided")
           writeRecord = false;
           const q3 = await pool.query("update jobs SET change_log = change_log || ',gnf28  missing responsible user' ")
