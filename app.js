@@ -75,7 +75,7 @@ app.post("/", async (req, res) => {
     "task_text": "Design Site plan",
     "task_target": null,
     "task_completed": null,
-    "task_status": "pending"
+    "task_status": null
   }
   
   const q2 = await db.query("INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4) RETURNING id", [title, null, person, date]);
@@ -1192,7 +1192,7 @@ try {
         newStatus = 'complete';
     } else {
         newCompleteDate = null;  
-        newStatus = 'pending';
+        newStatus = null;     //'pending';
     }
     newCompleteBy = req.user.id || 1;
 
