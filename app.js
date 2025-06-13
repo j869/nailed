@@ -2011,7 +2011,7 @@ app.get("/update", async (req,res) => {
         }
         break;
       case "taskStatus":
-        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        // console.log("    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
         table = "tasks";
         columnName = "current_status"
         value = newValue;
@@ -2281,7 +2281,7 @@ app.get("/update", async (req,res) => {
         }
         break;      
       case "jobOrder":
-        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        // console.log("    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
         table = "jobs";
         columnName = "sort_order"
         value = newValue;
@@ -2294,7 +2294,7 @@ app.get("/update", async (req,res) => {
         }
         break;
       case "jobPerson":
-        // console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        // console.log("    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
         table = "jobs";
         columnName = "user_id"
         value = newValue;
@@ -2307,7 +2307,7 @@ app.get("/update", async (req,res) => {
         }
         break;
       case "jobStatus":
-        console.log("ufg44    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
+        console.log("ufg44    changing job status " );
         table = "jobs";
         columnName = "current_status"
         value = newValue;
@@ -2332,44 +2332,35 @@ app.get("/update", async (req,res) => {
         
         //#endregion
         //#region --- VALIDATIONS ---
-        console.log("ufg4610     check validations for job status change");
+        console.log("ufg4610     no validations for job status change");
         //#endregion
         //#region --- MODIFICATIONS ---
-        console.log("ufg4660     check job record for actions triggered because this job changed");
         const q6 = await db.query("SELECT change_array from jobs where id = $1", [rowID]);
         if (q6.rows.length > 0) {
-          console.log("ufg4661     job record found for job_id: " + rowID);
           const changeArray = q6.rows[0].change_array;
           if (changeArray) {
             try {
-              const changeArrayJson = JSON.parse(changeArray);
-              console.log("ufg4664     change_array for job_id: " + rowID + " - ", changeArrayJson);
-              if (changeArrayJson.on_me_status === "completed" && newValue === "complete") {
-                for (const action of changeArrayJson.actions) {
-                  if (action.set_job_status) {
-                    value = action.set_job_status ? '' : null;
-                    console.log(`ufg4665     Setting status of job(${action.for_job_id}) to ${value} `);
-                    const updateStatus = await db.query(
-                      "UPDATE jobs SET current_status = $1 WHERE id = $2",
-                      [value, action.for_job_id]
-                    );
-                  }
-                  if (action.log_trigger) {
-                    console.log(`ufg4667     Logging trigger for job(${rowID}): ${action.log_trigger}`);
-                    //append to jobs.change_log column as an array. include a date and user
-                    const logTrigger = await db.query(
-                      "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
-                      [`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, rowID]
-                    );
-                  }
-                }
+              //#region internal actions on mother job - on every save
+              console.log("ufg4661     found job(" + rowID + ") has [" + q6.rows.length + "] modifications every time it gets updated: \x1b[90m", changeArray, "\x1b[0m");
+              q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
+              // execute the action
+              if (q && q.status === 200) {
+                console.log("ufg4666     job action executed successfully: ", action);
+              } else {
+                console.error("ufg4667     Error executing job action: ", action, " - ", q.status, q.statusText);
               }
+                
+              //#endregion
+              //#region flow actions - when mother job status changes
+              //#endregion
+              //#region recursive actions on job process flow tree
+              //#endregion
             } catch (error) {
               console.error("ufg4668     Error processing job actions:", error);
-              res.status(500).send("Update failed: " + error.message);
+              // res.status(500).send("Update failed: " + error.message);
             }
           } else {
-            console.log("ufg4668     No change_array found for job_id: " + rowID);
+            console.log("ufg4698     job(" + rowID + ") has no actions: ", changeArray);
           }
         } else {
           console.log("ufg4669     No job record found for job_id: " + rowID);
@@ -2393,7 +2384,14 @@ app.get("/update", async (req,res) => {
             try {
               // flowAction ? flowAction : `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;
               console.log("ufg4591     Processing job_process_flow ", flowAction);
-              const flowActionJson = JSON.parse(flowAction.trim());
+              let flowActionJson;
+              try {
+                flowActionJson = JSON.parse(flowAction.trim());
+              } catch (error) {
+                console.error("ufg45908     Error parsing flowAction JSON: ", error);
+                flowAction = `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;;
+                flowActionJson = JSON.parse(flowAction.trim());
+              }
               console.log("ufg4592     flowActionJson for job_id: " + rowID + " - ", JSON.stringify(flowActionJson, null, 2));
               for (const flowRule of flowActionJson) {
                 console.log("ufg4593     Checking flowRule: ", flowRule);
@@ -2438,8 +2436,8 @@ app.get("/update", async (req,res) => {
 
          
             } catch (error) {
-              console.error("ufg461     Error processing job_process_flow actions:", error);
-              res.status(500).send("Update failed: " + error.message);   
+              console.error("ufg4618     Error processing job_process_flow actions:", error);
+              
             }
 
           }
@@ -2448,7 +2446,7 @@ app.get("/update", async (req,res) => {
         }
         //#endregion
         //#region --- NOTIFICATIONS ---
-        console.log("ufg4710     check notifications for actions triggered by job status change");
+        console.log("ufg4710     no notifications for actions triggered by job status change");
         //#endregion
         res.status(200).send("Update successful");   
         break;

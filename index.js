@@ -774,6 +774,72 @@ app.get("/jobDone/:id", async (req,res) => {
 // })
 
 
+app.get("/executeJobAction", async (req, res) => {
+                  // execute the action
+
+  try {
+    const parentID = req.query.origin_job_id || null;
+    const changeArrayJson = JSON.parse(req.query.changeArray);
+    const jobRec = await pool.query("SELECT id, current_status FROM jobs WHERE id = $1", [parentID]);
+    if (jobRec.rows.length === 0) {
+      console.error("ufg4663     Job not found for job_id:", parentID);
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+    const parentStatus = jobRec.rows[0].current_status;
+    for (const scenario of changeArrayJson) {
+      // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
+      console.log("ufg4662     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
+      if (scenario.antecedent === parentStatus) {    
+        for (const action of scenario.decendant) {
+          let jobID;
+          let value;
+          if (action.status) {
+            jobID = action.status.split("@")[1] ; 
+            value = action.status.split("@")[0];
+            console.log(`ja4665           ...set job(${jobID}) status to ${value} `, action);
+            const updateStatus = await pool.query(
+              "UPDATE jobs SET current_status = $1 WHERE id = $2",
+              [value, jobID]
+            );
+          } else if (action.target) {
+            jobID = action.target.split("@")[1] ; 
+            value = action.target.split("@")[0];
+            if (action.target.startsWith("today")) {
+              const today = new Date();
+              // console.log(`ufg4666          `, today.toISOString().split('T')[0]);
+              const daysToAdd = parseInt(value.split("_")[1], 10) || 0;
+              today.setDate(today.getDate() + daysToAdd);
+              // console.log(`ufg4666          `, daysToAdd);
+              value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
+              // console.log(`ufg4666           `, value);
+              console.log(`ja4666           ...set job(${jobID}) target date to ${value} `, action);
+              const updateStatus = await pool.query(
+                "UPDATE jobs SET target_date = $1 WHERE id = $2",
+                [value, jobID]
+            );                    }
+          } else if (action.log_trigger) {
+            console.log(`ja4667           ...add to change_log for job(${parentID}) `, action.log_trigger);
+            const logTrigger = await pool.query(
+              "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
+              [`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, jobID]
+            );
+          } else {
+            console.log("ja4668           ...I dont know what to do with ", action);
+          
+          }
+        }
+      }
+    }
+    return res.status(200).json({ msg: 'Job action executed successfully' });
+  } catch (error) {
+    console.error('ja8    Error executing job action:', error);
+    return res.status(500).json({ error: 'Failed to execute job action' });
+  }
+});
+
+
+
+
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
