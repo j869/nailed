@@ -1326,7 +1326,7 @@ export async function createDecendantsForJob(jobID, pool, thisJobOnly = false ) 
       // TASKS   ------- read tasks from template file
       const q4 = await pool.query(`
                                       INSERT INTO tasks (display_text, free_text, job_id, current_status, owned_by, task_template_id, precedence, sort_order)
-                                      SELECT display_text, free_text, ${jobID}, 'pending', owned_by, id, precedence, sort_order
+                                      SELECT display_text, free_text, ${jobID}, null, owned_by, id, precedence, sort_order
                                       FROM task_templates
                                       WHERE job_template_id = ${oldJob.job_template_id} RETURNING id, task_template_id;`
       );      
@@ -1359,7 +1359,7 @@ export async function createDecendantsForJob(jobID, pool, thisJobOnly = false ) 
                     null, 
                     rt.title,
                     rt.body,
-                    'pending',           -- Default status
+                    null,           
                     rt."trigger",
                     rt.medium,
                     1,                   -- Assuming a default creator
