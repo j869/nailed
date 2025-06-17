@@ -780,12 +780,14 @@ app.get("/executeJobAction", async (req, res) => {
   try {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
-    const jobRec = await pool.query("SELECT id, current_status FROM jobs WHERE id = $1", [parentID]);
+    const jobRec = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ufg4663     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
+
     const parentStatus = jobRec.rows[0].current_status;
+    const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
       // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
       console.log("ufg4662     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
@@ -812,11 +814,14 @@ app.get("/executeJobAction", async (req, res) => {
               // console.log(`ufg4666          `, daysToAdd);
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
               // console.log(`ufg4666           `, value);
-              console.log(`ja4666           ...set job(${jobID}) target date to ${value} `, action);
-              const updateStatus = await pool.query(
-                "UPDATE jobs SET target_date = $1 WHERE id = $2",
-                [value, jobID]
-            );                    }
+              console.log(`ja4667           ...set job(${jobID}) target date to ${value} for user(${userID})`, action);
+              const updateStatus = await pool.query("UPDATE jobs SET target_date = $1 WHERE id = $2 ", [value, jobID]);
+              const q = await pool.query("SELECT id, user_id FROM jobs WHERE id = $1", [jobID]);
+              if (q.rowCount || q.rows[0].user_id)  {
+                console.log(`ja4668         defaulting pending jobID(${jobID}) user_id to ${userID} because it was `, q.rows[0].user_id ? q.rows[0].user_id : "null");
+                const updateUser = await pool.query("UPDATE jobs SET user_id = $1 WHERE id = $2 ", [userID, jobID]);
+              }
+            }
           } else if (action.log_trigger) {
             console.log(`ja4667           ...add to change_log for job(${parentID}) `, action.log_trigger);
             const logTrigger = await pool.query(

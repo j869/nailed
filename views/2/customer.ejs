@@ -238,7 +238,7 @@
                                                                                                                             <th>Free Text</th>
                                                                                                                             <th>Target Date</th>
                                                                                                                             <th>Completed Date</th>
-                                                                                                                            <th>Completed By</th>
+                                                                                                                            <th>User</th>
                                                                                                                             <th>Change Log</th>
                                                                                                                             <th>Actions</th>
                                                                                                                         </tr>
@@ -253,7 +253,7 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>"><%= task.completed_by_person %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>"><%= task.owned_by %></td>
                                                                                                                                     <td>ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
