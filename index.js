@@ -1295,10 +1295,10 @@ app.get("/addjob", async (req, res) => {
           // let decendantID = t.decendant_array;
           let jobChangeArray = t.job_change_array ;
           let flowChangeArray = t.flow_change_array ;
-          console.log("a814     ");
+          // console.log("a814     ");
 
           try {
-            console.log("a816     ");
+            // console.log("a816     ");
             const result = await pool.query(`INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES 
                                                                ($1,           $2,             $3,       $4,          $5,         $6,       $7,           $8,         $9,     $10) RETURNING id;`, 
                                                                [title,        tempID,          buildID, prodID,      remID,       userID, createdAt,      sortOrder, tier, jobChangeArray]);
@@ -1315,10 +1315,12 @@ app.get("/addjob", async (req, res) => {
               const result2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
               console.log("a822        ....added flowID:", result2.rows);
             }
-            console.log("a824     ");
-            if (tier = 500) {
+            // console.log("a824     tier" + tier );
+            if (tier == 500) {
               parentJobID = newJobID; // This is the parent job ID for the next iteration
+              console.log("a825    updating parent "  );
             }
+            // console.log("a826     parentJobID_" + parentJobID );
           } catch (error) {
             console.error("a8081     Error inserting new job:", error);
           }
