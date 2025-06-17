@@ -100,43 +100,23 @@ async function handleTrigger(triggerData) {
 
 
   async function getNextTasks2() {
-    console.log("gnf1    new get next tasks")
+    console.log("gnf1    new get next tasks gangnam style")
     const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
-    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending';");
+    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending' order by build_id, sort_order;");
 
     for (const job of pendingJobs.rows) {
       try {
-        console.log("gnf2   processing job ", job.id, job.current_status, job.build_id, job.display_text, job.user_id)
+        console.log("gnf2   processing build("+job.build_id+") - adding "+job.current_status+" job(" + job.id + ") to user("+ job.user_id +") dayTask list:", job.display_text, )
         let writeRecord = true;
         const title = job.display_text;
-        const desc = job.description ? job.description : '{"message" : "No description provided"}';
-        let user_id;
-        let targetDate;
-        if (job.user_id) {
-          user_id = job.user_id;
-        } else {
-          // const q1 = await pool.query("SELECT job_id from tasks WHERE id = $1", [job.build_id]);
-          console.log("gnf28    no user provided")
-          writeRecord = false;
-          const q3 = await pool.query("update jobs SET change_log = change_log || ',gnf28  missing responsible user' ")
-        }
-        
-        if (job.target_date) {
-          targetDate = job.target_date 
-        } else {
-          console.log("gnf38    target date was not provided")
-          writeRecord = false;
-          const q3 = await pool.query("update jobs SET change_log = change_log || ',gnf38  missing target date' ")
-        }
-        if (writeRecord) {
-          const q2 = await pool.query(`
-          INSERT INTO worksheets (title, description, user_id, date)
-          VALUES ($1, $2, $3, $4);
-          `, ["Job("+job.id+") " + title, desc, user_id, targetDate]);
-          console.log("gnf9      ", q2.rowCount + " rows inserted into worksheets for user_id: ", user_id);
-        }
+        const desc = job.description ? job.description : '';
+        let user_id = job.user_id || 1; // Default to system admin if no user_id is provided
+        let targetDate = job.target_date || new Date(); // Default to current date if no target_date is provided
+
+        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4);`, ["Job("+job.id+") " + title, desc, user_id, targetDate]);
+        console.log("gnf9      ", q2.rowCount + " rows inserted into worksheets for user_id: ", user_id);
       } catch {
-        console.log("gnf8    failed on job" + job.id)
+        console.log("gnf8    failed on job(" + job.id + ")")
       }
     }
 
@@ -215,7 +195,7 @@ async function handleTrigger(triggerData) {
     const currentMinute = now.getMinutes();
     const currentSecond = now.getSeconds();
     
-        await getNextTasks();
+        await getNextTasks2();
 
   }
   
