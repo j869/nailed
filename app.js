@@ -983,31 +983,7 @@ app.get("/customers", async (req, res) => {
       });
       return;
 
-      let allCustomers = result.rows;
-      let status = {};
-      let openCustomers = [];
-      let closedCustomers = [];
-      for (let i in result.rows) {
-        try {
-          status = JSON.parse(result.rows[i].current_status).category;
-        } catch (err) {
-          status = result.rows[i].current_status
-        }
-        console.log("a5   ", status, i);
-        if (status === "closed") {
-          closedCustomers.push(result.rows[i]);
-        } else {
-          openCustomers.push(result.rows[i]);
-        }
-      }
-      allCustomers = {open : openCustomers, closed : closedCustomers};
-      
-      // Render the search results page or handle them as needed
-      //res.render("searchResults.ejs", { results: searchResults });
-      res.render("listCustomers.ejs", {
-        user : req.user,
-        data : allCustomers
-      });
+     
 
     } catch (err) {
       console.error(err);
@@ -1225,22 +1201,28 @@ try {
 //#region builds
 
 app.post("/addBuild", async (req, res) => {
-  console.log("e1       action: add");
-  console.log("e2        AddingBuild for customer_" + req.body.customer_id)
-  let productID = req.body.product_id;
   
   if (req.isAuthenticated()) {
     try {
-      const result = await db.query(
-        "INSERT INTO builds (customer_id, product_id, enquiry_date) VALUES ($1, $2, $3::timestamp) RETURNING *",
-        [req.body.customer_id, req.body.product_id, req.body.enquiry_date]
-      );
+      let custID = parseInt(req.body.customer_id);
+      let productID = req.body.product_id;
+      let custAddress;
+      console.log("e1       USER("+req.user.id+") is adding a workflow to build() for cust(" + custID + ")", req.body);
+
+      const cust = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      if (cust.rows.length === 0) {
+        custAddress = cust.rows[0].home_address ;
+        console.log("e12       customer address: ", custAddress);
+      }
+
+      const result = await db.query("INSERT INTO builds (customer_id, product_id, enquiry_date, site_address) VALUES ($1, $2, $3::timestamp, $4) RETURNING *", [req.body.customer_id, req.body.product_id, req.body.enquiry_date, custAddress]);
       const newBuild = result.rows[0];    
+      const buildID = newBuild.id;
 
       //start workflow
-      console.log("e3        adding the original job for the build(" + result.rows[0].id + ")");
-      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${newBuild.id}`);     //&product_id=${req.body.product_id}`);
-      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, result.rows[0].id ])
+      console.log("e3        adding the original job for the build(" + buildID + ")");
+      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${buildID}`);     //&product_id=${req.body.product_id}`);
+      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
 
       res.redirect("/jobs/" + response.data.id);
           
@@ -1248,6 +1230,8 @@ app.post("/addBuild", async (req, res) => {
       console.log(err);  
     }  
     //res.redirect("/customer/" + req.body.customer_id);
+  } else {
+    res.redirect("/login");
   }
 });
 

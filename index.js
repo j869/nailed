@@ -1036,9 +1036,9 @@ app.get("/deltask", async (req, res) => {
 
 app.get("/addjob", async (req, res) => {
   // the following are the supported ways of adding a job...
-  // parent: add a job and attach it as an antecedent of the job you're looking at
-  // child: add a decendant
-  // origin: add the first job on a build.  This triggers building out the entire process, based on the job_template table
+  //     parent: add a job and attach it as an antecedent of the job you're looking at
+  //     child: add a decendant
+  //     origin: add the first job on a build.  This triggers building out the entire workflow, based on the job_template table
 
   console.log("a001   USER is adding a new job", req.query);
   const title = req.query.title || 'UNNAMED';
@@ -1195,7 +1195,7 @@ app.get("/addjob", async (req, res) => {
 
         // console.log("a41     based on template ", q1.rows[0]);
         console.log("a49     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " ")        
-    } else if (precedence == "origin") {
+    } else if (precedence == "origin_old") {
         console.log("a50    new job is a new workflow for build("+ buildID +") ");
         //pull down the build record.  What kind of build? garage or hay shed?
         const q2 = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
@@ -1252,6 +1252,80 @@ app.get("/addjob", async (req, res) => {
           console.log("3925789 process will fail because newJobID has not been set")
         }
         
+    } else if (precedence == "origin") {
+        console.log("a80    new job is a new workflow for build("+ buildID +") ");
+        //pull down the build record.  What kind of build? garage or hay shed?
+        const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
+        const productID = product.rows[0].product_id        ;
+        console.log("a801     " + productID)
+        
+        // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
+        const q = await pool.query("SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
+        let firstTemplateID = q.rows[0].id;
+        console.log("a805     firstTemplateID = " + firstTemplateID);
+
+        let template;
+        let firstJobID;
+        try {
+          template = await pool.query("SELECT * FROM job_templates WHERE product_id = $1 order by sort_order", [productID]);
+          if (template.rows.length === 0) {
+            console.error("a8061     No templates found for this product type.");
+          } else {
+            console.log("a8062     templates found: ", template.rows.length);
+            // console.table(template.rows);
+          }
+        } catch (error) {
+          console.error("a807     Error fetching template:", error);
+        }
+
+        let parentJobID;
+        console.log("a808     ");
+        for (const t of template.rows) {
+          console.log("a811     template: " + t.display_text);
+          // let buildID = buildID; 
+          let title = t.display_text ;
+          let userID = t.user_id || 1; 
+          let tempID = t.id;
+          let remID = t.reminder_id || 1;
+          let prodID = productID;
+          let createdAt = new Date().toISOString();
+          let sortOrder = t.sort_order;
+          let tier = t.tier;
+          // let antecedentID = t.antecedent_array;
+          // let decendantID = t.decendant_array;
+          let jobChangeArray = t.job_change_array ;
+          let flowChangeArray = t.flow_change_array ;
+          console.log("a814     ");
+
+          try {
+            console.log("a816     ");
+            const result = await pool.query(`INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES 
+                                                               ($1,           $2,             $3,       $4,          $5,         $6,       $7,           $8,         $9,     $10) RETURNING id;`, 
+                                                               [title,        tempID,          buildID, prodID,      remID,       userID, createdAt,      sortOrder, tier, jobChangeArray]);
+            let newJobID = result.rows[0].id;
+            console.log("a818     new job created with ID: " + newJobID + ": " + title + "[" + tier + "]");
+            // if (tempID === firstTemplateID) {
+            if (!firstJobID) {
+              console.log("a819     ");
+              firstJobID = newJobID; 
+            }
+
+            if (parentJobID) {
+              console.log("a820     create relationship for parent(", parentJobID, ") to child(", newJobID, " at [", tier ,"]");
+              const result2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
+              console.log("a822        ....added flowID:", result2.rows);
+            }
+            console.log("a824     ");
+            if (tier = 500) {
+              parentJobID = newJobID; // This is the parent job ID for the next iteration
+            }
+          } catch (error) {
+            console.error("a8081     Error inserting new job:", error);
+          }
+        }
+
+      console.log("a830     added workflow for build(" + buildID + ") starting with next_job", firstJobID);
+      newJobID = firstJobID
     } else {
       console.error("trying to evaluate " + precedence + " but expecting 'parent', 'child'.");
     }
