@@ -172,5 +172,5 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('17.00', '501', 4, 1, 483, null, 495, 12, 'Advise accounts to invoice');
 
 update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 4 and tier = 501 and decendant_array is not null;
-update public.job_templates set flow_change_array = null where product_id = 4;
+--update public.job_templates set flow_change_array = null where product_id = 4;
 
