@@ -1378,11 +1378,13 @@ export async function createDecendantsForJob(jobID, pool, thisJobOnly = false ) 
                 RETURNING * ;
             `, [task.task_template_id]);
 
-        console.log("c167   ", q5.rows[0]);
-        let reminderID = q5.rows[0].id
-        let reminderTemplateID= q5.rows[0].template_id
-        const triggerTemplate = q5.rows[0].trigger;     // example taskID(10)
-        console.log("c171    ", triggerTemplate);
+        if (q5.rowCount === 0) {
+          console.log("c167   ", q5.rows[0]);
+          let reminderID = q5.rows[0].id
+          let reminderTemplateID= q5.rows[0].template_id
+          const triggerTemplate = q5.rows[0].trigger;     // example taskID(10)
+          console.log("c171    ", triggerTemplate);
+        }
         try {
             // Extracting table, column, value, and modifier using regular expressions
             const match = triggerTemplate.match(/^(\w+)ID\((\d+)\)(\s*([+-]\s*\d+))?/);
