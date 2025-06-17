@@ -23,13 +23,12 @@ home.ejs
             <tr>
                 <td>
                     <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
-                        <button class="update btn btn-primary" type="submit" name="action" value="view" <%= data[i].customer_name ? "" : "disabled" %>>View</button>
+                        <button class="update btn btn-primary" type="submit" name="action" value="view" <%= data[i].build_id ? "" : "disabled" %>>View</button>
                     </form>
                 </td>
                 <td><%= data[i].id %></td>
-                <td><%= data[i].customer_name %></td>
-                <td><%= data[i].customer_address %></td>
                 <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= data[i].id %>"><%= data[i].title %></td>
+                <td><%= data[i].description %></td>
                 <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= data[i].id %>"><%= data[i].user_id %></td>
                 <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= data[i].id %>"><%= data[i].formatted_date %></td>
                 <td>

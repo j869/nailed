@@ -101,7 +101,7 @@ async function handleTrigger(triggerData) {
 
   async function getNextTasks2() {
     console.log("gnf1    new get next tasks gangnam style")
-    const q1 = await pool.query(`DELETE FROM worksheets where description is not null;`);
+    const q1 = await pool.query(`DELETE FROM worksheets where build_id is not null;`);
     const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending' order by build_id, sort_order;");
 
     for (const job of pendingJobs.rows) {
@@ -109,12 +109,17 @@ async function handleTrigger(triggerData) {
         console.log("gnf2   processing build("+job.build_id+") - adding "+job.current_status+" job(" + job.id + ") to user("+ job.user_id +") dayTask list:", job.display_text, )
         let writeRecord = true;
         const title = job.display_text;
-        const desc = job.description ? job.description : '';
+        const buildID = job.build_id || 0; // 0 is an error case - if this column is null then it is a user defined task and never updated
+        let desc = "unknown customer";
+        if (buildID !== 0) {
+          const custQuery = await pool.query("select c.id, c.full_name, c.home_address from builds b inner join customers c on b.customer_id = c.id where b.id = $1;", [job.build_id]);
+          desc = "Job(" + job.id + ") for " + custQuery.rows[0].full_name + "(" + custQuery.rows[0].id + ") at "+ custQuery.rows[0].home_address ;
+        }
         let user_id = job.user_id || 1; // Default to system admin if no user_id is provided
         let targetDate = job.target_date || new Date(); // Default to current date if no target_date is provided
 
-        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4);`, ["Job("+job.id+") " + title, desc, user_id, targetDate]);
-        console.log("gnf9      ", q2.rowCount + " rows inserted into worksheets for user_id: ", user_id);
+        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id) VALUES ($1, $2, $3, $4, $5);`, [title, desc, user_id, targetDate, buildID]);
+        console.log("gnf9                ", q2.rowCount, " rows inserted. ");
       } catch {
         console.log("gnf8    failed on job(" + job.id + ")")
       }

@@ -29,3 +29,8 @@ COMMENT ON COLUMN public.jobs.change_log IS 'Audit log of status changes (consid
 ALTER TABLE jobs
 ALTER COLUMN completed_by TYPE integer USING completed_by::integer;
 
+
+ALTER TABLE worksheets add COLUMN build_id int;
+COMMENT ON COLUMN public.worksheets.build_id IS 'if null then this task is user defined and has no customer build';
+
+

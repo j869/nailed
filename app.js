@@ -94,63 +94,66 @@ app.get("/", async (req, res) => {
     let q1SQL = "";
     let q1Params = [req.user.id];
     if (iViewDay == 0) {
-      q1SQL = "SELECT * FROM worksheets WHERE user_id = $1 AND date <= NOW()::date ORDER BY id";
+      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date <= NOW()::date ORDER BY id";
     } else {
-      q1SQL = "SELECT * FROM worksheets WHERE user_id = $1 AND date = (NOW()::date + $2 * INTERVAL '1 day') ORDER BY id"
+      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date = (NOW()::date + $2 * INTERVAL '1 day') ORDER BY id"
       q1Params.push(iViewDay);
     } 
     const q1 = await db.query(q1SQL, q1Params);    
     console.log("ws25     tasks to do today: ", q1.rowCount);
+    const taskList = q1.rows;
 
-    // Parse the JSON data and extract task_id, build_id, and job_id for each object
-    const parsedData = [];
-    for (const row of q1.rows) {
-      console.log("ws26     processing row: ", row.id, row.description);
-      const description = JSON.parse(row.description || null);         // Parse as null if row.description is empty or not valid
+    if (false) {
+      const parsedData = [];
+      // Parse the JSON data and extract task_id, build_id, and job_id for each object
+      for (const row of q1.rows) {
+        console.log("ws26     processing row: ", row.id, row.description);
+        const description = JSON.parse(row.description || null);         // Parse as null if row.description is empty or not valid
 
-      // Format date to yyyy-mm-dd
-      const dateObj = new Date(row.date);
-      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
-      
-      // Create the base rowData object
-      const rowData = {
-        ...row,
-        task_id: null,
-        task_status: null,
-        build_id: null,
-        job_id: null,
-        customer_name: null,
-        customer_address: null,
-        formatted_date: formattedDate,
-      };
+        // Format date to yyyy-mm-dd
+        const dateObj = new Date(row.date);
+        const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+        
+        // Create the base rowData object
+        const rowData = {
+          ...row,
+          task_id: null,
+          task_status: null,
+          build_id: null,
+          job_id: null,
+          customer_name: null,
+          customer_address: null,
+          formatted_date: formattedDate,
+        };
 
-      if (description) {
-        // Perform a database query to fetch customer information
-        const q2 = await db.query(
-          "SELECT customers.id, customers.full_name, customers.home_address FROM builds LEFT JOIN customers ON builds.customer_id = customers.id WHERE builds.id = $1",
-          [description.build_id]
-        );
+        if (description) {
+          // Perform a database query to fetch customer information
+          const q2 = await db.query(
+            "SELECT customers.id, customers.full_name, customers.home_address FROM builds LEFT JOIN customers ON builds.customer_id = customers.id WHERE builds.id = $1",
+            [description.build_id]
+          );
 
-        // Extract customer name and address from the database result
-        const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
-        const { full_name, home_address } = customerInfo;
+          // Extract customer name and address from the database result
+          const customerInfo = q2.rows[0] || {}; // Use {} as a default value if customer not found
+          const { full_name, home_address } = customerInfo;
 
-        // Update rowData with the extracted values
-        rowData.task_id = description.task_id;
-        rowData.task_status = description.task_status;
-        rowData.build_id = description.build_id;
-        rowData.job_id = description.job_id;
-        rowData.customer_name = full_name;
-        rowData.customer_address = home_address;
-        rowData.formatted_date = formattedDate;
+          // Update rowData with the extracted values
+          rowData.task_id = description.task_id;
+          rowData.task_status = description.task_status;
+          rowData.build_id = description.build_id;
+          rowData.job_id = description.job_id;
+          rowData.customer_name = full_name;
+          rowData.customer_address = home_address;
+          rowData.formatted_date = formattedDate;
+        }
+
+        // Push the rowData to parsedData
+        parsedData.push(rowData);
       }
-
-      // Push the rowData to parsedData
-      parsedData.push(rowData);
     }
 
     // Pass the parsed data to the template
-    res.render("home.ejs", { baseURL: process.env.BASE_URL, view: iViewDay, user_id: req.user.id, data: parsedData });
+    res.render("home.ejs", { baseURL: process.env.BASE_URL, view: iViewDay, user_id: req.user.id, data: taskList });
 
   } else {
     console.log("ws1     navigated to HOME page ");
