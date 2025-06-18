@@ -1331,6 +1331,8 @@ app.get("/addjob", async (req, res) => {
                   const result3 = await pool.query("UPDATE jobs SET change_array = $1 WHERE id = $2 RETURNING id, change_array;", [parentChangeArray, antecedentJobID]);
                   console.log("a824        ....corrected changeArray", result3.rows);
                   antecedentJobID = null;
+              } else {
+                  console.log("a825     no changeArray to update for jobID: " + antecedentJobID);
               }
 
               if (tier == 500) {
