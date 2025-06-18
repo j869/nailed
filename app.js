@@ -550,7 +550,7 @@ let allCustomers = [];
             const allCustomers = await getBuildData(buildID);
             if (allCustomers.length === 0) {
               console.log("b2a      No jobs found for build("+buildID+")");
-              res.status(404).send("No jobs found for this build.");
+              res.redirect("/");
               return;
             }
             console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
@@ -607,7 +607,9 @@ let allCustomers = [];
       } catch (err) {
           console.log("b8   ");
           console.error(err);
-          res.status(500).send("Internal Server Error");
+          res.redirect("/");
+          return;
+          // res.status(500).send("Internal Server Error");
       }
   } else {
       console.log("b9   ");
