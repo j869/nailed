@@ -548,7 +548,7 @@ let allCustomers = [];
          
 
             const allCustomers = await getBuildData(buildID);
-            if allCustomers.length === 0) {
+            if (allCustomers.length === 0) {
               console.log("b2a      No jobs found for build("+buildID+")");
               res.status(404).send("No jobs found for this build.");
               return;
