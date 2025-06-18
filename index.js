@@ -1279,6 +1279,8 @@ app.get("/addjob", async (req, res) => {
         }
 
         let parentJobID;
+        let parentChangeArray = '';
+        let antecedentJobID;
         console.log("a808     ");
         for (const t of template.rows) {
           console.log("a811     template: " + t.display_text);
@@ -1291,39 +1293,58 @@ app.get("/addjob", async (req, res) => {
           let createdAt = new Date().toISOString();
           let sortOrder = t.sort_order;
           let tier = t.tier;
-          // let antecedentID = t.antecedent_array;
-          // let decendantID = t.decendant_array;
-          let jobChangeArray = t.job_change_array ;
+          let antecedentID = t.antecedent_array;
+          let decendantID = t.decendant_array;
+          let jobChangeArray = t.job_change_array;
           let flowChangeArray = t.flow_change_array ;
-          // console.log("a814     ");
+          console.log("a814     aID"+ antecedentID + ", dID: " + decendantID + ", jobChangeArray: " + jobChangeArray + ", flowChangeArray: " + flowChangeArray);
 
-          try {
-            // console.log("a816     ");
-            const result = await pool.query(`INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES 
-                                                               ($1,           $2,             $3,       $4,          $5,         $6,       $7,           $8,         $9,     $10) RETURNING id;`, 
-                                                               [title,        tempID,          buildID, prodID,      remID,       userID, createdAt,      sortOrder, tier, jobChangeArray]);
-            let newJobID = result.rows[0].id;
-            console.log("a818     new job created with ID: " + newJobID + ": " + title + "[" + tier + "]");
-            // if (tempID === firstTemplateID) {
-            if (!firstJobID) {
-              console.log("a819     ");
-              firstJobID = newJobID; 
-            }
-
-            if (parentJobID) {
-              console.log("a820     create relationship for parent(", parentJobID, ") to child(", newJobID, " at [", tier ,"]");
-              const result2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
-              console.log("a822        ....added flowID:", result2.rows);
-            }
-            // console.log("a824     tier" + tier );
-            if (tier == 500) {
-              parentJobID = newJobID; // This is the parent job ID for the next iteration
-              console.log("a825    updating parent "  );
-            }
-            // console.log("a826     parentJobID_" + parentJobID );
-          } catch (error) {
-            console.error("a8081     Error inserting new job:", error);
+          if (decendantID != null && jobChangeArray != null) {
+              // Replace all occurrences of @decendantID with a tag ... @decID
+              jobChangeArray = jobChangeArray.replace(new RegExp('@' + decendantID, 'g'), '@decID');
           }
+          
+          try {
+              console.log("a816     ", jobChangeArray);
+              const result = await pool.query(`INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES
+                                                                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;`,
+                                                                [title, tempID, buildID, prodID, remID, userID, createdAt, sortOrder, tier, jobChangeArray]);
+              let newJobID = result.rows[0].id;
+              console.log("a818     new job created with ID: " + newJobID + ": " + title + "[" + tier + "]");
+
+              if (!firstJobID) {
+                  console.log("a819     ");
+                  firstJobID = newJobID;
+              }
+
+              if (parentJobID) {
+                  console.log("a820     create relationship for parent(", parentJobID, ") to child(", newJobID, " at [", tier, "]");
+                  const result2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
+                  console.log("a822        ....added flowID:", result2.rows);
+              }
+
+              if (antecedentJobID != null && parentChangeArray != null) {
+                  console.log("a823     pointing changeArray " + parentChangeArray + " to jobID: @" + newJobID + " from @" + antecedentID);
+                  // Replace all occurrences of @decID with @newJobID
+                  parentChangeArray = parentChangeArray.replace(new RegExp('@decID', 'g'), '@' + newJobID);
+                  console.log("a823        ....changeArray {" + parentChangeArray + "} ");
+                  const result3 = await pool.query("UPDATE jobs SET change_array = $1 WHERE id = $2 RETURNING id, change_array;", [parentChangeArray, antecedentJobID]);
+                  console.log("a824        ....corrected changeArray", result3.rows);
+                  antecedentJobID = null;
+              }
+
+              if (tier == 500) {
+                  parentJobID = newJobID; // This is the parent job ID for the next iteration
+                  console.log("a825    updating parent ");
+              } else {
+                  antecedentJobID = newJobID; // This is the antecedent job ID for the next iteration
+                  parentChangeArray = jobChangeArray;
+                  console.log("a826    updating antecedent " + antecedentJobID + " with changeArray: " + parentChangeArray + " newJobID: " + newJobID);
+              }
+          } catch (error) {
+              console.error("a8081     Error inserting new job:", error);
+          }
+
         }
 
       console.log("a830     added workflow for build(" + buildID + ") starting with next_job", firstJobID);
