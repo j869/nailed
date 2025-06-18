@@ -401,7 +401,7 @@ async function getBuildData(buildID) {
     `, [buildID]);
 
     if (buildResult.rows.length === 0) {
-      throw new Error(`Build ${buildID} not found`);
+      console.log(`bc18      Build ${buildID} not found`);
       return [];
     }
 
@@ -524,7 +524,7 @@ async function getBuildData(buildID) {
     return allCustomers;
 
   } catch (error) {
-    console.error('Error fetching build data:', error);
+    console.error('bc8       Error fetching build data:', error);
     throw error;
     return [];
   }
@@ -553,10 +553,10 @@ let allCustomers = [];
               res.redirect("/");
               return;
             }
-            console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
+            // console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
             // return allCustomers;
             // printJobHierarchy(tableData);
-            console.log("b30   ");
+            console.log("b30   found jobs for build("+buildID+"): ", allCustomers.length);
             res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
             
           } else {
