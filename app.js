@@ -402,6 +402,7 @@ async function getBuildData(buildID) {
 
     if (buildResult.rows.length === 0) {
       throw new Error(`Build ${buildID} not found`);
+      return [];
     }
 
     const buildData = buildResult.rows[0];
@@ -525,6 +526,7 @@ async function getBuildData(buildID) {
   } catch (error) {
     console.error('Error fetching build data:', error);
     throw error;
+    return [];
   }
 }
 
@@ -546,6 +548,11 @@ let allCustomers = [];
          
 
             const allCustomers = await getBuildData(buildID);
+            if allCustomers.length === 0) {
+              console.log("b2a      No jobs found for build("+buildID+")");
+              res.status(404).send("No jobs found for this build.");
+              return;
+            }
             console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
             // return allCustomers;
             // printJobHierarchy(tableData);
