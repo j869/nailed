@@ -1134,7 +1134,7 @@ app.post("/updateCustomer/:id", async (req, res) => {
               console.error(err);
               //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
             }
-            res.redirect("/customers");
+            res.redirect("/2/customers");
             break;
       case "view":
         
