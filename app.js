@@ -90,7 +90,7 @@ app.get("/", async (req, res) => {
   if (req.user) {
     console.log("ws1     user(" + req.user.id + ") navigated to HOME page ");
     const iViewDay = parseInt(req.query.view) || 0;
-    console.log("ws22     view: ", req.query.view);
+    console.log("ws22     view: ", iViewDay;
     let q1SQL = "";
     let q1Params = [req.user.id];
     if (iViewDay == 0) {
@@ -1234,13 +1234,13 @@ app.post("/addBuild", async (req, res) => {
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
 
       // res.redirect("/jobs/" + response.data.id);
-      res.redirect("/2/build/" + buildID);          
+      return res.redirect("/2/build/" + buildID);          
     } catch (err) {
       console.log(err);  
     }  
     //res.redirect("/customer/" + req.body.customer_id);
   } else {
-    res.redirect("/login");
+    return res.redirect("/login");
   }
 });
 
