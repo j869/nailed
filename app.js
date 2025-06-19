@@ -90,7 +90,7 @@ app.get("/", async (req, res) => {
   if (req.user) {
     console.log("ws1     user(" + req.user.id + ") navigated to HOME page ");
     const iViewDay = parseInt(req.query.view) || 0;
-    console.log("ws22     view: ", iViewDay;
+    console.log("ws22     view: ", iViewDay);
     let q1SQL = "";
     let q1Params = [req.user.id];
     if (iViewDay == 0) {
