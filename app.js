@@ -1066,8 +1066,8 @@ app.post("/addCustomer", async (req, res) => {
     //add workflow to new customer so that the current user can find them in their list of customers
     console.log("n2      new customer added: ", newCustomer.id);
     const q1 = await db.query(
-      "INSERT INTO jobs (display_text, user_id) VALUES ($1, $2) RETURNING id",
-      ['new Customer', req.user.id]
+      "INSERT INTO jobs (display_text, user_id, build_id) VALUES ($1, $2, null) RETURNING id",
+      ['regular customer welfare check', req.user.id]
     );
     console.log("n4      new job added: ", q1.rows[0].id);
     // const q4 = await db.query(
@@ -1093,7 +1093,7 @@ app.post("/addCustomer", async (req, res) => {
   } catch (err) {
     console.log(err);  
   }  
-  res.redirect("/customers");
+  res.redirect("/2/customers");
 }
 });
 
