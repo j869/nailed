@@ -246,7 +246,7 @@ async function updateJobsAt6pm() {
     console.log(`\x1b[32mre63     - Waiting until 6 PM to run the task. Time remaining: ${hoursUntil6PM} hours, ${minutesUntil6PM} minutes, ${secondsUntil6PM} seconds\x1b[0m`);
 
     setTimeout(async () => {
-        await getNextTasks();
+        await getNextTasks2();
         console.log("\x1b[32mre64   Task executed at 6 PM. Scheduling for the next day...\x1b[0m");
 
 
