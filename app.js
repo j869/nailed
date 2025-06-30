@@ -2362,84 +2362,86 @@ app.get("/update", async (req,res) => {
           console.log("ufg4669     No job record found for job_id: " + rowID);
         }
         
+        //old code - please review, this worked better - I think it does not use the job_process_flow table so well
+        if (false) {
+          console.log("ufg4570      check job_process_flow for actions triggered because workflow focus has progressed through the process");
+          const q7 = await db.query("SELECT * from job_process_flow where antecedent_id = $1", [rowID]);
+          if (q7.rows.length > 0) {
+            console.log("ufg457     job_process_flow found for job_id: " + rowID);
+            for (const row of q7.rows) {
+              console.log("ufg458     job_process_flow row: ", row);
+              const flowID = row.id;
+              const flowAntecedentID = row.antecedent_id;
+              const flowDecendantID = row.decendant_id;
+              let flowAction = row.change_array  || `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;
+              const flowTier = row.tier;
 
-
-        console.log("ufg4570      check job_process_flow for actions triggered because workflow focus has progressed through the process");
-        const q7 = await db.query("SELECT * from job_process_flow where antecedent_id = $1", [rowID]);
-        if (q7.rows.length > 0) {
-          console.log("ufg457     job_process_flow found for job_id: " + rowID);
-          for (const row of q7.rows) {
-            console.log("ufg458     job_process_flow row: ", row);
-            const flowID = row.id;
-            const flowAntecedentID = row.antecedent_id;
-            const flowDecendantID = row.decendant_id;
-            let flowAction = row.change_array  || `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;
-            const flowTier = row.tier;
-
-            // Perform actions based on the flowAction
-            try {
-              // flowAction ? flowAction : `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;
-              console.log("ufg4591     Processing job_process_flow ", flowAction);
-              let flowActionJson;
+              // Perform actions based on the flowAction
               try {
-                flowActionJson = JSON.parse(flowAction.trim());
-              } catch (error) {
-                console.error("ufg45908     Error parsing flowAction JSON: ", error);
-                flowAction = `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;;
-                flowActionJson = JSON.parse(flowAction.trim());
-              }
-              console.log("ufg4592     flowActionJson for job_id: " + rowID + " - ", JSON.stringify(flowActionJson, null, 2));
-              for (const flowRule of flowActionJson) {
-                console.log("ufg4593     Checking flowRule: ", flowRule);
-                if ((flowRule.antecedent === "completed" && newValue === "complete") || (flowRule.antecedent === "pending" && newValue === "pending")) {
-                  for (const action of flowRule.decendant) {
-                    if (action.status !== undefined) {
-                      const statusValue = action.status === "" ? null : action.status;
-                      console.log(`ufg4593     Setting status of job(${flowDecendantID}) to ${statusValue} `);
-                      const jobId = flowDecendantID;
-                      const updateStatus = await db.query("UPDATE jobs SET current_status = $1 WHERE id = $2",[statusValue, flowDecendantID]);
-                    }
-                    if (action.target) {
-                      // console.log(`ufg460     set target date for job(${flowDecendantID}): ${action.log_trigger}`);
-                      //append to jobs.change_log column as an array. include a date and user
-                      //const logTrigger = await db.query("UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",[`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, flowDecendantID]);
-                      //if action.target = "today [n]" then add that number of days to todays date
-                      let targetDate;
-                      if (action.target.startsWith("today")) {
-                        const today = new Date();
-                        const daysToAdd = parseInt(action.target.split(" ")[1], 10);
-                        today.setDate(today.getDate() + daysToAdd);
-                        targetDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-                      } else {
-                        //check if format is yyyy-mm-dd
-                        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                        if (dateRegex.test(action.target)) {
-                          targetDate = action.target; // Use the date as is
-                        } else {
-                          // If not in the correct format, assume it's a string and use it directly
-                          // This could be a date string like "2023-10-01" or similar
-                          // You might want to add additional validation here
-                          console.log("ufg4601     Invalid date format for target date: " + action.target);
-                        }
+                // flowAction ? flowAction : `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;
+                console.log("ufg4591     Processing job_process_flow ", flowAction);
+                let flowActionJson;
+                try {
+                  flowActionJson = JSON.parse(flowAction.trim());
+                } catch (error) {
+                  console.error("ufg45908     Error parsing flowAction JSON: ", error);
+                  flowAction = `[{"antecedent": "completed","decendant": [{"status": "pending"}, {"target": "today 1"} ]}, { "antecedent": "pending", "decendant": [ {"status": ""}, {"target": "today 2"}]}]`;;
+                  flowActionJson = JSON.parse(flowAction.trim());
+                }
+                console.log("ufg4592     flowActionJson for job_id: " + rowID + " - ", JSON.stringify(flowActionJson, null, 2));
+                for (const flowRule of flowActionJson) {
+                  console.log("ufg4593     Checking flowRule: ", flowRule);
+                  if ((flowRule.antecedent === "completed" && newValue === "complete") || (flowRule.antecedent === "pending" && newValue === "pending")) {
+                    for (const action of flowRule.decendant) {
+                      if (action.status !== undefined) {
+                        const statusValue = action.status === "" ? null : action.status;
+                        console.log(`ufg4593     Setting status of job(${flowDecendantID}) to ${statusValue} `);
+                        const jobId = flowDecendantID;
+                        const updateStatus = await db.query("UPDATE jobs SET current_status = $1 WHERE id = $2",[statusValue, flowDecendantID]);
                       }
-                      console.log(`ufg461     Setting target date of job(${flowDecendantID}) to ${targetDate}`);
-                      const updateTarget = await db.query("UPDATE jobs SET target_date = $1 WHERE id = $2",[targetDate, flowDecendantID]);
+                      if (action.target) {
+                        // console.log(`ufg460     set target date for job(${flowDecendantID}): ${action.log_trigger}`);
+                        //append to jobs.change_log column as an array. include a date and user
+                        //const logTrigger = await db.query("UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",[`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, flowDecendantID]);
+                        //if action.target = "today [n]" then add that number of days to todays date
+                        let targetDate;
+                        if (action.target.startsWith("today")) {
+                          const today = new Date();
+                          const daysToAdd = parseInt(action.target.split(" ")[1], 10);
+                          today.setDate(today.getDate() + daysToAdd);
+                          targetDate = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+                        } else {
+                          //check if format is yyyy-mm-dd
+                          const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                          if (dateRegex.test(action.target)) {
+                            targetDate = action.target; // Use the date as is
+                          } else {
+                            // If not in the correct format, assume it's a string and use it directly
+                            // This could be a date string like "2023-10-01" or similar
+                            // You might want to add additional validation here
+                            console.log("ufg4601     Invalid date format for target date: " + action.target);
+                          }
+                        }
+                        console.log(`ufg461     Setting target date of job(${flowDecendantID}) to ${targetDate}`);
+                        const updateTarget = await db.query("UPDATE jobs SET target_date = $1 WHERE id = $2",[targetDate, flowDecendantID]);
+                      }
                     }
                   }
                 }
+                
+
+          
+              } catch (error) {
+                console.error("ufg4618     Error processing job_process_flow actions:", error);
+                
               }
-              
 
-         
-            } catch (error) {
-              console.error("ufg4618     Error processing job_process_flow actions:", error);
-              
             }
-
+          } else {
+            console.log("ufg462     No job_process_flow found for job_id: " + rowID);
           }
-        } else {
-          console.log("ufg462     No job_process_flow found for job_id: " + rowID);
         }
+
         //#endregion
         //#region --- NOTIFICATIONS ---
         console.log("ufg4710     no notifications for actions triggered by job status change");

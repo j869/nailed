@@ -798,26 +798,39 @@ app.get("/executeJobAction", async (req, res) => {
           if (action.status) {
             jobID = action.status.split("@")[1] ; 
             value = action.status.split("@")[0];
-            console.log(`ja4665           ...set job(${jobID}) status to ${value} `, action);
-            const updateStatus = await pool.query(
-              "UPDATE jobs SET current_status = $1 WHERE id = $2",
-              [value, jobID]
-            );
+            const q = await pool.query("SELECT id, current_status FROM jobs WHERE id = $1", [jobID]);
+            let oldStatus = q.rows[0].current_status;
+            if (oldStatus !== 'complete' && oldStatus !== value) {
+              console.log(`ja4665           ...set job(${jobID}) status to ${value} `, action);
+              const updateStatus = await pool.query(
+                "UPDATE jobs SET current_status = $1 WHERE id = $2 ",
+                [value, jobID]
+              );
+            } else {
+              console.log(`ja4666           ...job(${jobID}) status is already ${value}, or task is completed.`);
+            }
           } else if (action.target) {
             jobID = action.target.split("@")[1] ; 
             value = action.target.split("@")[0];
             if (action.target.startsWith("today")) {
-              const today = new Date();
               // console.log(`ufg4666          `, today.toISOString().split('T')[0]);
               const daysToAdd = parseInt(value.split("_")[1], 10) || 0;
+              console.log(`ufg4666          ${daysToAdd} days `);
+              const today = new Date();
+              today.setMinutes(today.getMinutes() + today.getTimezoneOffset());
+              // console.log(new Date().toString()); // e.g., "Mon Jul 01 2024 00:30:00 GMT-1100"
+              // console.log(new Date().toUTCString()); // e.g., "Mon, 30 Jun 2024 11:30:00 GMT"
+              // console.log(Intl.DateTimeFormat().resolvedOptions().timeZone); // e.g., "Pacific/Honolulu"
+              console.log(`ufg4666          today is `, today.toISOString().split('T')[0]);
               today.setDate(today.getDate() + daysToAdd);
-              // console.log(`ufg4666          `, daysToAdd);
+              console.log(`ufg4666          target is `, today.toISOString().split('T')[0]);
+              console.log(`ufg4666          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
               // console.log(`ufg4666           `, value);
               console.log(`ja4667           ...set job(${jobID}) target date to ${value} for user(${userID})`, action);
               const updateStatus = await pool.query("UPDATE jobs SET target_date = $1 WHERE id = $2 ", [value, jobID]);
               const q = await pool.query("SELECT id, user_id FROM jobs WHERE id = $1", [jobID]);
-              responsibleUser = q.rows[0].user_id ? q.rows[0].user_id : userID;
+              let responsibleUser = q.rows[0].user_id ? q.rows[0].user_id : userID;
               console.log(`ja4668         defaulting pending jobID(${jobID}) user_id to ${userID} because it was `, q.rows[0].user_id ? q.rows[0].user_id : "null");
               const updateUser = await pool.query("UPDATE jobs SET user_id = $1 WHERE id = $2 ", [responsibleUser, jobID]);
             }
