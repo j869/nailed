@@ -817,10 +817,9 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ja4667           ...set job(${jobID}) target date to ${value} for user(${userID})`, action);
               const updateStatus = await pool.query("UPDATE jobs SET target_date = $1 WHERE id = $2 ", [value, jobID]);
               const q = await pool.query("SELECT id, user_id FROM jobs WHERE id = $1", [jobID]);
-              if (q.rowCount || q.rows[0].user_id)  {
-                console.log(`ja4668         defaulting pending jobID(${jobID}) user_id to ${userID} because it was `, q.rows[0].user_id ? q.rows[0].user_id : "null");
-                const updateUser = await pool.query("UPDATE jobs SET user_id = $1 WHERE id = $2 ", [userID, jobID]);
-              }
+              responsibleUser = q.rows[0].user_id ? q.rows[0].user_id : userID;
+              console.log(`ja4668         defaulting pending jobID(${jobID}) user_id to ${userID} because it was `, q.rows[0].user_id ? q.rows[0].user_id : "null");
+              const updateUser = await pool.query("UPDATE jobs SET user_id = $1 WHERE id = $2 ", [responsibleUser, jobID]);
             }
           } else if (action.log_trigger) {
             console.log(`ja4667           ...add to change_log for job(${parentID}) `, action.log_trigger);
@@ -1271,7 +1270,7 @@ app.get("/addjob", async (req, res) => {
           if (template.rows.length === 0) {
             console.error("a821     No templates found for this product type.");
           } else {
-            console.log("a822     templates found: ", template.rows.length);
+            console.log("a822     this workflow consists of ",  template.rows.length ,  " templates" );
             // console.table(template.rows);
           }
         } catch (error) {
@@ -1284,8 +1283,8 @@ app.get("/addjob", async (req, res) => {
         let antecedentJobID;
         console.log("a831     Copying template to build and creating jobs ");
         for (const t of template.rows) {
-          console.log("a832       working with template("+t.id+") '" + t.display_text) + "' ["+t.tier+"] ...";
-          console.table(t);
+          console.log("a832       working with template(", t.id, ") on tier ["+t.tier+"] ...");
+          // console.table(t);
           // let buildID = buildID; 
           let title = t.display_text ;
           let userID = t.user_id || 1; 
@@ -1302,15 +1301,29 @@ app.get("/addjob", async (req, res) => {
           // console.log("a814     aID"+ antecedentID + ", dID: " + decendantTemplateID + ", jobChangeArray: " + jobChangeArray + ", flowChangeArray: " + flowChangeArray);
 
           try {
-            // console.log("a816     ", jobChangeArray);
+            console.log("a816       ...checking antecedentTemplateID("+antecedentTemplateID+") for build("+buildID+")");
+            const parentJob = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [antecedentTemplateID, buildID]);
+            parentJobID = parentJob.rows.length > 0 ? parentJob.rows[0].id : null;
             const result = await pool.query(`INSERT INTO jobs (display_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES
                                                               ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;`,
                                                               [title, tempID, buildID, prodID, remID, userID, createdAt, sortOrder, tier, jobChangeArray]);
             let newJobID = result.rows[0].id;
-            console.log("a818       ... template("+t.id+") became job("+newJobID+") " );
+            console.log("a818       ...template("+t.id+") became job(", newJobID, ") " + title );
             // console.log("               " + jobChangeArray)
+            
+            if (!antecedentTemplateID) {
+              console.log("a816       ...starting template - no antecedent provided");
+              // const q2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
+            }
+            if (decendantTemplateID == null) {
+              console.log("a816        ...last job in template, decendant not provided");
+            }
+            console.log("a819       ...joining this job to parent job(" + parentJobID + ") on tier(" + tier + ")");
+            const q2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
 
-            // record the first job in the qokflow sequence to return to the calling function
+            console.log("a819       ...inserted _flow(" + q2.rows[0].id + ")");
+
+            // record the first job in the workflow sequence to return to the calling function
             if (!firstJobID) {
                 // console.log("a819     ...Saved first jobID("+newJobID+") to add to build record");
                 firstJobID = newJobID;
@@ -1323,69 +1336,58 @@ app.get("/addjob", async (req, res) => {
         }
 
 
+
+
+
+
+
         console.log("a820     Resolving relationships for build("+ buildID +") with " + template.rows.length + " jobs... ");
+        template = await pool.query("SELECT * FROM job_templates WHERE product_id = $1 order by sort_order", [productID]);
         for (const t of template.rows) {
-          console.table(t);
           let antecedentTemplateID = t.antecedent_array;
           let decendantTemplateID = t.decendant_array;
           let templateID = t.id;
           let jobChangeArray = t.job_change_array;
           let flowChangeArray = t.flow_change_array;
-
-          console.log("a832       working with template("+templateID+"), antecedentID("+antecedentTemplateID+"), decendantID("+decendantTemplateID+") tier("+t.tier+")");
-          console.log("             jobChangeArray: " + jobChangeArray);
-          console.log("             flowChangeArray: " + flowChangeArray);
-          let job = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 ", [ templateID]);
+          let replaceTemplateID;
+          let job = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2 ", [ templateID, buildID]);
           let jobID = job.rows[0].id;
-          let antecedent = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 ", [ antecedentTemplateID]);
-          let antecedentJobID = antecedent.rows.length > 0 ? antecedent.rows[0].id : null;
-          console.log("             antecedentJobID = " + antecedentJobID );
-          let decendant = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 ", [ decendantTemplateID]);
-          let decendantJobID = decendant.rows.length > 0 ? decendant.rows[0].id : null;
-          console.log("             antecedentJobID = " + decendantJobID );
-          let jobs = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 or job_template_id = $2 or job_template_id = $3", [ templateID, antecedentTemplateID, decendantTemplateID]);
-          console.table(jobs.rows);
-          return;
-
-          //reformat change_array to replace @decID with @newJobID
-          if (decendantTemplateID != null && jobChangeArray != null) {
-            // Replace all occurrences of @decendantTemplateID with a tag ... @decID
-            jobChangeArray = jobChangeArray.replace(new RegExp('@' + decendantTemplateID, 'g'), '@'+ newJobID);
+          
+          console.log("a832       reading template("+templateID+")");
+          // console.table(t);
+          // console.log("a832       reading template("+templateID+"), antecedentID("+antecedentTemplateID+"), decendantID("+decendantTemplateID+") tier("+t.tier+")");
+          console.log("             jobChangeArray: " + jobChangeArray);
+          // console.log("             flowChangeArray: " + flowChangeArray);
+          if (jobChangeArray) {
+            let c1;
+            let c2; 
+            for (let c = 0; c < jobChangeArray.length; c++) {
+              if (jobChangeArray.substring(c, c + 1) == '@') {
+                c1 = c + 1;
+              }
+              if (c1 && jobChangeArray.substring(c, c + 1) == '"') {
+                c2 = c;
+                console.log("a832       " + c + " = " + jobChangeArray.substring(c1, c2) + ", c1 = " + c1 + ", c2 = " + c2);
+                replaceTemplateID = jobChangeArray.substring(c1, c2);
+                let replaceJobID = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [replaceTemplateID, buildID]);
+                if (replaceJobID.rows.length > 0) {
+                  console.log("a832       ...replacing templateID(" + replaceTemplateID + ") with jobID(" + replaceJobID.rows[0].id + ")");
+                  jobChangeArray = jobChangeArray.replace('@' + replaceTemplateID, '@' + replaceJobID.rows[0].id);
+                } else {
+                  console.error("a832       ...error in workflow definition... no job found for templateID(" + replaceTemplateID + ") in build(" + buildID + ")");
+                }
+                c1 = null;
+              }
+            }
           }
+          console.log("a832       ...final jobChangeArray: " + jobChangeArray);
+          let result = await pool.query("UPDATE jobs SET change_array = $1 WHERE id = $2 returning change_array", [jobChangeArray, jobID]);
+          console.log("a832       ...updated job(" + jobID + ") with change_array: " + result.rows[0].change_array);
+          
+
 
         }
 
-              // running on the previous job, once we know the decendantJobID
-              // if (parentJobID) {
-              //     console.log("a820     ...add a relationship between antecedentJobID("+ parentJobID+ ") and decendantJobID(", newJobID, " at [", tier, "]");
-              //     const result2 = await pool.query("INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;", [parentJobID, newJobID, tier, flowChangeArray]);
-              //     // console.log("a822        ....added flowID:");
-              // }
-
-              // if (decendantTemplateID != null && jobChangeArray != null) {
-              //     // Replace all occurrences of @decendantTemplateID with a tag ... @decID
-              //     jobChangeArray = jobChangeArray.replace(new RegExp('@' + decendantTemplateID, 'g'), '@decID');
-              // }
-              // if (antecedentJobID != null && parentChangeArray != null) {
-              //     console.log("a823     " + parentChangeArray + " to childID: @" + newJobID + " on parentID" + antecedentJobID);
-              //     // Replace all occurrences of @decID with @newJobID
-              //     parentChangeArray = parentChangeArray.replace(new RegExp('@decID', 'g'), '@' + newJobID);
-              //     console.log("a823        ....changeArray {" + parentChangeArray + "} ");
-              //     const result3 = await pool.query("UPDATE jobs SET change_array = $1 WHERE id = $2 RETURNING id, change_array;", [parentChangeArray, antecedentJobID]);
-              //     console.log("a824        ....corrected changeArray", result3.rows);
-              //     antecedentJobID = null;
-              // }
-
-              // if (tier == 500) {
-              //     parentJobID = newJobID; // This is the parent job ID for the next iteration
-              //     console.log("a825    updating parent ");
-              // } else {
-              //     antecedentJobID = newJobID; // This is the antecedent job ID for the next iteration
-              //     parentChangeArray = jobChangeArray;
-              //     console.log("a826    updating antecedent " + antecedentJobID + " with changeArray: " + parentChangeArray + " newJobID: " + newJobID);
-              // }
-
-        // resolve TemplateID in change_array JSON
 
 
       console.log("a830     added workflow for build(" + buildID + ") starting with next_job", firstJobID);
