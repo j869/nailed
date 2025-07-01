@@ -1286,7 +1286,9 @@ app.post("/updateBuild/:id", async (req, res) => {
       case "view":
         const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
         // console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
-        res.redirect("/jobs/" + result.rows[0].job_id);
+        // res.redirect("/jobs/" + result.rows[0].job_id);
+        res.redirect("/2/build/" + buildID);
+        
         break;
       default:
         console.error("f8    This should never happen 2198442");
