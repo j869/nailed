@@ -251,7 +251,17 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>"><%= task.owned_by %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
+                                                                                                                                        <% if (task.owned_by == 1) { %>
+                                                                                                                                            John
+                                                                                                                                        <% } else if (task.owned_by == 12) { %>
+                                                                                                                                            Bryan
+                                                                                                                                        <% } else if (task.owned_by == 13) { %>
+                                                                                                                                            VPA
+                                                                                                                                        <% } else { %>
+                                                                                                                                            <%= task.owned_by %>
+                                                                                                                                        <% } %>
+                                                                                                                                    </td>
                                                                                                                                     <td>ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
