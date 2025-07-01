@@ -1064,7 +1064,7 @@ app.post("/addCustomer", async (req, res) => {
     const newCustomer = result.rows[0];
 
       console.log("n2      new customer added: ", newCustomer.full_name, " with ID: ", newCustomer.id);
-      const build = await db.query("INSERT INTO builds (customer_id, product_id, enquiry_date, site_address) VALUES ($1, $2, $3::timestamp, $4) RETURNING *", [newCustomer.id, 5, null, custAddress]);
+      const build = await db.query("INSERT INTO builds (customer_id, product_id, site_address) VALUES ($1, $2, $3) RETURNING *", [newCustomer.id, 8, newCustomer.home_address]);
       const newBuild = build.rows[0];    
       const buildID = newBuild.id;
 
@@ -1073,14 +1073,18 @@ app.post("/addCustomer", async (req, res) => {
       const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${buildID}`);     //&product_id=${req.body.product_id}`);
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
 
+      console.log("n4       job added to build: ", response.data.id, " for buildID: ", buildID);
+      console.log("n5       updating the build("+ buildID +") with user_id: ", req.user.id);
+      const q2 = await db.query("UPDATE jobs SET user_id = $1 WHERE build_id = $2 RETURNING 1", [req.user.id, buildID ])
           
+      return res.redirect("/2/build/" + buildID);          
             
   } catch (err) {
-    console.log(err);  
+    console.log("n8       ", err);  
+    return res.status(500).send("Internal Server Error");
   }  
   // res.redirect("/2/customers");
       // res.redirect("/jobs/" + response.data.id);
-      return res.redirect("/2/build/" + buildID);          
 }
 });
 

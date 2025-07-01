@@ -178,7 +178,13 @@
                                             </select>                                               
                                         </td>
                                         <td>
-                                            <input type="datetime-local" name="enquiry_date" value="<%= builds[i].enquiry_date.toISOString().substring(0, 16) %>">
+                                            <input type="datetime-local" name="enquiry_date" value="
+                                            <% if (builds[i].enquiry_date) { %>
+                                                <%= builds[i].enquiry_date.toISOString().substring(0, 16) %>
+                                            <% } else { %>
+                                                <%= new Date().toISOString().substring(0, 16) %>
+                                            <% } %>
+                                            ">
                                         </td>
                                         <td>
                                             <button class="btn btn-light" type="submit" name="action" value="update">Update Site</button>

@@ -51,6 +51,21 @@ ADD COLUMN job_change_array TEXT ,
 ADD COLUMN flow_change_array TEXT;
 
 
+-- gangnam style Initial Enquiry workflow
+
+delete from products where id = 8;
+insert into products (id, display_text) values (8, 'Initial Enquiry');
+delete from public.job_templates where product_id = 8;
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '500', 8, 1, null, null, 800, 13, 'Initial Enquiry');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '501', 8, 1, 800, 820, 810, 1, 'Quote created');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '501', 8, 1, 800, 830, 820, 1, 'Quote reviewed');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 8, 1, 800, 840, 830, 13, 'Quote sent date');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 8, 1, 800, 850, 840, 13, '3 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 8, 1, 800, 860, 850, 13, '14 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.06', '501', 8, 1, 800, 870, 860, 13, 'Delayed follow up', 'On hold - set the target date as required');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.07', '501', 8, 1, 800, null, 870, 13, 'Archive this job', 'Sale gone cold - this will archive the job');
+
+
 -- gangnam style Vic Permit Applications
 insert into products (id, display_text) values (5, 'Vic Permits');
 delete from public.job_templates where product_id = 5;
