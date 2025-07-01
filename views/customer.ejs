@@ -21,30 +21,6 @@
                     </div>
                     <div class="container" style="max-width: 600px;">
                         <div class="mb-3">
-<<<<<<< HEAD
-                            <label for="fullName" class="form-label">Full Name:</label>
-                            <input type="text" class="form-control" id="fullName" name="fullName" value="<%= data.full_name %>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="homeAddress" class="form-label">Build Address:</label>
-                            <input type="text" class="form-control" id="homeAddress" name="homeAddress" value="<%= data.home_address %>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="primaryPhone" class="form-label">Primary Phone:</label>
-                            <input type="text" class="form-control" id="primaryPhone" name="primaryPhone" value="<%= data.primary_phone %>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="primaryEmail" class="form-label">Primary Email:</label>
-                            <input type="text" class="form-control" id="primaryEmail" name="primaryEmail" value="<%= data.primary_email %>">
-                        </div>
-                        <div class="mb-3">
-                            <label for="contactOther" class="form-label">Contact Other:</label>
-                            <input type="text" class="form-control" id="contactOther" name="contactOther" value="<%= data.contact_other %>">
-                        </div>
-                        <div class="mb-3" style="display:none;">
-                            <label for="currentStatus" class="form-label">Current Status:</label>
-                            <input type="text" class="form-control" id="currentStatus" name="currentStatus" value="<%= data.current_status %>">
-=======
                             <!-- <label for="fullName" class="form-label">Full Name:</label> -->
                             <input type="text" class="form-control" id="fullName" placeholder="Full name" name="fullName" value="<%= data.full_name %>">
                         </div>
@@ -67,7 +43,6 @@
                         <div class="mb-3" style="display:none;">
                             <!-- <label for="currentStatus" class="form-label">Current Status:</label> -->
                             <input type="text" class="form-control" id="currentStatus" placeholder="Workflow" name="currentStatus" value="<%= data.current_status %>">
->>>>>>> status_workflow
                         </div>
                     </div>
                     </div>
@@ -81,149 +56,6 @@
                     </div>            
                 </form>
 
-<<<<<<< HEAD
-
-
-
-
-                <form class="item" action="/addBuild" method="post">
-                    Workflow Status: 
-                    <select name="product_id" id="product_id" autofocus="true">
-                        <% products.forEach(product => { %>
-                            <option value="<%= product.id %>"><%= product.display_text %></option>
-                        <% }); %>
-                    </select >
-                    <input type="hidden" name="customer_id" placeholder="builds.customer_id" value="<%= data.id %>" autocomplete="off" />
-                    <% let enquiryDate = new Date().toISOString().substring(0, 16); %>
-                    <input type="datetime-local" name="enquiry_date" value="<%= enquiryDate %>" autocomplete="off"  style="display:none;"  />
-                    <button class="btn btn-primary btn-sm py-1 px-2" type="submit" name="list" value="submit" style="font-size: 0.85em; line-height: 1;">Create this workflow</button>
-                </form>      
-
-
-
-
-            <% } else { %>
-                <h1 class="display-3">Add New Customer</h1>
-                <form class="item" method="post" action="/addCustomer" method="post">
-                    <div>
-                        <label for="fullName">Full Name:</label>
-                        <input type="text" id="fullName" name="fullName" placeholder="customer name" autocomplete="off" autofocus="true" >
-                    </div>
-                    <div>
-                        <label for="homeAddress">Build Address:</label>
-                        <input type="text" id="homeAddress" name="homeAddress" placeholder="build address" autocomplete="off" >
-                    </div>
-                    <div>
-                        <label for="primaryPhone">Primary Phone:</label>
-                        <input type="text" id="primaryPhone" name="primaryPhone" placeholder="primary phone" autocomplete="off" >
-                    </div>
-                    <div>
-                        <label for="primaryEmail">Primary Email:</label>
-                        <input type="text" id="primaryEmail" name="primaryEmail" placeholder="primary email" autocomplete="off" >
-                    </div>
-                    <div>
-                        <label for="contactOther">Contact Other:</label>
-                        <input type="text" id="contactOther" name="contactOther" placeholder="jobNum" autocomplete="off" >
-                    </div>
-                    <div>
-                        <label for="currentStatus">Current Status:</label>
-                        <input type="text" id="currentStatus" name="currentStatus" placeholder="open" >
-                    </div>
-          
-                    
-                        <button class="add" type="submit" name="list" value="submit">add Customer</button>
-                    
-                </form>
-            <% } %>
-
-            <br><hr><br>
-            <!-- If you are looking at an existing customer then add a div to update and display the customer emails / -->
-            <% if (locals && locals.data ) { %>
-                <div>
-                    <h3>Customer Emails</h3>
-                        <a href="/checkemail?btn=105a&customer_id=<%= data.id %>&returnto=customer/<%= data.id %>" class="btn btn-primary" title="Update">
-                            <i class="bi bi-arrow-clockwise"></i> update
-                        </a>                    
-                    <table class="table table-striped table-bordered">
-                        <thead>
-                            <tr class="table-primary">
-                                <th>ID</th>
-                                <th>From</th>
-                                <th>Subject</th>
-                                <th>Created Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% if (locals.emails) { %>
-                                <% for (let i in emails) { %>
-                                    <tr class="email-row">
-                                        <td><%= emails[i].id %></td>
-                                        <td><%= emails[i].display_name %></td>
-                                        <td><%= emails[i].message_text %></td>
-                                        <td><%= emails[i].post_date %></td>
-                                    </tr>
-                                <% } %>   
-                            <% } %>
-                        </tbody>
-                    </table>               
-                    
-                </div>
-            <% } %>
-
-
-
-        </div>
-    </div>
-
-
-                <!-- List builds against the customer -->
-                <h3>History</h3>
-                <table class="table table-hover ">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Product</th>
-                            <th scope="col">Enquiry Date</th>
-                            <th scope="col"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% if (locals.builds) { %>
-                            <% for (let i in builds) { %>
-                                <tr class="build-row">
-                                    <form method="post" action="/updateBuild/<%= builds[i].id %>">
-                                        <th scope="row"><%= builds[i].id %>
-                                            <input type="hidden" name="id" value="<%= builds[i].id %>">
-                                            <input type="hidden" name="customer_id" value="<%= builds[i].customer_id %>">
-                                        </th>
-                                        <td>
-                                            <select name="product_id" id="product_id">
-                                                <% products.forEach(product => { %>
-                                                    <option value="<%= product.id %>" <% if (builds[i].product_id === product.id) { %> selected <% } %>><%= product.display_text %></option>
-                                                <% }); %>
-                                            </select>                                               
-                                        </td>
-                                        <td>
-                                            <input type="datetime-local" name="enquiry_date" value="<%= builds[i].enquiry_date.toISOString().substring(0, 16) %>">
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-light" type="submit" name="action" value="update">Update Site</button>
-                                            <button class="btn btn-light" type="submit" name="action" value="delete">Delete Site</button>
-                                            <button class="btn btn-light" type="submit" name="action" value="view">Task</button>
-                                            
-                                        </td>
-                                    </form>                       
-                                </tr>
-                                <tr class="detail-row" style="display: none;">
-                                    <td colspan="4">Details for build <%= builds[i].id %></td>
-                                </tr>
-                            <% } %>   
-                        <% } %>
-                    </tbody>
-                </table>
-
-
-=======
 
 
 
@@ -371,7 +203,6 @@
                 </table>
 
 
->>>>>>> status_workflow
     <%- include('partials/footer') %>
 
 
