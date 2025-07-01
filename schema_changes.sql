@@ -53,15 +53,15 @@ ADD COLUMN flow_change_array TEXT;
 
 -- gangnam style Vic Permit Applications
 insert into products (id, display_text) values (5, 'Vic Permits');
+delete from public.job_templates where product_id = 5;
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '500', 5, 1, null, 509, 500, 13, 'Initial Enquiry');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '501', 5, 1, 500, 502, 501, 13, 'Quote sent date');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '501', 5, 1, 500, 503, 502, 13, '3 day follow up – received quote check');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 5, 1, 500, 504, 503, 13, 'Site visit requested');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 5, 1, 500, 505, 504, 13, '14 days later follow up');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 5, 1, 500, 506, 505, 13, '21 days later follow up');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.06', '501', 5, 1, 500, 507, 506, 13, 'Monthly thereafter follow up (1)');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.07', '501', 5, 1, 500, 508, 507, 13, 'Monthly thereafter follow up (2)');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.08', '501', 5, 1, 500, 510, 508, 13, 'Final Monthly follow up');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '501', 5, 1, 500, 502, 501, 1, 'Quote created');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '501', 5, 1, 500, 503, 502, 1, 'Quote reviewed');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 5, 1, 500, 504, 503, 13, 'Quote sent date');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 5, 1, 500, 505, 504, 13, '3 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 5, 1, 500, 506, 505, 13, '14 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.05', '501', 5, 1, 500, 507, 506, 13, 'Delayed follow up', 'On hold - set the target date as required');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.05', '501', 5, 1, 500, 510, 507, 13, 'Archive this job', 'Sale gone cold - this will archive the job');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.00', '500', 5, 1, 500, 514, 509, 13, 'Deposit');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.13', '501', 5, 1, 509, 511, 510, 13, 'Deposit date');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.14', '501', 5, 1, 509, 512, 511, 13, 'Distribute information');
@@ -109,7 +109,6 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('08.52', '501', 5, 1, 542, 554, 553, 13, 'RFI action required 1');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('08.53', '501', 5, 1, 542, 555, 554, 13, 'RFI action required 2');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('08.54', '501', 5, 1, 542, null, 555, 13, 'RFI action required 3');
-
 update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 5 and tier = 501 and decendant_array is not null;
 
 
@@ -236,3 +235,23 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 4 and tier = 501 and decendant_array is not null;
 --update public.job_templates set flow_change_array = null where product_id = 4;
 
+
+
+
+insert into products (id, display_text) values (4, 'Shed Construction');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '600', 4, 1, null, 389, 380, 1, 'Initial enquiry');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '601', 4, 1, 380, 382, 381, 1, 'Quote created');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '601', 4, 1, 380, 382, 381, 1, 'Quote reviewed');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '601', 4, 1, 380, 383, 382, 1, '3 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '601', 4, 1, 380, 384, 383, 1, 'Site visit requested');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '601', 4, 1, 380, 385, 384, 1, '14 days later follow up');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.06', '601', 4, 1, 380, 386, 385, 1, '21 days later follow up');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.07', '601', 4, 1, 380, 387, 386, 1, 'Monthly thereafter follow up (1)');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.08', '601', 4, 1, 380, 388, 387, 1, 'Monthly thereafter follow up (2)');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.09', '601', 4, 1, 380, 390, 388, 1, 'Final Monthly follow up');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('02.00', '600', 4, 1, 380, 392, 389, 12, 'Feeling good quotes');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('02.09', '601', 4, 1, 389, 391, 390, 12, 'Set follow up date');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('02.10', '601', 4, 1, 389, 393, 391, 12, 'Set follow up schedule');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.00', '600', 4, 1, 389, 395, 392, 12, 'Pre Deposit');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.11', '601', 4, 1, 392, 394, 393, 12, 'Site inspection');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.12', '601', 4, 1, 392, 396, 394, 12, 'Requotes');

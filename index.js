@@ -9,7 +9,7 @@ import cors from "cors";
 import nodemailer from "nodemailer";
 import { ImapFlow } from 'imapflow';
 import crypto from 'crypto';   //const crypto = require('crypto');
-
+import moment from 'moment';
 
 export const app = express();
 const port = 4000;
@@ -97,6 +97,35 @@ export const pool = new Pool({
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
 });
+
+
+function getMelbourneTime(format = 'iso') {
+  // Get current time in Melbourne's timezone
+  const options = {
+    timeZone: 'Australia/Melbourne',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false // 24-hour format
+  };
+  
+  // Get formatted parts
+  const melbourneTime = new Date().toLocaleString('en-AU', options);
+  
+  // Parse into usable format (handles DST automatically)
+  if (format === 'iso') {
+    // Returns: "2024-07-04T14:30:45+10:00" (or +11:00 during DST)
+    return new Date(melbourneTime).toISOString();
+  } else {
+    // Custom format (e.g. "2024-07-04 14:30:45")
+    const [date, time] = melbourneTime.split(', ');
+    return `${date.replace(/\//g, '-')} ${time}`;
+  }
+}
+
 
 //#endregion
 
@@ -816,8 +845,9 @@ app.get("/executeJobAction", async (req, res) => {
               // console.log(`ufg4666          `, today.toISOString().split('T')[0]);
               const daysToAdd = parseInt(value.split("_")[1], 10) || 0;
               console.log(`ufg4666          ${daysToAdd} days `);
-              const today = new Date();
-              today.setMinutes(today.getMinutes() + today.getTimezoneOffset());
+              const today = getMelbourneTime();    //new Date();
+              
+              //today.setMinutes(today.getMinutes() + today.getTimezoneOffset());
               // console.log(new Date().toString()); // e.g., "Mon Jul 01 2024 00:30:00 GMT-1100"
               // console.log(new Date().toUTCString()); // e.g., "Mon, 30 Jun 2024 11:30:00 GMT"
               // console.log(Intl.DateTimeFormat().resolvedOptions().timeZone); // e.g., "Pacific/Honolulu"
