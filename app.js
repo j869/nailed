@@ -1013,7 +1013,7 @@ app.post("/addCustomer", async (req, res) => {
     
     //check if the customer name already exists
     if (req.body.fullName) {
-      const existingCustomer = await db.query("SELECT * FROM customers WHERE full_name = $1", [req.body.fullName]);
+      const existingCustomer = await db.query("SELECT * FROM customers WHERE LOWER(full_name) = LOWER($1)", [req.body.fullName]);
       if (existingCustomer.rows.length > 0) {
         console.log("n81         Customer already exists: ", req.body.fullName);
         res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
@@ -1059,41 +1059,32 @@ app.post("/addCustomer", async (req, res) => {
     // Insert the new customer into the database
     const result = await db.query(
       "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-      [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "new", currentTime]
+      [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "Initial enquiry", currentTime]
     );
     const newCustomer = result.rows[0];
 
-    //add workflow to new customer so that the current user can find them in their list of customers
-    console.log("n2      new customer added: ", newCustomer.id);
-    const q1 = await db.query(
-      "INSERT INTO jobs (display_text, user_id, build_id) VALUES ($1, $2, null) RETURNING id",
-      ['regular customer welfare check', req.user.id]
-    );
-    console.log("n4      new job added: ", q1.rows[0].id);
-    // const q4 = await db.query(
-    //   "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES ($1, $2, $3) RETURNING id",
-    //   [q1.rows[0].id, q1.rows[0].id, 500]
-    // );
-    // console.log("n45     new job process flow added: ", q4.rows[0].id);
-    const q3 = await db.query(
-      "INSERT INTO builds (customer_id, product_id, job_id, current_status, enquiry_date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [newCustomer.id, 3, q1.rows[0].id, "new", currentTime]
-    );
-    console.log("n3      new build added: ", q3.rows[0].id);
-    //add build_id to the job
-    const q5 = await db.query("UPDATE jobs SET build_id = $1 WHERE id = $2", [q3.rows[0].id, q1.rows[0].id]);
-    // const newJob = result.rows[0];
-    // const q2 = await db.query(
-    //   "INSERT INTO tasks (display_text, job_id, owned_by) VALUES ($1, $2, $3) RETURNING iD",
-    //   ['Assign new customer to a sales person', newJob.id, req.user.id]
-    // );
-    // console.log("n5      new task added: ", q2.rows[0].id);
-            
+      console.log("n2      new customer added: ", newCustomer.full_name, " with ID: ", newCustomer.id);
+      const build = await db.query("INSERT INTO builds (customer_id, product_id, site_address) VALUES ($1, $2, $3) RETURNING *", [newCustomer.id, 8, newCustomer.home_address]);
+      const newBuild = build.rows[0];    
+      const buildID = newBuild.id;
+
+      //start workflow
+      console.log("n3        adding the original job for the build(" + buildID + ")");
+      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${buildID}`);     //&product_id=${req.body.product_id}`);
+      const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
+
+      console.log("n4       job added to build: ", response.data.id, " for buildID: ", buildID);
+      console.log("n5       updating the build("+ buildID +") with user_id: ", req.user.id);
+      const q2 = await db.query("UPDATE jobs SET user_id = $1 WHERE build_id = $2 RETURNING 1", [req.user.id, buildID ])
+          
+      return res.redirect("/2/build/" + buildID);          
             
   } catch (err) {
-    console.log(err);  
+    console.log("n8       ", err);  
+    return res.status(500).send("Internal Server Error");
   }  
-  res.redirect("/2/customers");
+  // res.redirect("/2/customers");
+      // res.redirect("/jobs/" + response.data.id);
 }
 });
 
