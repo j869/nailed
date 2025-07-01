@@ -1971,6 +1971,9 @@ app.get("/update", async (req,res) => {
             // console.log("ufg51     update jobs set user_id = " + newValue);
             console.log("ufg419     update "+ table + " set "+ columnName + " = " + value);          
             const q1 = await db.query("UPDATE jobs SET user_id = " + value + " WHERE id = " + rowID + ";");      
+            // assign the user_id to all child jobs
+            // console.log("ufg52     update jobs set user_id = " + value + " where id in(select j.id from jobs j inner join job_process_flow f on j.id = f.decendant_id where f.antecedent_id = " + rowID + ");");
+            const q3 = await db.query("UPDATE jobs set user_id = "+ value + " where id in(select j.id from jobs j inner join job_process_flow f on j.id = f.decendant_id where f.antecedent_id = " + rowID + " and f.tier > 500);");
             console.log("ufg420     update "+ table + " set "+ columnName + " = " + value);          
             const q2 = await db.query("UPDATE tasks SET owned_by = " + value + " WHERE job_id = " + rowID + ";");      
             // console.log('ufg54    Updated job('+ rowID +')');
