@@ -1159,9 +1159,9 @@ app.get("/addjob", async (req, res) => {
         
         console.log("a31     based on template_id(" + q4.rows[0].job_template_id + ") for job("+ jobID +")");
         let oldJobTemplateID = q4.rows[0].job_template_id;
-        const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
-        const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
-        console.log("a32     tempalate updated to insert new jobtemplateID(" + q1.rows[0].id + ")");
+        // const q1 = await pool.query("INSERT INTO job_templates (user_id, role_id, product_id, display_text, free_text, antecedent_array, decendant_array, reminder_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id", [1,1, q4.rows[0].product_id, title, null, q4.rows[0].job_template_id, null, 1]);
+        // const q5 = await pool.query("UPDATE job_templates SET decendant_array = '" + q1.rows[0].id + "' where id = " + oldJobTemplateID)     //add this job as a child of the parent template 
+        // console.log("a32     tempalate updated to insert new jobtemplateID(" + q1.rows[0].id + ")");
         // console.log("a33     updated relationship. decendant_array = '" + q1.rows[0].id + "', where oldJobTemplateID = " + oldJobTemplateID);
         
         let newJob
@@ -1169,7 +1169,7 @@ app.get("/addjob", async (req, res) => {
         // const newJob = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;", [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id], q4.rows[0].product_id);
         newJob = await pool.query(
             "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
-            [title, 1, q1.rows[0].id, '0', q4.rows[0].build_id, q4.rows[0].product_id, tier]
+            [title, 1, null, '0', q4.rows[0].build_id, q4.rows[0].product_id, tier]
           );
         
           console.log("a339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");

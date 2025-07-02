@@ -69,15 +69,7 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 -- gangnam style Vic Permit Applications
 insert into products (id, display_text) values (5, 'Vic Permits');
 delete from public.job_templates where product_id = 5;
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '500', 5, 1, null, 509, 500, 13, 'Initial Enquiry');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '501', 5, 1, 500, 502, 501, 1, 'Quote created');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '501', 5, 1, 500, 503, 502, 1, 'Quote reviewed');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 5, 1, 500, 504, 503, 13, 'Quote sent date');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 5, 1, 500, 505, 504, 13, '3 day follow up – received quote check');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 5, 1, 500, 506, 505, 13, '14 day follow up – received quote check');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.06', '501', 5, 1, 500, 507, 506, 13, 'Delayed follow up', 'On hold - set the target date as required');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.07', '501', 5, 1, 500, null, 507, 13, 'Archive this job', 'Sale gone cold - this will archive the job');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.00', '500', 5, 1, 500, 514, 509, 13, 'Deposit');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.00', '500', 5, 1, null, 514, 509, 13, 'Deposit');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.13', '501', 5, 1, 509, 511, 510, 13, 'Deposit date');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.14', '501', 5, 1, 509, 512, 511, 13, 'Distribute information');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('04.15', '501', 5, 1, 509, 513, 512, 13, 'Building permit admin');

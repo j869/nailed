@@ -92,6 +92,7 @@
                                 <th scope="col">Other Contact Information</th>
                                 <th scope="col">Current Status</th>
                                 <th scope="col">Follow-up Date</th>
+                                <th scope="col">Actions</th>
                             </tr>
 
                         </thead>
@@ -108,6 +109,9 @@
                                             <td><%= customer.contact_other %></td>
                                             <td><%= customer.current_status %></td>
                                             <td class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>"><%= customer.follow_up %></td>
+                                            <td id="actions" >
+                                                <a href="/customer/<%= customer.id %>" class="btn btn-green-slim"><i class="fas fa-edit"></i> </a>
+                                            </td>                                            
                                         </tr>
                                         <tr>
                                             <td colspan="12" class="hiddenRow">
@@ -261,7 +265,6 @@
                                                                                                                                         <% } else { %>
                                                                                                                                             <%= task.owned_by %>
                                                                                                                                         <% } %>
-                                                                                                                                    </td>
                                                                                                                                     <td>ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check">
