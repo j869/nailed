@@ -102,7 +102,7 @@ async function handleTrigger(triggerData) {
   async function getNextTasks2() {
     console.log("gnf1    new get next tasks gangnam style")
     const q1 = await pool.query(`DELETE FROM worksheets where build_id is not null;`);
-    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending' order by build_id, sort_order;");
+    const pendingJobs = await pool.query("SELECT * FROM jobs where current_status = 'pending' and tier <> 500 order by build_id, sort_order;");
 
     for (const job of pendingJobs.rows) {
       try {
