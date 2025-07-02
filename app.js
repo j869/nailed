@@ -1737,14 +1737,35 @@ app.get("/dtDone", async (req, res) => {
   const { id, done } = req.query; // Destructure id and done from request body
 
   try {
-    const q1 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
-    console.log("dtd2    ", q1.rows);
+    const fieldID = "jobStatus";
+    const newValue = "complete";
+    const recordID = id;
+    const q3 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
+    const description = q3.rows[0].description;
+    const match = q3.rows[0]?.description?.match(/Job\((\d+)\)/);
+    const jobId = match ? parseInt(match[1], 10) : null;
+    if (!jobId) {
+      console.error("dtd10   Error: cannot find jobID for this ", description);
+      // const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+      return res.status(404).send("dtd10   cannot find jobID in this job ");
+    }
+    console.log("dtd11   extracted jobId:", jobId);
 
-    if (q1.rows.description == null) {
-      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-      console.log("dtd3    deleted: ", q2.rowCount)
-    } else {
-      console.log("dtd4    ");
+    const q1 = await axios.get(`${process.env.BASE_URL}/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${jobId}`, {
+      headers: {
+      Cookie: req.headers.cookie // Pass session cookie for authentication
+      }
+    });
+    // const q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+    
+    // const q1 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
+    // console.log("dtd2    ", q1.rows);
+
+    // if (q1.rows.description == null) {
+    const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    //   console.log("dtd3    deleted: ", q2.rowCount)
+    // } else {
+    //   console.log("dtd4    ");
       // const fieldID = 'current_status';
       // const newValue = 'complete';
       // const recordID = id;
@@ -1757,8 +1778,8 @@ app.get("/dtDone", async (req, res) => {
       //   body: JSON.stringify({ taskId: 1, status: 'true' })
       // });
       
-      res.redirect("/") ;
-    }
+      // res.redirect("/") ;
+    // }
 
     res.status(200).json({ message: "Checkbox status updated" }); // Return a response
   } catch (error) {
@@ -2308,10 +2329,13 @@ app.get("/update", async (req,res) => {
         table = "jobs";
         columnName = "current_status"
         value = newValue;
-        // update the job status, completed_date, and register te user who completed the job
+        // update the job status 
         //#region update job status
         console.log("ufg448     update "+ table + " set "+ columnName + " = " + value + " for rowID: " + rowID);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        let q2 = await db.query("DELETE FROM worksheets where description like '%Job(" + rowID + ")%' or job_id = $1", [rowID]);
+
+        //update completed date
         if (newValue === 'complete') {
           const dateObj = new Date();
           value = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
@@ -2322,6 +2346,8 @@ app.get("/update", async (req,res) => {
         columnName = "completed_date";
         console.log("ufg449     update "+ table + " set "+ columnName + " = " + value );          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+
+        //register te user who completed the job
         columnName = "user_id";
         value = req.user.id;        
         console.log("ufg450     update "+ table + " set "+ columnName + " = " + value );          
@@ -2342,9 +2368,9 @@ app.get("/update", async (req,res) => {
               q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
               // execute the action
               if (q && q.status === 200) {
-                console.log("ufg4666     job action executed successfully: ", action);
+                console.log("ufg4666     job action executed successfully: ");
               } else {
-                console.error("ufg4667     Error executing job action: ", action, " - ", q.status, q.statusText);
+                console.error("ufg4667     Error executing job action: ", q.status, q.statusText);
               }
                 
               //#endregion

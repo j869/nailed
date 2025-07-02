@@ -66,7 +66,7 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.07', '501', 8, 1, 800, null, 870, 1, 'Archive this customer', 'Sale gone cold - this will archive the job');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.08', '501', 8, 1, 800, null, 880, 1, 'Add permit workflow');
 update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 8 and tier = 501 and decendant_array is not null;
-update public.job_templates set job_change_array = '[{"antecedent": "complete","customer": [{"setCategory": "Archive"}]},{"antecedent": "pending","customer": [{"setCategory": "!workflowName"}]}]' where id = 870 and product_id = 8 and tier = 501;
+update public.job_templates set job_change_array = '[{"antecedent": "complete","customer": [{"setCategory": "Archive - Initial Enquiry"}]},{"antecedent": "pending","customer": [{"setCategory": "!workflowName"}]}]' where id = 870 and product_id = 8 and tier = 501;
 update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "5"}]}]' where id = 880 and product_id = 8 and tier = 501;
 
 -- gangnam style Vic Permit Applications
@@ -266,3 +266,10 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.00', '600', 4, 1, 389, 395, 392, 12, 'Pre Deposit');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.11', '601', 4, 1, 392, 394, 393, 12, 'Site inspection');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('03.12', '601', 4, 1, 392, 396, 394, 12, 'Requotes');
+
+
+
+
+ALTER TABLE worksheets ADD COLUMN job_id integer;
+COMMENT ON COLUMN public.worksheets.job_id IS 'References the related job for this worksheet';
+
