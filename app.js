@@ -1223,6 +1223,7 @@ app.post("/addBuild", async (req, res) => {
       console.log("e3        adding the original job for the build(" + buildID + ")");
       const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${buildID}`);     //&product_id=${req.body.product_id}`);
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
+      const q2 = await db.query("UPDATE jobs SET user_id = $1 WHERE build_id = $2 RETURNING 1", [req.user.id, buildID ])
 
       // res.redirect("/jobs/" + response.data.id);
       return res.redirect("/2/build/" + buildID);          
