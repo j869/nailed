@@ -16,10 +16,11 @@ import e from "express";
 
 const app = express();
 const port = 3000;
-const API_URL = "http://localhost:4000";
 let baseURL = "";
 const saltRounds = 10;
+
 env.config();
+const API_URL = process.env.API_URL     //"http://localhost:4000";
 
 app.use(express.json());    //// Middleware to parse JSON bodies
 app.use(

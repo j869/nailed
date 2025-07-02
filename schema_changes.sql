@@ -56,15 +56,18 @@ ADD COLUMN flow_change_array TEXT;
 delete from products where id = 8;
 insert into products (id, display_text) values (8, 'Initial Enquiry');
 delete from public.job_templates where product_id = 8;
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '500', 8, 1, null, null, 800, 13, 'Initial Enquiry');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.00', '500', 8, 1, null, null, 800, 1, 'Initial Enquiry');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.01', '501', 8, 1, 800, 820, 810, 1, 'Quote created');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.02', '501', 8, 1, 800, 830, 820, 1, 'Quote reviewed');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 8, 1, 800, 840, 830, 13, 'Quote sent date');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 8, 1, 800, 850, 840, 13, '3 day follow up – received quote check');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 8, 1, 800, 860, 850, 13, '14 day follow up – received quote check');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.06', '501', 8, 1, 800, 870, 860, 13, 'Delayed follow up', 'On hold - set the target date as required');
-INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.07', '501', 8, 1, 800, null, 870, 13, 'Archive this job', 'Sale gone cold - this will archive the job');
-
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.03', '501', 8, 1, 800, 840, 830, 1, 'Quote sent date');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.04', '501', 8, 1, 800, 850, 840, 1, '3 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.05', '501', 8, 1, 800, 860, 850, 1, '14 day follow up – received quote check');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.06', '501', 8, 1, 800, 880, 860, 1, 'Delayed follow up', 'On hold - set the target date as required');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text, free_text) VALUES ('01.07', '501', 8, 1, 800, null, 870, 1, 'Archive this customer', 'Sale gone cold - this will archive the job');
+INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('01.08', '501', 8, 1, 800, null, 880, 1, 'Add permit workflow');
+update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 8 and tier = 501 and decendant_array is not null;
+update public.job_templates set job_change_array = '[{"antecedent": "complete","customer": [{"setCategory": "Archive"}]},{"antecedent": "pending","customer": [{"setCategory": "!workflowName"}]}]' where id = 870 and product_id = 8 and tier = 501;
+update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "5"}]}]' where id = 880 and product_id = 8 and tier = 501;
 
 -- gangnam style Vic Permit Applications
 insert into products (id, display_text) values (5, 'Vic Permits');
@@ -117,7 +120,7 @@ INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, ante
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('08.53', '501', 5, 1, 542, 555, 554, 13, 'RFI action required 2');
 INSERT INTO public.job_templates(sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id, display_text) VALUES ('08.54', '501', 5, 1, 542, null, 555, 13, 'RFI action required 3');
 update public.job_templates set job_change_array = '[{"antecedent": "complete","decendant": [{"status": "pending@'||decendant_array||'"}, {"target": "today_1@'||decendant_array||'"}]}]' where product_id = 5 and tier = 501 and decendant_array is not null;
-update public.job_templates set job_change_array = '[{"antecedent": "complete","job": [{"status": "archive"}, {"target": "null"}]}]' where id = 507 and product_id = 5 and tier = 501;
+
 
 
 
