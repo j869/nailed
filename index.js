@@ -1424,7 +1424,7 @@ app.get("/addjob", async (req, res) => {
             const parentJob = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [antecedentTemplateID, buildID]);
             parentJobID = parentJob.rows.length > 0 ? parentJob.rows[0].id : null;
             const result = await pool.query(`INSERT INTO jobs (display_text, free_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES
-                                                              ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id;`,
+                                                              ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;`,
                                                               [title, description, tempID, buildID, prodID, remID, userID, createdAt, sortOrder, tier, jobChangeArray]);
             let newJobID = result.rows[0].id;
             console.log("a818       ...template("+t.id+") became job(", newJobID, ") " + title );
