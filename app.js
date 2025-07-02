@@ -701,13 +701,16 @@ app.get("/2/customers", async (req, res) => {
                         }
                         // Add the build to the customer's builds array
                         if (row.build_id) {
-                            customer.builds.push({
+                            // Only add builds that are not archived
+                            if (row.build_status !== 'Archive' && row.build_status !== 'complete') {
+                              customer.builds.push({
                                 id: row.build_id,
                                 product_id: row.product_id,
                                 enquiry_date: row.enquiry_date,
                                 job_id: row.job_id,
                                 current_status: row.build_status
-                            });
+                              });
+                            }
                         }
                         return acc;
                     }, []);
