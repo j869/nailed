@@ -1454,12 +1454,6 @@ app.get("/addjob", async (req, res) => {
 
         }
 
-
-
-
-
-
-
         console.log("a820     Resolving relationships for build("+ buildID +") with " + template.rows.length + " jobs... ");
         template = await pool.query("SELECT * FROM job_templates WHERE product_id = $1 order by sort_order", [productID]);
         for (const t of template.rows) {
@@ -1507,7 +1501,12 @@ app.get("/addjob", async (req, res) => {
 
         }
 
-
+        // format customer status to align with new workflow
+        // let customer = await pool.query("SELECT * FROM customers WHERE id = (select customer_id from builds where id = $1)", [buildID]);
+        // if (customer.rows.length > 0) {
+          console.log("a87     updating customer status for build(" + buildID + ") to match product("+ productID +") title ");
+          let q1 = await pool.query("UPDATE customers SET current_status = (select display_text from products where id = $1) WHERE id = (select customer_id from builds where id = $2)", [productID, buildID]);
+        // }
 
       console.log("a830     added workflow for build(" + buildID + ") starting with next_job", firstJobID);
       newJobID = firstJobID

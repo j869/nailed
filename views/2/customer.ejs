@@ -276,7 +276,7 @@
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
                                                                                                                 <button onclick="window.location.href='/jobs/<%= jobID %>';">Edit Category</button>
-                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';">Delete this Category</button>
+                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" style="display:none;">Delete this Category</button>
                                                                                                                 <table class="table nested-table">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
@@ -398,8 +398,8 @@
                                                                                                                         <% }); %>
                                                                                                                     </tbody>
                                                                                                                 </table>
-                                                                                                                <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add Job</button>
-                                                                                                                <% if (site.missing_jobs) { %>
+                                                                                                                <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" style="display:none;">Add Job</button>
+                                                                                                                <% if (false) { %>
                                                                                                                     <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                         <% if (missingjob) { %>
                                                                                                                             <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
