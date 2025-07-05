@@ -953,12 +953,13 @@ app.get("/executeJobAction", async (req, res) => {
 
       }
     }
-    res.status(200).json({ msg: 'Job action executed successfully' });
+    console.log("ja9    job action executed for jobID: ", parentID);
+    return res.status(200).json({ success : true, message: 'Job action executed successfully' });
   } catch (error) {
     console.error('ja8    Error executing job action:', error);
     // return res.status(500).json({ error: 'Failed to execute job action' });
 
-    res.status(error.statusCode || 500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || 'Internal server error',
       details: undefined

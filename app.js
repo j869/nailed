@@ -2363,11 +2363,11 @@ app.get("/update", async (req,res) => {
 
               // Check for successful response structure
               if (response.data?.success) {
-                console.log("ufg4283     Action succeeded:", response.data.data);
+                console.log("ufg4283     Action succeeded:", response.data.message);
                 // Update UI accordingly
               } else {
                 // Handle business logic failure (200 with success: false)
-                console.error("ufg4338    Action failed:", response.data?.error);
+                console.error("ufg4338    Action failed:", response.data?.message);
                 return res.send("Action failed: " + response.data?.error);
               }
                               
