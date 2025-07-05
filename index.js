@@ -814,6 +814,7 @@ app.get("/executeJobAction", async (req, res) => {
   try {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
+    console.log("ja1      executing changeArray: ", changeArrayJson);
     const jobRec = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ja300     Job not found for job_id:", parentID);
@@ -824,7 +825,7 @@ app.get("/executeJobAction", async (req, res) => {
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
       // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
-      console.log("ufg4001     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
+      console.log("ja4001     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
       if (scenario.antecedent === parentStatus) {   
         //check if scenario.decendant exists 
         if (scenario.decendant) {
@@ -952,10 +953,16 @@ app.get("/executeJobAction", async (req, res) => {
 
       }
     }
-    return res.status(200).json({ msg: 'Job action executed successfully' });
+    res.status(200).json({ msg: 'Job action executed successfully' });
   } catch (error) {
     console.error('ja8    Error executing job action:', error);
-    return res.status(500).json({ error: 'Failed to execute job action' });
+    // return res.status(500).json({ error: 'Failed to execute job action' });
+
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+      details: undefined
+    });    
   }
 });
 

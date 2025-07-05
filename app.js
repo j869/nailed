@@ -1743,45 +1743,26 @@ app.get("/dtDone", async (req, res) => {
     const q3 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
     const description = q3.rows[0].description;
     const match = q3.rows[0]?.description?.match(/Job\((\d+)\)/);
-    const jobId = match ? parseInt(match[1], 10) : null;
+    let jobId = match ? parseInt(match[1], 10) : null;
     if (!jobId) {
-      console.error("dtd10   Error: cannot find jobID for this ", description);
-      // const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-      return res.status(404).send("dtd10   cannot find jobID in this job ");
+      jobId = q3.rows[0]?.job_id; // Fallback to job_id if available 
     }
-    console.log("dtd11   extracted jobId:", jobId);
+    if (!jobId) {
+      console.error("dtd10   User defined task - not associated with any customer");
+      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    } else {
+      console.log("dtd11   extracted jobId:", jobId);
 
-    const q1 = await axios.get(`${process.env.BASE_URL}/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${jobId}`, {
-      headers: {
-      Cookie: req.headers.cookie // Pass session cookie for authentication
-      }
-    });
-    // const q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-    
-    // const q1 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
-    // console.log("dtd2    ", q1.rows);
+      const q1 = await axios.get(`${process.env.BASE_URL}/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${jobId}`, {
+        headers: {
+        Cookie: req.headers.cookie // Pass session cookie for authentication
+        }
+      });
 
-    // if (q1.rows.description == null) {
-    const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-    //   console.log("dtd3    deleted: ", q2.rowCount)
-    // } else {
-    //   console.log("dtd4    ");
-      // const fieldID = 'current_status';
-      // const newValue = 'complete';
-      // const recordID = id;
+      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    }
 
-      // const response = await fetch('/taskComplete', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({ taskId: 1, status: 'true' })
-      // });
-      
-      // res.redirect("/") ;
-    // }
-
-    res.status(200).json({ message: "Checkbox status updated" }); // Return a response
+    return res.status(200).json({ message: "Checkbox status updated" }); // Return a response
   } catch (error) {
     console.error("Error updating checkbox:", error);
     
@@ -2365,21 +2346,38 @@ app.get("/update", async (req,res) => {
             try {
               //#region internal actions on mother job - on every save
               console.log("ufg4661     found job(" + rowID + ") has [" + q6.rows.length + "] modifications every time it gets updated: \x1b[90m", changeArray, "\x1b[0m");
-              q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
-              // execute the action
-              if (q && q.status === 200) {
-                console.log("ufg4666     job action executed successfully: ");
+              // q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
+              // // execute the action
+              // if (q && q.status === 200) {
+              //   console.log("ufg4666     job action executed successfully: ");
+              // } else {
+              //   console.error("ufg4667     Error executing job action: ", q.status, q.statusText);
+              // }
+              const response = await axios.get(`${API_URL}/executeJobAction`, {
+                params: {
+                  changeArray: changeArray,
+                  origin_job_id: rowID
+                },
+                timeout: 10000
+              });
+
+              // Check for successful response structure
+              if (response.data?.success) {
+                console.log("ufg4283     Action succeeded:", response.data.data);
+                // Update UI accordingly
               } else {
-                console.error("ufg4667     Error executing job action: ", q.status, q.statusText);
+                // Handle business logic failure (200 with success: false)
+                console.error("ufg4338    Action failed:", response.data?.error);
+                return res.send("Action failed: " + response.data?.error);
               }
-                
+                              
               //#endregion
               //#region flow actions - when mother job status changes
               //#endregion
               //#region recursive actions on job process flow tree
               //#endregion
             } catch (error) {
-              console.error("ufg4668     Error processing job actions:", error);
+              console.error("ufg4668     Error processing job actions:", error.message);
               // res.status(500).send("Update failed: " + error.message);
             }
           } else {
