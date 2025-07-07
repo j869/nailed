@@ -76,11 +76,16 @@
     background: #f8f9fa;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    padding: 16px 10px;
+    padding: 16px 18px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-width: 48px;
+    min-width: 160px;
+    width: 200px;
+}
+.floating-options-bar .btn {
+    min-width: 140px;
+    width: 100%;
 }
 @media (max-width: 768px) {
     .floating-options-bar {
@@ -89,7 +94,7 @@
 }
 </style>
 <div class="floating-options-bar">
-    <button class="btn btn-primary mb-3" onclick="location.reload();">Save changes</button>
+    <button class="btn btn-primary mb-3" style="height: 56px;" onclick="location.reload();">Save changes</button>
 </div>
 
 <div class="container"></div>
@@ -281,7 +286,7 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
+                                                                                                                                    <td id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
                                                                                                                                         <% if (task.owned_by == 1) { %>
                                                                                                                                             John
                                                                                                                                         <% } else if (task.owned_by == 12) { %>

@@ -1710,7 +1710,7 @@ app.post("/jobComplete", async (req, res) => {
 
 
     // Update the jobs table in your database
-    console.log("jb2   ", newStatus, jobID);
+    console.log("jb2    ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
