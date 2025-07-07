@@ -46,7 +46,7 @@ home.ejs
                   <% } %>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= data[i].id %>`)
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_1&whereID=<%= data[i].id %>`)
                     .then(response => {
                         if (response.ok) {
                             console.log('Database updated successfully.');
@@ -60,10 +60,31 @@ home.ejs
                     <i class="bi bi-trash"></i> +1
                   </button>
                   
-                  <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= data[i].id %>'">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= data[i].id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });">
                     <i class="bi bi-trash"></i> +3
                   </button>
-                  <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/update?btn=104a&fieldID=daytaskDate&newValue=add_7&whereID=<%= data[i].id %>'">
+
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_7&whereID=<%= data[i].id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });">
                     <i class="bi bi-trash"></i> +7
                   </button>
                 </td>
