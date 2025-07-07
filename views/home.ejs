@@ -111,7 +111,11 @@ home.ejs
         
         <div class="mb-3">
           <label for="taskPerson" class="form-label fw-bold">Assigned To</label>
-          <input type="number" class="form-control" id="taskPerson" name="person" value="<%= user_id %>" required>
+          <select class="form-control" id="taskPerson" name="person" required>
+            <option value="1" <%= user_id == 1 ? 'selected' : '' %>>John</option>
+            <option value="12" <%= user_id == 12 ? 'selected' : '' %>>Bryan</option>
+            <option value="13" <%= user_id == 13 ? 'selected' : '' %>>VicPA</option>
+          </select>
         </div>
         
         <div class="mb-4">
