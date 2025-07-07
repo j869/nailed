@@ -153,6 +153,13 @@ home.ejs
   <script>
     //set 'add reminder' date = todays date
     document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
+    //set 'add reminder' date = todays date
+    const url = new URL(window.location.href);
+    const forward = parseInt(url.searchParams.get('view'));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + forward);
+    document.getElementById('taskDate').value = tomorrow.toISOString().split('T')[0];
+
 
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {
