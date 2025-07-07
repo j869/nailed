@@ -419,11 +419,14 @@ async function getBuildData(buildID) {
     `, [customerID]);
 
     // 3. Get missing jobs
+    // , 
     const missingJobsResult = await db.query(`
-      SELECT id, display_text 
-      FROM job_templates 
-      WHERE product_id = $1 AND id NOT IN (
-        SELECT job_template_id FROM jobs WHERE build_id = $2
+      SELECT t.id, t.sort_order, t.display_text,
+      (select b.sort_order from job_templates b where t.antecedent_array = b.id::text) as before,
+      (select a.sort_order from job_templates a where t.decendant_array = a.id::text) as after
+      FROM job_templates t
+      WHERE t.product_id = $1 and t.tier = 500 AND t.id NOT IN (
+        SELECT j.job_template_id FROM jobs j WHERE j.build_id = $2
       )
     `, [buildData.product_id, buildID]);
 
@@ -1351,7 +1354,7 @@ app.get("/jobDone/:id", async (req, res) => {
 app.get("/delJob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
+      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+") recursively");
     } else {
       console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
     }   
@@ -1373,7 +1376,7 @@ app.get("/delJob", async (req, res) => {
 app.get("/addjob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job");
+      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job ", req.query);
     } else {
       console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
       if (!req.query.tier || isNaN(Number(req.query.tier))) {
@@ -1690,6 +1693,7 @@ app.post("/jobComplete", async (req, res) => {
     const status = req.body.status;    //string 'true' or 'false'
 
     // Fetch the current status of the job from the database
+    console.log("jb11   ", jobID, status);
     const result = await db.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
     const currentStatus = result.rows[0].current_status;
 
@@ -1703,27 +1707,29 @@ app.post("/jobComplete", async (req, res) => {
         newStatus = 'complete';
     } else {
         newCompleteDate = null;  
-        newStatus = 'pending';
+        newStatus = null     //'pending';
     }
     newCompleteBy = req.user.id || 1;
 
 
     // Update the jobs table in your database
-    // console.log("jb2   ", newStatus, jobID);
+    console.log("jb2    ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
         // update the status of all child tasks 
-        // console.log("jb71      ", jobID, newStatus);  
+        console.log("jb71      ", jobID, newStatus);  
     //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
-        const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        //const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        let childStatus = newStatus === 'complete' ? 'complete' : null;
+        const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2)`, [childStatus, jobID]);
         // console.log("jb72      ", result.rowCount);  
-        res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
-        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
+        console.log(`jb9   job(${jobID}) children updated updated to ${childStatus}`);
+        res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
 
     } else {
-        console.log(`tb8     job ${jobID} not found or status not updated`);
+        console.log(`jb8     job ${jobID} not found or status not updated`);
         res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
   } catch (error) {
