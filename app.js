@@ -419,11 +419,14 @@ async function getBuildData(buildID) {
     `, [customerID]);
 
     // 3. Get missing jobs
+    // , 
     const missingJobsResult = await db.query(`
-      SELECT id, display_text 
-      FROM job_templates 
-      WHERE product_id = $1 AND id NOT IN (
-        SELECT job_template_id FROM jobs WHERE build_id = $2
+      SELECT t.id, t.sort_order, t.display_text,
+      (select b.sort_order from job_templates b where t.antecedent_array = b.id::text) as before,
+      (select a.sort_order from job_templates a where t.decendant_array = a.id::text) as after
+      FROM job_templates t
+      WHERE t.product_id = $1 and t.tier = 500 AND t.id NOT IN (
+        SELECT j.job_template_id FROM jobs j WHERE j.build_id = $2
       )
     `, [buildData.product_id, buildID]);
 
@@ -1351,7 +1354,7 @@ app.get("/jobDone/:id", async (req, res) => {
 app.get("/delJob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
+      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+") recursively");
     } else {
       console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
     }   
@@ -1373,7 +1376,7 @@ app.get("/delJob", async (req, res) => {
 app.get("/addjob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job");
+      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job ", req.query);
     } else {
       console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
       if (!req.query.tier || isNaN(Number(req.query.tier))) {

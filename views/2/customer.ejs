@@ -207,7 +207,7 @@
                                                                                                 <th style="background-color:#77dd7783;">Target Date</th>
                                                                                                 <th style="display: none;">Created By</th>
                                                                                                 <th style="display: none;">Created Date</th>
-                                                                                                <th style="display: none;">Change Array</th>
+                                                                                                <th style="background-color:#77dd7783;" >Change Array</th>
                                                                                                 <th style="display: none;">Completed By</th>
                                                                                                 <th style="display: none;">Completed Date</th>
                                                                                                 <th style="background-color:#77dd7783;">Current Status</th>
@@ -238,7 +238,7 @@
                                                                                                         <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= jobID %>"><%= job.target_date %></td>
                                                                                                         <td style="display: none;"><%= job.created_by %></td>
                                                                                                         <td style="display: none;"><%= job.created_date %></td>
-                                                                                                        <td style="display: none;"><%= job.change_array %></td>
+                                                                                                        <td style="background-color:#77DD77;" ><%= job.change_array %>ID[<%= jobID %>]</td>
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
@@ -264,7 +264,7 @@
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
                                                                                                                 <button onclick="window.location.href='/jobs/<%= jobID %>';">Edit Category</button>
-                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" style="display:none;">Delete this Category</button>
+                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" >Delete this Stage</button>
                                                                                                                 <table class="table nested-table">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
@@ -387,10 +387,12 @@
                                                                                                                     </tbody>
                                                                                                                 </table>
                                                                                                                 <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" style="display:none;">Add Job</button>
-                                                                                                                <% if (false) { %>
+                                                                                                                <% if (site.missing_jobs) { %>
                                                                                                                     <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                         <% if (missingjob) { %>
-                                                                                                                            <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                            <% if (job.sort_order >= missingjob.before && job.sort_order <= missingjob.after) { %>
+                                                                                                                                <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                            <% } %>
                                                                                                                         <% } %>
                                                                                                                     <% }); %>
                                                                                                                 <% } %>
