@@ -1813,10 +1813,11 @@ app.post("/updateUserStatusOrder", async (req, res) => {
 
 app.get("/update", async (req,res) => {
   if (req.isAuthenticated()) {
+    const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;
     const newValue = (req.query.newValue || '');   
     const rowID = req.query.whereID;
-    console.log("ufg1    user("+req.user.id+") changed "	+ fieldID + " to " + newValue + " for rowID " + rowID);
+    console.log("ufg1    user("+req.user.id+") clicked ("+called_by_button+") to changed "	+ fieldID + " to " + newValue + " for rowID " + rowID);
     // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
 
     if (!fieldID) {
@@ -2250,19 +2251,30 @@ app.get("/update", async (req,res) => {
       case "daytaskDate":
         table = "worksheets";
         columnName = "date"
-        value =  newValue ;
+        if (newValue.startsWith("add_")) {
+            let dateObj = new Date();
+            dateObj.setDate(dateObj.getDate() + parseInt(newValue.replace("add_", "")));
+            value = dateObj.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        } else {
+          value =  newValue ;
+        }
+
         console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);        
           try {  
+            const a4 = await db.query("BEGIN;"); // Start transaction
+            console.log("ufg4421     ...update worksheetID("+rowID+") set target date = " + value );
             const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
             // console.log('ufg00077');
-            const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
-            if (a2.rows.length > 0 && a2.rows[0].description !== null) {
-              const descriptionJson = JSON.parse(a2.rows[0].description);
-              const taskId = descriptionJson.task_id;
-              console.log("ufg442   update tasks set target_date = " + value);
-              const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
+            const a2 = await db.query("SELECT job_id FROM worksheets WHERE id = $1;", [rowID]);  
+            let taskID = a2.rows[0].job_id;    
+            if (taskID ) {
+              // const descriptionJson = JSON.parse(a2.rows[0].description);
+              // const taskId = descriptionJson.task_id;
+              console.log("ufg4422   ...update job("+taskID+") set target_date = " + value);
+              const a3 = await db.query("UPDATE jobs SET target_date = $1 WHERE id = $2;", [value, taskID]);      
               // console.log('ufg443');
             }
+            const a5 = await db.query("COMMIT;"); // Commit transaction
           } catch (error) {
               console.error("ufg442  Error updating date:", error);
               res.status(500).send("Error updating date");
