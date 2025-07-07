@@ -69,36 +69,18 @@
 <style>
 .floating-options-bar {
     position: fixed;
-    top: 100px;
+    top: 50%;
     left: 20px;
+    transform: translateY(-50%);
     z-index: 1050;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     padding: 16px 10px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     min-width: 48px;
-}
-.floating-options-bar button,
-.floating-options-bar a {
-    background: #e9ecef;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 6px;
-    margin: 0;
-    color: #333;
-    text-align: center;
-    text-decoration: none;
-    font-size: 16px;
-    transition: background 0.2s;
-    cursor: pointer;
-}
-.floating-options-bar button:hover,
-.floating-options-bar a:hover {
-    background: #d4edda;
-    color: #155724;
 }
 @media (max-width: 768px) {
     .floating-options-bar {
@@ -107,11 +89,10 @@
 }
 </style>
 <div class="floating-options-bar">
-    <button class="btn btn-secondary mb-3" onclick="location.reload();">Save changes</button>
+    <button class="btn btn-primary mb-3" onclick="location.reload();">Save changes</button>
 </div>
 
-<div class="container">
-
+<div class="container"></div>
 
     <div class="container">
         <div class="col-md-12">
@@ -255,10 +236,10 @@
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
                                                                                                             <div class="form-check">
-                                                                                                                <input class="editable " type="checkbox" id="jobStatus" data-record-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <input class="job-checkbox " type="checkbox" id="jobStatus" data-job-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                 <label class="form-check-label" for="jobComplete<%= jobID %>"><%= job.current_status %></label>
                                                                                                             </div>
-                                                                                                            <div class="form-check d-none">
+                                                                                                            <div class="form-check d-none" display="none">
                                                                                                                 <input class="form-check-input job-checkbox" 
                                                                                                                     type="checkbox" 
                                                                                                                     id="jobComplete<%= jobID %>" 

@@ -1690,6 +1690,7 @@ app.post("/jobComplete", async (req, res) => {
     const status = req.body.status;    //string 'true' or 'false'
 
     // Fetch the current status of the job from the database
+    console.log("jb11   ", jobID, status);
     const result = await db.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
     const currentStatus = result.rows[0].current_status;
 
@@ -1703,27 +1704,29 @@ app.post("/jobComplete", async (req, res) => {
         newStatus = 'complete';
     } else {
         newCompleteDate = null;  
-        newStatus = 'pending';
+        newStatus = null     //'pending';
     }
     newCompleteBy = req.user.id || 1;
 
 
     // Update the jobs table in your database
-    // console.log("jb2   ", newStatus, jobID);
+    console.log("jb2   ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
         // update the status of all child tasks 
-        // console.log("jb71      ", jobID, newStatus);  
+        console.log("jb71      ", jobID, newStatus);  
     //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
-        const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        //const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        let childStatus = newStatus === 'complete' ? 'complete' : null;
+        const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2)`, [childStatus, jobID]);
         // console.log("jb72      ", result.rowCount);  
-        res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
-        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
+        console.log(`jb9   job(${jobID}) children updated updated to ${childStatus}`);
+        res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
 
     } else {
-        console.log(`tb8     job ${jobID} not found or status not updated`);
+        console.log(`jb8     job ${jobID} not found or status not updated`);
         res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
   } catch (error) {

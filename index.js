@@ -976,7 +976,12 @@ app.get("/update", async (req, res) => {
   let value = req.query.value;
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  if (id === undefined || id === null) {
+    console.log("ud18  bad request: id is required");
+    return res.status(400).json({ msg: 'Bad Request: id is required' });
+  } else {
+    console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  }
   // Treat empty string as NULL
   if (value === '') {
     value = null;
@@ -985,6 +990,7 @@ app.get("/update", async (req, res) => {
   try {
     // Retrieve the current value from the database
     const currentValueQuery = `SELECT ${column} FROM ${table} WHERE id = $1;`;
+    console.log("ud1a   currentValueQuery: ", currentValueQuery, " with id: ", id);
     const currentValueResult = await pool.query(currentValueQuery, [id]);
     if (currentValueResult.rows.length === 0) {
       return res.status(404).json({ msg: 'Record not found' });
