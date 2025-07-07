@@ -263,8 +263,10 @@
                                                                                                             <!-- ---  tasks                                                                 -->
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
-                                                                                                                <button onclick="window.location.href='/jobs/<%= jobID %>';">Edit Category</button>
-                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" >Delete this Stage</button>
+                                                                                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                                                                                    <button class="btn btn-link p-0" onclick="window.location.href='/jobs/<%= jobID %>';" style="margin-right: auto;">  Edit Category</button>
+                                                                                                                    <button class="btn btn-link p-0 text-danger" onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" style="margin-left: auto;">Delete this Stage</button>
+                                                                                                                </div>
                                                                                                                 <table class="table nested-table">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
