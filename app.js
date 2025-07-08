@@ -1623,12 +1623,25 @@ passport.use(
   })
 );
 
+
 passport.serializeUser((user, cb) => {
-  cb(null, user);
+  console.log('pp95     Serializing user ID:', user.id);
+  cb(null, user.id); // Store only user ID in session
 });
 
-passport.deserializeUser((user, cb) => {
-  cb(null, user);
+passport.deserializeUser(async (id, cb) => {
+  try {
+    console.log('pp96     Deserializing user ID:', id);
+    const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
+    if (result.rows.length > 0) {
+      cb(null, result.rows[0]); // Return fresh user data from database
+    } else {
+      cb(new Error('User not found'), null);
+    }
+  } catch (err) {
+    console.error('pp97     Error deserializing user:', err);
+    cb(err, null);
+  }
 });
 
 app.listen(port, () => {
