@@ -22,22 +22,32 @@ const saltRounds = 10;
 env.config();
 const API_URL = process.env.API_URL     //"http://localhost:4000";
 
-app.use(express.json());    //// Middleware to parse JSON bodies
-app.use(
-  session({
+// Serve static files first (no session processing needed)
+app.use(express.static("public"));
+
+app.use((req, res, next) => {
+  // console.log(`x1        NEW REQUEST ${req.method} ${req.path} from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
+  console.log(`x1        NEW REQUEST ${req.method} ${req.path} `);
+  // console.log('x3        with SessionID:', req.sessionID);
+  // console.log('x4        and Cookies:', req.headers.cookie);
+  next();
+});
+app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { 
-      secure: false,  // Use secure: true in production with HTTPS
-      httpOnly: true
-    }
-  })
-);
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static("public"));
+    cookie: { secure: false,  httpOnly: true }
+  }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use((req, res, next) => {
+  // console.log('x2       req.user:', req.user?.id || 'unset');
+  console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
+  // console.log('x6       Post-passport - sessionID:', req.sessionID);
+  next();
+});
+app.use(express.json());    //// Middleware to parse JSON bodies
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const db = new pg.Client({
   user: process.env.PG_USER,
@@ -52,13 +62,13 @@ db.connect();
 
 
 // Middleware to make session user available on req.user for convenience
-app.use((req, res, next) => {
-  if (req.session.user) {
-    console.log("i1   ");
-    req.user = req.session.user;
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   if (req.session.user) {
+//     console.log("i1   ");
+//     req.user = req.session.user;
+//   }
+//   next();
+// });
 
 app.post("/", async (req, res) => {
   const { title, person, date } = req.body;
@@ -557,7 +567,7 @@ let allCustomers = [];
             // console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
             // return allCustomers;
             // printJobHierarchy(tableData);
-            console.log("b30   found jobs for build("+buildID+"): ", allCustomers.length);
+            console.log("b30   found " +allCustomers.length+" jobs for build("+buildID+") with USER("+ req.user.id +") ");
             res.render("2/customer.ejs", { user : req.user, tableData : allCustomers, baseUrl : process.env.BASE_URL });
             
           } else {
@@ -616,6 +626,7 @@ let allCustomers = [];
       console.log("b9   ");
       res.redirect("/login");
   }
+  console.log("b99   user ("+ req.user.id +")");
 });
 
 app.get("/2/customers", async (req, res) => {
