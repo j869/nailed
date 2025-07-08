@@ -95,8 +95,9 @@ INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, prod
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Construction quote', null, '2.36', '501', 5, 1, 5200, 5239, 5236, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Draft Site plan sent to design', null, '2.39', '501', 5, 1, 5200, 5242, 5239, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Site plan returned from design', null, '2.42', '501', 5, 1, 5200, 5245, 5242, 13);
-INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Engineering', 'Upload', '2.45', '501', 5, 1, 5200, 5303, 5245, 13);
+INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Engineering', 'Upload', '2.45', '501', 5, 1, 5200, 5301, 5245, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Site Plan', null, '3.00', '500', 5, 1, 5200, 5400, 5300, 13);
+INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Site plan task', null, '3.01', '501', 5, 1, 5300, 5303, 5301, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Apex', null, '3.03', '501', 5, 1, 5300, 5306, 5303, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('SW/DP', null, '3.06', '501', 5, 1, 5300, 5309, 5306, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Street Name', null, '3.09', '501', 5, 1, 5300, 5312, 5309, 13);
@@ -139,7 +140,7 @@ INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, prod
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Customer invoiced BP', null, '6.03', '501', 5, 1, 5600, 5606, 5603, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('BP fee paid', 'Date paid: ', '6.06', '501', 5, 1, 5600, 5609, 5606, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Signed Building Surveyor appointed', null, '6.09', '501', 5, 1, 5600, 5612, 5609, 13);
-INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Building Permit submitted', 'Date submitted: ', '6.12', '501', 5, 1, 5600, 5615, 5612, 13);
+INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Submit building permit', 'Date submitted: ', '6.12', '501', 5, 1, 5600, 5615, 5612, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('RFI received', 'Upload', '6.15', '501', 5, 1, 5600, 5618, 5615, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('RFI action required 1', null, '6.18', '501', 5, 1, 5600, 5621, 5618, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('RFI action required 2', null, '6.21', '501', 5, 1, 5600, 5624, 5621, 13);
@@ -324,3 +325,17 @@ ALTER TABLE worksheets ADD COLUMN job_id integer;
 COMMENT ON COLUMN public.worksheets.job_id IS 'References the related job for this worksheet';
 
 update products set display_text = 'Active Permits' where id = 5;
+
+
+
+-- cleaning database from orphaned records
+delete from customers where id in(select c.id from customers c left join products p on c.current_status = p.display_text where p.id is null)
+delete from builds b where not exists (select 1 from customers where b.customer_id = id)
+delete from jobs j where not exists (select 1 from builds b where j.build_id = b.id)
+delete from job_process_flow f where not exists (select 1 from jobs j where f.antecedent_id = j.id or f.decendant_id = j.id)
+delete from reminders r where not exists (select 1 from jobs j where r.id = j.reminder_id)
+delete from job_templates t where not exists (select 1 from products p where p.id = t.product_id)
+drop table user_work_schedule;
+drop table work_schedule;
+
+

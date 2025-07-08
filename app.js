@@ -429,11 +429,14 @@ async function getBuildData(buildID) {
     `, [customerID]);
 
     // 3. Get missing jobs
+    // , 
     const missingJobsResult = await db.query(`
-      SELECT id, display_text 
-      FROM job_templates 
-      WHERE product_id = $1 AND id NOT IN (
-        SELECT job_template_id FROM jobs WHERE build_id = $2
+      SELECT t.id, t.sort_order, t.display_text,
+      (select b.sort_order from job_templates b where t.antecedent_array = b.id::text) as before,
+      (select a.sort_order from job_templates a where t.decendant_array = a.id::text) as after
+      FROM job_templates t
+      WHERE t.product_id = $1 and t.tier = 500 AND t.id NOT IN (
+        SELECT j.job_template_id FROM jobs j WHERE j.build_id = $2
       )
     `, [buildData.product_id, buildID]);
 
@@ -1362,7 +1365,7 @@ app.get("/jobDone/:id", async (req, res) => {
 app.get("/delJob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+")");
+      console.log("i1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to delete job("+req.query.jobnum+") recursively");
     } else {
       console.log("i1      user("+ req.user.id +") is deleting job("+req.query.jobnum+")");
     }   
@@ -1384,7 +1387,7 @@ app.get("/delJob", async (req, res) => {
 app.get("/addjob", async (req, res) => {
   if (req.isAuthenticated()) {
     if (req.query.btn) {
-      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job");
+      console.log("j1      USER("+ req.user.id +") clicked btn(" + req.query.btn + ") to add a new job ", req.query);
     } else {
       console.log("j1      user("+ req.user.id +") is adding a new job on tier ", req.query);
       if (!req.query.tier || isNaN(Number(req.query.tier))) {
@@ -1701,6 +1704,7 @@ app.post("/jobComplete", async (req, res) => {
     const status = req.body.status;    //string 'true' or 'false'
 
     // Fetch the current status of the job from the database
+    console.log("jb11   ", jobID, status);
     const result = await db.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
     const currentStatus = result.rows[0].current_status;
 
@@ -1714,27 +1718,29 @@ app.post("/jobComplete", async (req, res) => {
         newStatus = 'complete';
     } else {
         newCompleteDate = null;  
-        newStatus = 'pending';
+        newStatus = null     //'pending';
     }
     newCompleteBy = req.user.id || 1;
 
 
     // Update the jobs table in your database
-    // console.log("jb2   ", newStatus, jobID);
+    console.log("jb2    ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
         // update the status of all child tasks 
-        // console.log("jb71      ", jobID, newStatus);  
+        console.log("jb71      ", jobID, newStatus);  
     //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
-        const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        //const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
+        let childStatus = newStatus === 'complete' ? 'complete' : null;
+        const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2)`, [childStatus, jobID]);
         // console.log("jb72      ", result.rowCount);  
-        res.status(200).json({ message: `job ${jobID} status updated to ${newStatus}` });
-        console.log(`tb9   job ${jobID} status updated to ${newStatus}`);
+        console.log(`jb9   job(${jobID}) children updated updated to ${childStatus}`);
+        res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
 
     } else {
-        console.log(`tb8     job ${jobID} not found or status not updated`);
+        console.log(`jb8     job ${jobID} not found or status not updated`);
         res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
   } catch (error) {
@@ -1754,45 +1760,26 @@ app.get("/dtDone", async (req, res) => {
     const q3 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
     const description = q3.rows[0].description;
     const match = q3.rows[0]?.description?.match(/Job\((\d+)\)/);
-    const jobId = match ? parseInt(match[1], 10) : null;
+    let jobId = match ? parseInt(match[1], 10) : null;
     if (!jobId) {
-      console.error("dtd10   Error: cannot find jobID for this ", description);
-      // const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-      return res.status(404).send("dtd10   cannot find jobID in this job ");
+      jobId = q3.rows[0]?.job_id; // Fallback to job_id if available 
     }
-    console.log("dtd11   extracted jobId:", jobId);
+    if (!jobId) {
+      console.error("dtd10   User defined task - not associated with any customer");
+      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    } else {
+      console.log("dtd11   extracted jobId:", jobId);
 
-    const q1 = await axios.get(`${process.env.BASE_URL}/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${jobId}`, {
-      headers: {
-      Cookie: req.headers.cookie // Pass session cookie for authentication
-      }
-    });
-    // const q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-    
-    // const q1 = await db.query("SELECT * from worksheets WHERE Id = " + id + ";");
-    // console.log("dtd2    ", q1.rows);
+      const q1 = await axios.get(`${process.env.BASE_URL}/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${jobId}`, {
+        headers: {
+        Cookie: req.headers.cookie // Pass session cookie for authentication
+        }
+      });
 
-    // if (q1.rows.description == null) {
-    const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
-    //   console.log("dtd3    deleted: ", q2.rowCount)
-    // } else {
-    //   console.log("dtd4    ");
-      // const fieldID = 'current_status';
-      // const newValue = 'complete';
-      // const recordID = id;
+      const q2 = await db.query("DELETE FROM worksheets WHERE Id = " + id + ";");
+    }
 
-      // const response = await fetch('/taskComplete', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({ taskId: 1, status: 'true' })
-      // });
-      
-      // res.redirect("/") ;
-    // }
-
-    res.status(200).json({ message: "Checkbox status updated" }); // Return a response
+    return res.status(200).json({ message: "Checkbox status updated" }); // Return a response
   } catch (error) {
     console.error("Error updating checkbox:", error);
     
@@ -1837,10 +1824,11 @@ app.post("/updateUserStatusOrder", async (req, res) => {
 
 app.get("/update", async (req,res) => {
   if (req.isAuthenticated()) {
+    const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;
     const newValue = (req.query.newValue || '');   
     const rowID = req.query.whereID;
-    console.log("ufg1    user("+req.user.id+") changed "	+ fieldID + " to " + newValue + " for rowID " + rowID);
+    console.log("ufg1    user("+req.user.id+") clicked ("+called_by_button+") to changed "	+ fieldID + " to " + newValue + " for rowID " + rowID);
     // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);
 
     if (!fieldID) {
@@ -2274,19 +2262,30 @@ app.get("/update", async (req,res) => {
       case "daytaskDate":
         table = "worksheets";
         columnName = "date"
-        value =  newValue ;
+        if (newValue.startsWith("add_")) {
+            let dateObj = new Date();
+            dateObj.setDate(dateObj.getDate() + parseInt(newValue.replace("add_", "")));
+            value = dateObj.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        } else {
+          value =  newValue ;
+        }
+
         console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);        
           try {  
+            const a4 = await db.query("BEGIN;"); // Start transaction
+            console.log("ufg4421     ...update worksheetID("+rowID+") set target date = " + value );
             const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
             // console.log('ufg00077');
-            const a2 = await db.query("SELECT description FROM worksheets WHERE id = $1;", [rowID]);      
-            if (a2.rows.length > 0 && a2.rows[0].description !== null) {
-              const descriptionJson = JSON.parse(a2.rows[0].description);
-              const taskId = descriptionJson.task_id;
-              console.log("ufg442   update tasks set target_date = " + value);
-              const a3 = await db.query("UPDATE tasks SET target_date = $1 WHERE id = $2;", [value, taskId]);      
+            const a2 = await db.query("SELECT job_id FROM worksheets WHERE id = $1;", [rowID]);  
+            let taskID = a2.rows[0].job_id;    
+            if (taskID ) {
+              // const descriptionJson = JSON.parse(a2.rows[0].description);
+              // const taskId = descriptionJson.task_id;
+              console.log("ufg4422   ...update job("+taskID+") set target_date = " + value);
+              const a3 = await db.query("UPDATE jobs SET target_date = $1 WHERE id = $2;", [value, taskID]);      
               // console.log('ufg443');
             }
+            const a5 = await db.query("COMMIT;"); // Commit transaction
           } catch (error) {
               console.error("ufg442  Error updating date:", error);
               res.status(500).send("Error updating date");
@@ -2376,21 +2375,38 @@ app.get("/update", async (req,res) => {
             try {
               //#region internal actions on mother job - on every save
               console.log("ufg4661     found job(" + rowID + ") has [" + q6.rows.length + "] modifications every time it gets updated: \x1b[90m", changeArray, "\x1b[0m");
-              q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
-              // execute the action
-              if (q && q.status === 200) {
-                console.log("ufg4666     job action executed successfully: ");
+              // q = await axios.get(`${API_URL}/executeJobAction?changeArray=`+changeArray+`&origin_job_id=`+rowID);
+              // // execute the action
+              // if (q && q.status === 200) {
+              //   console.log("ufg4666     job action executed successfully: ");
+              // } else {
+              //   console.error("ufg4667     Error executing job action: ", q.status, q.statusText);
+              // }
+              const response = await axios.get(`${API_URL}/executeJobAction`, {
+                params: {
+                  changeArray: changeArray,
+                  origin_job_id: rowID
+                },
+                timeout: 10000
+              });
+
+              // Check for successful response structure
+              if (response.data?.success) {
+                console.log("ufg4283     Action succeeded:", response.data.message);
+                // Update UI accordingly
               } else {
-                console.error("ufg4667     Error executing job action: ", q.status, q.statusText);
+                // Handle business logic failure (200 with success: false)
+                console.error("ufg4338    Action failed:", response.data?.message);
+                return res.send("Action failed: " + response.data?.error);
               }
-                
+                              
               //#endregion
               //#region flow actions - when mother job status changes
               //#endregion
               //#region recursive actions on job process flow tree
               //#endregion
             } catch (error) {
-              console.error("ufg4668     Error processing job actions:", error);
+              console.error("ufg4668     Error processing job actions:", error.message);
               // res.status(500).send("Update failed: " + error.message);
             }
           } else {

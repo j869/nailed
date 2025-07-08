@@ -45,7 +45,55 @@ home.ejs
                     </div>
                   <% } %>
                 </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_1&whereID=<%= data[i].id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
+                    <i class="bi bi-trash"></i> +1
+                  </button>
+                  
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= data[i].id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
+                    <i class="bi bi-trash"></i> +3
+                  </button>
 
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_7&whereID=<%= data[i].id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
+                    <i class="bi bi-trash"></i> +7
+                  </button>
+                </td>
             </tr>
             <% } %>
         </tbody>
@@ -63,7 +111,11 @@ home.ejs
         
         <div class="mb-3">
           <label for="taskPerson" class="form-label fw-bold">Assigned To</label>
-          <input type="number" class="form-control" id="taskPerson" name="person" value="<%= user_id %>" required>
+          <select class="form-control" id="taskPerson" name="person" required>
+            <option value="1" <%= user_id == 1 ? 'selected' : '' %>>John</option>
+            <option value="12" <%= user_id == 12 ? 'selected' : '' %>>Bryan</option>
+            <option value="13" <%= user_id == 13 ? 'selected' : '' %>>VicPA</option>
+          </select>
         </div>
         
         <div class="mb-4">
@@ -101,6 +153,13 @@ home.ejs
   <script>
     //set 'add reminder' date = todays date
     document.getElementById('taskDate').value = new Date().toISOString().split('T')[0];
+    //set 'add reminder' date = todays date
+    const url = new URL(window.location.href);
+    const forward = parseInt(url.searchParams.get('view'));
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + forward);
+    document.getElementById('taskDate').value = tomorrow.toISOString().split('T')[0];
+
 
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {
@@ -141,10 +200,15 @@ home.ejs
     function updateView(newView) {
       // Get the current URL
       const url = new URL(window.location.href);
+      console.log("uv1  ", newView); // Debugging log
+
+      if (newView === 1) {
+        newView = parseInt(url.searchParams.get('view')) + 1|| 1; // Get the current 'view' parameter, default to 0 if not set
+        console.log("uv2  ", newView); // Debugging log
+      }
 
       // Update the 'view' parameter
-      url.searchParams.set('view', newView);
-
+      url.searchParams.set('view', newView );
       // Reload the page with the updated URL
       window.location.href = url.toString();
     }

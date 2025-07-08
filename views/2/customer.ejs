@@ -64,41 +64,30 @@
 <body>
 
 <br><br><br>
-
 <!-- Floating Options Bar -->
 <style>
 .floating-options-bar {
     position: fixed;
-    top: 100px;
+    top: 50%;
     left: 20px;
+    transform: translateY(-50%);
     z-index: 1050;
     background: #f8f9fa;
-    border-radius: 8px;
+    border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    padding: 16px 10px;
+    border: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-width: 48px;
+    min-width: 160px;
+    width: 250px; 
 }
-.floating-options-bar button,
-.floating-options-bar a {
-    background: #e9ecef;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 6px;
-    margin: 0;
-    color: #333;
-    text-align: center;
-    text-decoration: none;
-    font-size: 16px;
-    transition: background 0.2s;
-    cursor: pointer;
-}
-.floating-options-bar button:hover,
-.floating-options-bar a:hover {
-    background: #d4edda;
-    color: #155724;
+.floating-options-bar .btn {
+    min-width: 210px;
+    width: 100%;
+    border: 0;
+    padding: 0;
 }
 @media (max-width: 768px) {
     .floating-options-bar {
@@ -107,11 +96,10 @@
 }
 </style>
 <div class="floating-options-bar">
-    <button class="btn btn-secondary mb-3" onclick="location.reload();">Save changes</button>
+    <button class="btn btn-primary mb-3" style="height: 56px;" onclick="location.reload();">Save changes</button>
 </div>
 
-<div class="container">
-
+<div class="container"></div>
 
     <div class="container">
         <div class="col-md-12">
@@ -219,7 +207,7 @@
                                                                                                 <th style="background-color:#77dd7783;">Target Date</th>
                                                                                                 <th style="display: none;">Created By</th>
                                                                                                 <th style="display: none;">Created Date</th>
-                                                                                                <th style="display: none;">Change Array</th>
+                                                                                                <th style="background-color:#77dd7783;" >Change Array</th>
                                                                                                 <th style="display: none;">Completed By</th>
                                                                                                 <th style="display: none;">Completed Date</th>
                                                                                                 <th style="background-color:#77dd7783;">Current Status</th>
@@ -250,15 +238,15 @@
                                                                                                         <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= jobID %>"><%= job.target_date %></td>
                                                                                                         <td style="display: none;"><%= job.created_by %></td>
                                                                                                         <td style="display: none;"><%= job.created_date %></td>
-                                                                                                        <td style="display: none;"><%= job.change_array %></td>
+                                                                                                        <td style="background-color:#77DD77;" ><%= job.change_array %>ID[<%= jobID %>]</td>
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
                                                                                                             <div class="form-check">
-                                                                                                                <input class="editable " type="checkbox" id="jobStatus" data-record-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <input class="job-checkbox " type="checkbox" id="jobStatus" data-job-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                 <label class="form-check-label" for="jobComplete<%= jobID %>"><%= job.current_status %></label>
                                                                                                             </div>
-                                                                                                            <div class="form-check d-none">
+                                                                                                            <div class="form-check d-none" display="none">
                                                                                                                 <input class="form-check-input job-checkbox" 
                                                                                                                     type="checkbox" 
                                                                                                                     id="jobComplete<%= jobID %>" 
@@ -275,8 +263,33 @@
                                                                                                             <!-- ---  tasks                                                                 -->
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
-                                                                                                                <button onclick="window.location.href='/jobs/<%= jobID %>';">Edit Category</button>
-                                                                                                                <button onclick="window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>';" style="display:none;">Delete this Category</button>
+                                                                                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                                                                                    <div style="margin-right: auto;">   
+                                                                                                                        <% if (false) { %>
+                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/addjob?btn=103a&type=parent&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" >Add Stage</button>
+                                                                                                                        <% } %>
+                                                                                                                        
+                                                                                                                        <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" style="display:none;">Add Job</button>
+                                                                                                                        <% if (site.missing_jobs) { %>
+                                                                                                                            <% site.missing_jobs.forEach(function(missingjob) { %>
+                                                                                                                                <% if (missingjob) { %>
+                                                                                                                                    <% if (job.sort_order >= missingjob.before && job.sort_order <= missingjob.after) { %>
+                                                                                                                                        <button class="btn btn-sm btn-outline-primary" style="margin-left: auto; " onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
+                                                                                                                                    <% } %>
+                                                                                                                                <% } %>
+                                                                                                                            <% }); %>
+                                                                                                                        <% } %>
+                                                                                                                    </div>
+                                                                                                                    <div style="margin-left: auto;">
+                                                                                                                        <% if (locals.user.id = 1) { %>      
+                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/jobs/<%= jobID %>';" >Edit Category</button>
+                                                                                                                        <% } %>
+                                                                                                                        <button class="btn btn-sm btn-outline-danger" 
+                                                                                                                            onclick="if(confirm('Are you sure you want to delete this Stage?')) { if(confirm('Are you REALLY sure?')) { window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>'; } }" >
+                                                                                                                            Delete this Stage
+                                                                                                                        </button>
+                                                                                                                    </div>
+                                                                                                                </div>
                                                                                                                 <table class="table nested-table">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
@@ -300,7 +313,7 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
+                                                                                                                                    <td id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
                                                                                                                                         <% if (task.owned_by == 1) { %>
                                                                                                                                             John
                                                                                                                                         <% } else if (task.owned_by == 12) { %>
@@ -398,14 +411,6 @@
                                                                                                                         <% }); %>
                                                                                                                     </tbody>
                                                                                                                 </table>
-                                                                                                                <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" style="display:none;">Add Job</button>
-                                                                                                                <% if (false) { %>
-                                                                                                                    <% site.missing_jobs.forEach(function(missingjob) { %>
-                                                                                                                        <% if (missingjob) { %>
-                                                                                                                            <button onclick="window.location.href='/addjob?btn=103b&type=template<%= missingjob.id %>&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';">Add <%= missingjob.display_text %></button>
-                                                                                                                        <% } %>
-                                                                                                                    <% }); %>
-                                                                                                                <% } %>
                                                                                                             </div>
 
                                                                                                         </td>

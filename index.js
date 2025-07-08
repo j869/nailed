@@ -814,6 +814,7 @@ app.get("/executeJobAction", async (req, res) => {
   try {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
+    console.log("ja1      executing changeArray: ", changeArrayJson);
     const jobRec = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ja300     Job not found for job_id:", parentID);
@@ -824,7 +825,7 @@ app.get("/executeJobAction", async (req, res) => {
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
       // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
-      console.log("ufg4001     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
+      console.log("ja4001     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
       if (scenario.antecedent === parentStatus) {   
         //check if scenario.decendant exists 
         if (scenario.decendant) {
@@ -952,10 +953,17 @@ app.get("/executeJobAction", async (req, res) => {
 
       }
     }
-    return res.status(200).json({ msg: 'Job action executed successfully' });
+    console.log("ja9    job action executed for jobID: ", parentID);
+    return res.status(200).json({ success : true, message: 'Job action executed successfully' });
   } catch (error) {
     console.error('ja8    Error executing job action:', error);
-    return res.status(500).json({ error: 'Failed to execute job action' });
+    // return res.status(500).json({ error: 'Failed to execute job action' });
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'Internal server error',
+      details: undefined
+    });    
   }
 });
 
@@ -968,7 +976,12 @@ app.get("/update", async (req, res) => {
   let value = req.query.value;
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
-  console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  if (id === undefined || id === null) {
+    console.log("ud18  bad request: id is required");
+    return res.status(400).json({ msg: 'Bad Request: id is required' });
+  } else {
+    console.log("ud1   USER set " + column + " to " + value + " in table " + table + " where id = " + id);
+  }
   // Treat empty string as NULL
   if (value === '') {
     value = null;
@@ -977,6 +990,7 @@ app.get("/update", async (req, res) => {
   try {
     // Retrieve the current value from the database
     const currentValueQuery = `SELECT ${column} FROM ${table} WHERE id = $1;`;
+    console.log("ud1a   currentValueQuery: ", currentValueQuery, " with id: ", id);
     const currentValueResult = await pool.query(currentValueQuery, [id]);
     if (currentValueResult.rows.length === 0) {
       return res.status(404).json({ msg: 'Record not found' });
@@ -1164,18 +1178,68 @@ app.get("/addjob", async (req, res) => {
   let buildID;
   let jobID;
   let templateId;
+  let firstJobID;
+  let template;
+  let productID;
+  let templateSQL;
 
   if (tier == "" || tier == undefined) {
-    console.error("a2      No tier provided, defaulting to 0");
-    tier = 0; // Default tier if not provided
+    console.error("a2      No tier provided, defaulting to 500");
+    tier = 500; // Default tier if not provided
   }
   if (precedence.startsWith("template")) {
     templateId = precedence.replace("template", ""); // Extract the trailing number
-    precedence = "template"; // Set precedence to "template"
     jobID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
+
+        try {
+          templateSQL = "SELECT * FROM job_templates WHERE id = "+templateId+" or (antecedent_array = '"+templateId+"' and tier > 500) order by sort_order"
+          console.log("a800     ", templateSQL);
+          template = await pool.query(templateSQL);
+          
+          productID = template.rows[0].product_id; 
+
+          const q1 = await pool.query("SELECT build_id FROM jobs WHERE id = $1", [jobID]);
+          buildID = q1.rows[0].build_id;
+
+          if (template.rows.length === 0) {
+            console.error("a821     No templates found for this product type.");
+          } else {
+            console.log("a822     this workflow consists of ",  template.rows.length ,  " templates" );
+            // console.table(template.rows);
+          }
+        } catch (error) {
+          console.error("a828     Error fetching template:", error);
+        }
+
+    precedence = "origin";
+
   } else {
     if (precedence == "origin") {
       buildID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
+        //pull down the build record.  What kind of build? garage or hay shed?
+        const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
+        productID = product.rows[0].product_id        ;
+        // console.log("a801     " + productID)
+        
+        // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
+        const q = await pool.query("SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
+        let firstTemplateID = q.rows[0].id;
+        console.log("a81    USER added a new workflow("+productID+") for build("+ buildID +"). Beginner template is " + firstTemplateID);
+        // console.log("a805     firstTemplateID = " + firstTemplateID);
+
+        try {
+          templateSQL = "SELECT * FROM job_templates WHERE product_id = "+productID+" order by sort_order"
+          template = await pool.query(templateSQL);
+          if (template.rows.length === 0) {
+            console.error("a821     No templates found for this product type.");
+          } else {
+            console.log("a822     this workflow consists of ",  template.rows.length ,  " templates" );
+            // console.table(template.rows);
+          }
+        } catch (error) {
+          console.error("a828     Error fetching template:", error);
+        }
+
     } else {
       jobID = req.query.id;      //this the jobID unless  precedence is of type 'origin' in which case  it is the  build_id 
     }
@@ -1370,30 +1434,7 @@ app.get("/addjob", async (req, res) => {
         }
         
     } else if (precedence == "origin") {
-        //pull down the build record.  What kind of build? garage or hay shed?
-        const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]) ;    
-        const productID = product.rows[0].product_id        ;
-        // console.log("a801     " + productID)
-        
-        // Does a tempalte exist for this product & user? get the build > check the product_id > get the tempalte for that build
-        const q = await pool.query("SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL", [buildID])   // which job has no parent? its the origin job.  templates can vary based on the product (a garage is a different build process to a house).  in the future templates will vary based on other things (i.e. user, role, business)
-        let firstTemplateID = q.rows[0].id;
-        console.log("a81    USER added a new workflow("+productID+") for build("+ buildID +"). Beginner template is " + firstTemplateID);
-        // console.log("a805     firstTemplateID = " + firstTemplateID);
 
-        let template;
-        let firstJobID;
-        try {
-          template = await pool.query("SELECT * FROM job_templates WHERE product_id = $1 order by sort_order", [productID]);
-          if (template.rows.length === 0) {
-            console.error("a821     No templates found for this product type.");
-          } else {
-            console.log("a822     this workflow consists of ",  template.rows.length ,  " templates" );
-            // console.table(template.rows);
-          }
-        } catch (error) {
-          console.error("a828     Error fetching template:", error);
-        }
 
 
         let parentJobID;
@@ -1454,8 +1495,9 @@ app.get("/addjob", async (req, res) => {
 
         }
 
+        
         console.log("a820     Resolving relationships for build("+ buildID +") with " + template.rows.length + " jobs... ");
-        template = await pool.query("SELECT * FROM job_templates WHERE product_id = $1 order by sort_order", [productID]);
+        template = await pool.query(templateSQL);
         for (const t of template.rows) {
           let antecedentTemplateID = t.antecedent_array;
           let decendantTemplateID = t.decendant_array;
@@ -1535,21 +1577,44 @@ app.get("/deleteJob", async (req, res) => {
   try {
     await client.query('BEGIN'); // Start a transaction
 
+    const job = await client.query("SELECT * FROM jobs WHERE id = $1;", [req.query.job_id]);
     const job_id = req.query.job_id;
     const q1 = await client.query("SELECT * FROM job_process_flow WHERE antecedent_id = $1;", [job_id]);  
     console.log("ii3     this job has ["+ q1.rowCount + "] children")
     const q2 = await client.query("SELECT * FROM job_process_flow WHERE decendant_id = $1;", [job_id]);  
+    console.log("ii2     this job has ["+ q2.rowCount + "] parents")
     let parentID = 0; 
     if (q2.rows.length !== 0) {
       parentID = q2.rows[0].antecedent_id
-      console.log("ii4     job parent is ", parentID )
+      console.log("ii4     first job parent is ", parentID, ' - UI will return to this job after delete' )
     }
+
+    // delete the job
     const result = await client.query("DELETE FROM jobs WHERE id = $1 RETURNING *;", [job_id]);  
-    
     // Check if rowCount is not equal to 1
     if (result.rowCount !== 1) {
-      throw new Error("Failed to delete job");
+      console.error("ii5     Error: Expected to delete 1 job, but deleted " + result.rowCount);
+    } else {
+      console.log("ii5     deleted job with ID: " + job_id);
     }
+    
+    //delete the children
+    const removeChildren = await client.query("DELETE FROM jobs WHERE id IN (SELECT decendant_id FROM job_process_flow WHERE antecedent_id = $1 and tier > 500);", [job_id]);
+    console.log("ii6     deleted " + removeChildren.rowCount + " children of job(" + job_id + ")");
+    const removeFlow = await client.query("DELETE FROM job_process_flow WHERE antecedent_id = $1;", [job_id]);
+    console.log("ii6a    DELETE FROM job_process_flow WHERE decendant_id = " + job_id);
+
+
+
+    if (parentID == null) {
+      //we deleted the first job in the workflow
+      console.log("ii7     job_id(" + job_id + ") is build("+job.rows[0].build_id+").");
+      const q3 = await client.query("SELECT id FROM jobs WHERE build_id = $1 and tier = 500;", [job.rows[0].build_id]);
+      console.log("ii8     setting next_job to " + q1.rows[0].id + " for build(" + job_id + ")");
+      const q4 = await client.query("update builds set job_id = $1 where id = $2;", [q1.rows[0].id, job_id]);
+      console.log("ii9     reassigned build(" + job_id + ") to point to new first job(" + q1.rows[0].id + ") ");
+    }
+
 
     await client.query('COMMIT'); // Commit the transaction
     res.status(200).send({
