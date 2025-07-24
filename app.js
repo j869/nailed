@@ -625,11 +625,11 @@ let allCustomers = [];
           return;
           // res.status(500).send("Internal Server Error");
       }
+      console.log("b99   user ("+ req.user.id +")");
   } else {
       console.log("b9   ");
       res.redirect("/login");
   }
-  console.log("b99   user ("+ req.user.id +")");
 });
 
 app.get("/2/customers", async (req, res) => {
