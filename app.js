@@ -1839,7 +1839,10 @@ app.get("/update", async (req,res) => {
   if (req.isAuthenticated()) {
     const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;
-    const newValue = (req.query.newValue || '');   
+    console.log("ufg0   Raw value:", req.query.newValue); // Might show encoded
+    const newValue = req.query.newValue || '';      //decodeURIComponent(req.query.newValue || '');   
+    console.log("ufg0   Decoded value:", decodeURIComponent(req.query.newValue)); // Should show \n
+    console.log("ufg0   JSON.stringify:", JSON.stringify(decodeURIComponent(req.query.newValue))); // Makes newlines visible
     const rowID = req.query.whereID;
     console.log("ufg1    user("+req.user.id+") clicked ("+called_by_button+") to changed "	+ fieldID + " to " + newValue + " for rowID " + rowID);
     // console.log("ufg2    inline value edit ", fieldID, newValue, rowID);

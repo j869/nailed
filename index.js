@@ -973,7 +973,7 @@ app.get("/executeJobAction", async (req, res) => {
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
-  let value = req.query.value;
+  let value = decodeURIComponent(req.query.value);
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
   if (id === undefined || id === null) {
