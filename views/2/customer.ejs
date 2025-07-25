@@ -307,7 +307,7 @@
                                                                                                                         </button>
                                                                                                                     </div>
                                                                                                                 </div>
-                                                                                                                <table class="table nested-table" id="job<%= jobID %>tasks">
+                                                                                                                <table class="table nested-table tasks-table" id="job<%= jobID %>tasks">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
                                                                                                                             <th>sort</th>
@@ -1019,40 +1019,45 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-  // Handle drag start (required for draggable elements)
-  table.addEventListener('dragstart', (e) => {
-    if (e.target.classList.contains('drag-handle')) {
-        console.log("dr4    Drag started on handle");
-      e.dataTransfer.setData('text/plain', ''); // Required for Firefox
-      e.target.style.cursor = 'grabbing';
-    }
-  });
+    document.querySelectorAll('.tasks-table').forEach(table => {
+        console.log("dr11    Found tasks table:", table.id);
 
-  // Handle drag over and drop
-  table.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const targetRow = e.target.closest('tr');
-    if (targetRow && targetRow !== draggedRow) {
-        // console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
-      const rect = targetRow.getBoundingClientRect();
-      const mid = rect.top + rect.height / 2;
-      if (e.clientY < mid) {
-        targetRow.before(draggedRow); // Insert above
-      } else {
-        targetRow.after(draggedRow); // Insert below
-      }
-    }
-  });
+        // Handle drag start (required for draggable elements)
+        table.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('drag-handle')) {
+                console.log("dr4    Drag started on handle");
+            e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+            e.target.style.cursor = 'grabbing';
+            }
+        });
 
-  // Handle drag end
-  table.addEventListener('dragend', () => {
-    if (draggedRow) {
-        // console.log("dr6    Drag ended on row (sort-order:", draggedRow.dataset.sortOrder + ")");
-      draggedRow.classList.remove('dragging');
-      updateSortOrder(); // Update sort_order values
-      draggedRow = null;
-    }
-  });
+        // Handle drag over and drop
+        table.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const targetRow = e.target.closest('tr');
+            if (targetRow && targetRow !== draggedRow) {
+                // console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
+            const rect = targetRow.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            if (e.clientY < mid) {
+                targetRow.before(draggedRow); // Insert above
+            } else {
+                targetRow.after(draggedRow); // Insert below
+            }
+            }
+        });
+
+        // Handle drag end
+        table.addEventListener('dragend', () => {
+            if (draggedRow) {
+                // console.log("dr6    Drag ended on row (sort-order:", draggedRow.dataset.sortOrder + ")");
+            draggedRow.classList.remove('dragging');
+            updateSortOrder(); // Update sort_order values
+            draggedRow = null;
+            }
+        });
+    });
+
 
   // Update sort_order based on new positions
   function updateSortOrder() {
