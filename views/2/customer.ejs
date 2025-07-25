@@ -8,6 +8,23 @@
     <title>Customer Form</title>
 
     <style>
+        .drag-handle {
+        cursor: move; /* Show move cursor */
+        user-select: none; /* Prevent text selection */
+        font-size: 18px;
+        color: #ccc;
+        text-align: center;
+        }      
+
+        .drag-handle:hover {
+        opacity: 1;
+        }
+
+        /* Optional: Highlight row being dragged */
+        tr.dragging {
+        background-color: #f8f9fa;
+        }        
+
         .d-flex {
             display: flex;
         }
@@ -265,11 +282,11 @@
                                                                                                             <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
                                                                                                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                                                                                                     <div style="margin-right: auto;">   
-                                                                                                                        <% if (false) { %>
-                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/addjob?btn=103a&type=parent&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" >Add Stage</button>
+                                                                                                                        <% if (true) { %>
+                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/addjob?btn=103d&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" >Add Stage</button>
                                                                                                                         <% } %>
                                                                                                                         
-                                                                                                                        <button onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=500&returnto=build<%= site.id %>';" style="display:none;">Add Job</button>
+                                                                                                                        <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/addjob?btn=103a&type=child&jobnum=<%= jobID %>&tier=501&returnto=build<%= site.id %>';" >Add Task</button>
                                                                                                                         <% if (site.missing_jobs) { %>
                                                                                                                             <% site.missing_jobs.forEach(function(missingjob) { %>
                                                                                                                                 <% if (missingjob) { %>
@@ -290,9 +307,10 @@
                                                                                                                         </button>
                                                                                                                     </div>
                                                                                                                 </div>
-                                                                                                                <table class="table nested-table">
+                                                                                                                <table class="table nested-table" id="job<%= jobID %>tasks">
                                                                                                                     <thead>
                                                                                                                         <tr class="">
+                                                                                                                            <th>sort</th>
                                                                                                                             <th>Num</th>
                                                                                                                             <th class="display-text-column">Task Title</th>
                                                                                                                             <th>Free Text</th>
@@ -307,7 +325,8 @@
                                                                                                                         <% job.tasks.forEach(function(task) { %>
                                                                                                                             <% if (task) { %>
                                                                                                                                 <% let taskID = task.id.substring(1) %>
-                                                                                                                                <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= taskID %>" >
+                                                                                                                                <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= taskID %>" data-row-id="<%= taskID %>" data-parent-id="<%= jobID %>" data-parent-sort-order="<%= job.sort_order %>" draggable="true" data-sort-order="<%= task.sort_order %>">
+                                                                                                                                    <td class="drag-handle" data-record-id="<%= taskID %>" data-sort-order="<%= task.sort_order %>">⋮⋮</td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
@@ -974,7 +993,90 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 });
 
-    
+
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("dr1    Initializing drag-and-drop functionality for tasks");
+  let table 
+    console.log("Table exists:", !!table);
+    console.log("Drag handles found:", document.querySelectorAll('.drag-handle').length);
+  let draggedRow = null;
+
+
+    document.querySelectorAll('.drag-handle').forEach(handle => {
+        // Get parent TR and its data-sort-order
+        const parentTr = handle.closest('tr');
+        const sortOrder = parentTr.getAttribute('data-sort-order');
+        const parentId = parentTr.getAttribute('data-parent-id');     // this task is a child of this job
+        table = document.getElementById('job' + parentId + 'tasks');
+        // console.log("dr3    drag-handle (parent sort-order:", sortOrder + ")");
+        
+        handle.addEventListener('mousedown', (e) => {
+            console.log("dr2    Drag handle clicked (sort-order:", sortOrder + ")");
+            draggedRow = e.target.closest('tr');
+            draggedRow.classList.add('dragging');
+        });
+    });
+
+  // Handle drag start (required for draggable elements)
+  table.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('drag-handle')) {
+        console.log("dr4    Drag started on handle");
+      e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+      e.target.style.cursor = 'grabbing';
+    }
+  });
+
+  // Handle drag over and drop
+  table.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    const targetRow = e.target.closest('tr');
+    if (targetRow && targetRow !== draggedRow) {
+        // console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
+      const rect = targetRow.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) {
+        targetRow.before(draggedRow); // Insert above
+      } else {
+        targetRow.after(draggedRow); // Insert below
+      }
+    }
+  });
+
+  // Handle drag end
+  table.addEventListener('dragend', () => {
+    if (draggedRow) {
+        // console.log("dr6    Drag ended on row (sort-order:", draggedRow.dataset.sortOrder + ")");
+      draggedRow.classList.remove('dragging');
+      updateSortOrder(); // Update sort_order values
+      draggedRow = null;
+    }
+  });
+
+  // Update sort_order based on new positions
+  function updateSortOrder() {
+    console.log("dr7    Updating sort_order for all rows");
+    const rows = table.querySelectorAll('tbody tr[data-sort-order]');
+    console.log("dr71    Total rows:", rows.length);
+    rows.forEach((row, index) => {
+        // console.log("dr72    Processing row:", row, index);
+        console.log(`dr73    Row ${index + 1}: ID = ${row.dataset.rowId}, Current sort_order = ${row.dataset.sortOrder}`);
+        // const sortOrder = row.getAttribute('data-sort-order');
+        // const parentId = parentTr.getAttribute('data-parent-id');   
+        const baseOrder = row.dataset.parentSortOrder.split('.')[0]; // e.g., "03"
+        row.dataset.sortOrder = `${baseOrder.padStart(2, '0')}.${String(index + 1).padStart(2, '0')}`; // e.g., "03.01", "03.02", etc.
+        console.log(`dr74    Row ${row.dataset.rowId}: New sort_order = ${row.dataset.sortOrder}`);
+        const jobOrderCell = row.querySelector('td#jobOrder');
+        if (jobOrderCell) {
+            jobOrderCell.innerText = row.dataset.sortOrder;
+        }
+        const response = fetch(`/update?fieldID=jobOrder&newValue=${row.dataset.sortOrder}&whereID=${row.dataset.rowId}`);
+  
+        // Here you'd send an AJAX request to save the new order to your backend
+    });
+  }
+});
+
+
 </script>
 
 <%- include('../partials/footer') %>
