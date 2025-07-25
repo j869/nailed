@@ -329,7 +329,7 @@
                                                                                                                                     <td class="drag-handle" data-record-id="<%= taskID %>" data-sort-order="<%= task.sort_order %>">⋮⋮</td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%;"><%= task.free_text %></td>
+                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%; white-space: pre-wrap;"><%= task.free_text %></td>
                                                                                                                                     <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
                                                                                                                                     <td><%= task.completed_date %></td>
                                                                                                                                     <td id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
@@ -794,7 +794,7 @@
                 } else if (target.type === "checkbox") {
                     originalValues.set(target, target.checked);
                 } else {
-                    originalValues.set(target, target.textContent);
+                    originalValues.set(target, target.innerText);
                 }
                 
                 // Determine new value
@@ -803,13 +803,15 @@
                 } else if (target.type === "checkbox") {
                     newValue = target.checked ? 'complete' : 'pending';
                 } else {
-                    newValue = target.textContent;
+                    newValue = target.innerText;    //textContent;
                     target.contentEditable = false; // Disable editing
                 }
                 
                 const fieldID = target.id;
                 const recordID = target.getAttribute('data-record-id');
-                
+
+                console.log("id41    Original:", JSON.stringify(newValue)); // Shows escape chars
+                console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
                 const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
