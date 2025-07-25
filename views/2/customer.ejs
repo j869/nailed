@@ -999,8 +999,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("dr1    Initializing drag-and-drop functionality for tasks");
   let table 
-    console.log("Table exists:", !!table);
-    console.log("Drag handles found:", document.querySelectorAll('.drag-handle').length);
   let draggedRow = null;
 
 
@@ -1010,6 +1008,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const sortOrder = parentTr.getAttribute('data-sort-order');
         const parentId = parentTr.getAttribute('data-parent-id');     // this task is a child of this job
         table = document.getElementById('job' + parentId + 'tasks');
+        console.log("dr12    Table exists:", !!table);
+        console.log("dr13    Drag handles found:", table.querySelectorAll('.drag-handle').length);
         // console.log("dr3    drag-handle (parent sort-order:", sortOrder + ")");
         
         handle.addEventListener('mousedown', (e) => {
