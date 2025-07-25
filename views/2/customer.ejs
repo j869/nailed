@@ -1007,13 +1007,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentTr = handle.closest('tr');
         const sortOrder = parentTr.getAttribute('data-sort-order');
         const parentId = parentTr.getAttribute('data-parent-id');     // this task is a child of this job
-        table = document.getElementById('job' + parentId + 'tasks');
-        console.log("dr12    Table exists:", !!table);
-        console.log("dr13    Drag handles found:", table.querySelectorAll('.drag-handle').length);
         // console.log("dr3    drag-handle (parent sort-order:", sortOrder + ")");
         
         handle.addEventListener('mousedown', (e) => {
-            console.log("dr2    Drag handle clicked (sort-order:", sortOrder + ")");
+            table = document.getElementById('job' + parentId + 'tasks');
+            console.log("dr20    Drag handle clicked (sort-order:", sortOrder + ")");
+            console.log("dr21      Table [job" + parentId + "tasks] exists:", !!table);
+            console.log("dr22      Drag handles found:", table.querySelectorAll('.drag-handle').length);
             draggedRow = e.target.closest('tr');
             draggedRow.classList.add('dragging');
         });
