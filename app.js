@@ -958,7 +958,7 @@ app.get("/customer/:id", async (req, res) => {
       const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
       let builds = qryBuilds.rows;
 
-      const qryProducts = await db.query("SELECT id, display_text FROM products ");
+      const qryProducts = await db.query("SELECT id, display_text FROM products order by display_text;");
       let products = qryProducts.rows;
 
       //read emails for the customer
