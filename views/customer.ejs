@@ -68,11 +68,12 @@
                                 <option value="<%= product.id %>" <% if (data.current_status === product.display_text) { %>selected<% } %>><%= product.display_text %></option>
                             <% }); %>
                         </select >
+                        <button class="btn btn-primary btn-sm py-1 px-2" type="submit" name="list" value="submit" style="font-size: 0.85em; line-height: 1;">save changes</button>
                     </div>
                     <input type="hidden" name="customer_id" placeholder="builds.customer_id" value="<%= data.id %>" autocomplete="off" />
                     <% let enquiryDate = new Date().toISOString().substring(0, 16); %>
                     <input type="datetime-local" name="enquiry_date" value="<%= enquiryDate %>" autocomplete="off"  style="display:none;"  />
-                    <button class="btn btn-secondary btn-sm py-1 px-2" type="submit" name="list" value="submit" style="font-size: 0.85em; line-height: 1;">Initialise workflow</button>
+                    
                     </div>
                 </form>      
 

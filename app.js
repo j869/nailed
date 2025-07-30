@@ -1718,8 +1718,9 @@ app.post("/jobComplete", async (req, res) => {
 
     // Fetch the current status of the job from the database
     console.log("jb11   ", jobID, status);
-    const result = await db.query("SELECT current_status FROM jobs WHERE id = $1", [jobID]);
+    const result = await db.query("SELECT current_status, tier FROM jobs WHERE id = $1", [jobID]);
     const currentStatus = result.rows[0].current_status;
+    const tier = result.rows[0].tier;
 
     // Update logic based on currentStatus and status values
     // Update logic based on currentStatus and status values
@@ -1747,7 +1748,7 @@ app.post("/jobComplete", async (req, res) => {
     //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
         //const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
         let childStatus = newStatus === 'complete' ? 'complete' : null;
-        const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2)`, [childStatus, jobID]);
+        const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2 and f.tier > $3)`, [childStatus, jobID, tier]);
         // console.log("jb72      ", result.rowCount);  
         console.log(`jb9   job(${jobID}) children updated updated to ${childStatus}`);
         res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
