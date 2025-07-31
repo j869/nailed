@@ -807,8 +807,15 @@
                     target.contentEditable = false; // Disable editing
                 }
                 
+
                 const fieldID = target.id;
                 const recordID = target.getAttribute('data-record-id');
+                if (fieldID === "taskTitle") {
+                    if (newValue.length > 126) {
+                        console.warn("id3   Task title exceeds 126 characters, truncating");
+                        newValue = newValue.substring(0, 126);
+                    }
+                }
 
                 console.log("id41    Original:", JSON.stringify(newValue)); // Shows escape chars
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
