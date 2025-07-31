@@ -103,6 +103,8 @@ Previous Task(s) was completed <div class="editable" id="dueDate" contenteditabl
                     change_array = <label class="editable" id="changeArray" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.change_array != null ? siteContent.job.change_array : "{}" %></label><br>
                     target_date = <label class="editable" id="jobTargetDate" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.target_date != null ? siteContent.job.target_date : "null" %></label><br>
                     Person Responsible = <label class="editable" id="jobOwner" contenteditable="true" data-record-id="<%= siteContent.job.id  %>"><%= siteContent.job.display_name %></label><br>
+                    product_id = <label id="jobProductID" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.product_id != null ? siteContent.job.product_id : "null" %></label><br>
+                    job_template_id = <label id="jobTemplateID" data-record-id="<%= siteContent.job.id %>"><%= siteContent.job.job_template_id != null ? siteContent.job.job_template_id : "null" %></label><br>
 
 
                 </div>

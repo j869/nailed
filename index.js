@@ -457,6 +457,8 @@ app.get("/jobs/:id", async (req, res) => {
       }
       const jobName = result.rows[0].display_text;
       const jobText = result.rows[0].free_text;
+      const jobTemplateId = result.rows[0].job_template_id;
+      const productId = result.rows[0].product_id;
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
@@ -557,10 +559,12 @@ app.get("/jobs/:id", async (req, res) => {
           display_text : jobName, 
           display_name : jobUser, 
           free_text : jobText, 
+          product_id : productId,
           target_date : targetDate, 
           current_status : jobStatus ? jobStatus : "null",
           change_array : changeArray,
           reminder : reminder,      //{escalation1_interval : 7, escalation2_interval : 21},
+          job_template_id : jobTemplateId,
           conversation : conversation,
           // [
           //   {display_name : "John", message_text : "see attached pic", attachment : [{thumbnail : "https://icons.iconarchive.com/icons/graphicloads/colorful-long-shadow/128/Attachment-2-icon.png", link : "http://www.google.com"},]}, 
