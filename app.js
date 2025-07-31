@@ -177,7 +177,7 @@ app.get("/", async (req, res) => {
 
 //#region Stripe checkout
 
-const stripe = require('stripe')(env.STRIPE_SECRET);
+const stripe = require('stripe')(env.STRIPE_SECRET);    //removed session secret
 
 app.get("/checkout", (req, res) => {
   if (!req.isAuthenticated()) {
