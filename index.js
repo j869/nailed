@@ -1033,7 +1033,7 @@ app.get("/update", async (req, res) => {
     
     console.error('ud8   Error updating job:', error);
     // return relevant status code at the end of every API call
-    res.status(500).json({ error: 'Failed to add job' });
+    return res.status(500).json({ msg: error.message  });
   }  
 })
 

@@ -2034,15 +2034,25 @@ app.get("/update", async (req,res) => {
       case "jobTitle":
         table = "jobs";
         columnName = "display_text"
+        if (newValue.length > 126) {
+            console.warn("ufg4243   Job title exceeds 126 characters, truncating");
+            newValue = newValue.substring(0, 123) + "..."; 
+        }        
         value = encodeURIComponent(newValue);
         console.log("ufg422     update "+ table + " set "+ columnName + " = " + value);          
-        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-        if (q && q.status === 201) {
-          res.status(200).send("Update successful");
+        try {
+          q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+          if (q && q.status === 201) {
+            res.status(200).send("Update successful");
+          }
+          else {
+            res.status(500).send("Error updating " + fieldID);
+          }
+        } catch (error) {
+          console.error("ufg4228     Error updating job title:", error.data);
+          res.send("Error updating job title");
         }
-        else {
-          res.status(500).send("Error updating " + fieldID);
-        }
+
         break;
       case "taskStatus":
         // console.log("    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
@@ -2060,6 +2070,10 @@ app.get("/update", async (req,res) => {
       case "taskTitle":
         table = "tasks";
         columnName = "display_text"
+        if (newValue.length > 126) {
+            console.warn("ufg4243   Task title exceeds 126 characters, truncating");
+            newValue = newValue.substring(0, 123) + "...";
+        }        
         value = encodeURIComponent(newValue);
         console.log("ufg424     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);

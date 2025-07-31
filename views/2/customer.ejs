@@ -810,10 +810,10 @@
 
                 const fieldID = target.id;
                 const recordID = target.getAttribute('data-record-id');
-                if (fieldID === "taskTitle") {
+                if (fieldID === "jobTitle") {
                     if (newValue.length > 126) {
                         console.warn("id3   Task title exceeds 126 characters, truncating");
-                        newValue = newValue.substring(0, 126);
+                        newValue = newValue.substring(0, 123) + "...";
                     }
                 }
 
