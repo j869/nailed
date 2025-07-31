@@ -814,8 +814,13 @@
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
-                const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
-                
+                // const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
+                // Instead of generic /update
+                const response = await fetch(`/api/jobs/${recordID}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: newValue })
+                })
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
