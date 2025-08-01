@@ -11,6 +11,7 @@ import env from "dotenv";
 import { main }  from './trigger2.js';
 import moment from 'moment';
 import e from "express";
+import Stripe from 'stripe';
 
 
 
@@ -18,6 +19,7 @@ const app = express();
 const port = 3000;
 let baseURL = "";
 const saltRounds = 10;
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 env.config();
 const API_URL = process.env.API_URL     //"http://localhost:4000";
@@ -46,7 +48,67 @@ app.use((req, res, next) => {
   // console.log('x6       Post-passport - sessionID:', req.sessionID);
   next();
 });
-app.use(express.json());    //// Middleware to parse JSON bodies
+
+app.use((req, res, next) => {
+  console.log("i1    received request", req.method, req.path);
+  //console.log(`i1   ${req.method} ${req.path} | IP: ${req.ip} | Session: ${req.session?.id || "N/A"}`);
+  //console.log("i2   Raw body:", req.body.toString("hex").substring(0, 100));
+  next(); 
+});
+
+
+    app.post("/webhook", express.raw({ type: 'application/json' }), async (req, res) => {
+      // must Precede Middleware to parse JSON bodies    //app.use(express.json());  and bodyParser.urlencoded({ extended: true });
+      const sig = req.headers['stripe-signature'];
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      console.log("dh1    Stripe webhook received with signature:", sig);
+
+
+      let event;
+
+      try {
+        // Verify the webhook signature
+        event = stripe.webhooks.constructEvent(
+          req.body, // Raw request body (Buffer)
+          sig,
+          webhookSecret
+        );
+      } catch (err) {
+        console.error('dh28    ⚠️ Webhook signature verification failed:', err);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      console.log('dh3      Webhook verified:', event.type);
+
+      // Handle the event (e.g., process payment_intent.succeeded)
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          console.log('dh59     PaymentIntent succeeded:', paymentIntent.id);
+          break;
+        case 'charge.succeeded':
+          const charge2 = event.data.object;
+          console.log('dh6      Charge succeeded:', charge2.id);
+          break;
+        case 'payment_intent.created':
+          console.log('dh7      PaymentIntent created:', event.data.object.id);
+          break;
+        case 'charge.failed':
+          const charge3 = event.data.object;
+          console.log('dh58    Charge failed:', charge3.id);
+          break;
+        default:
+          console.log(`dh588      Unhandled event type: ${event.type}`);
+      }
+
+        res.status(200).send("Webhook received");
+  //    res.status(200).json({ received: true });
+
+
+    });
+
+
+app.use(express.json());    
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const db = new pg.Client({
@@ -61,14 +123,16 @@ db.connect();
 
 
 
-// Middleware to make session user available on req.user for convenience
-// app.use((req, res, next) => {
-//   if (req.session.user) {
-//     console.log("i1   ");
-//     req.user = req.session.user;
-//   }
-//   next();
-// });
+
+//#region passport configuration
+
+
+app.use((req, res, next) => {
+  console.log(`i1   ${req.method} ${req.path} | IP: ${req.ip} | Session: ${req.session?.id || "N/A"}`);
+  //console.log("i2   Raw body:", req.body.toString("hex").substring(0, 100));
+  next(); 
+});
+
 
 app.post("/", async (req, res) => {
   const { title, person, date } = req.body;
@@ -184,6 +248,58 @@ app.get("/daytaskUpdate", (req, res) => {
 })
     //main();     // trigger worksheet update from trigger2.js
 
+//#endregion
+
+
+  //#region stripe checkout
+
+    app.get("/checkout", async (req, res) => {
+      if (req.isAuthenticated()) {
+        console.log("dg1    Checkout initiated by user:", req.user.id);
+        // Here you would typically create a checkout session
+        res.render("checkout.ejs");
+      } else {
+        res.redirect("/login");
+      }
+    });
+
+    app.get("/success", async (req, res) => {
+      console.log("ps1    Payment successful for user:", req.user ? req.user: 'guest');
+      res.send("Payment successful! Thank you for your purchase.");
+    });
+    app.get("/cancel", async (req, res) => {
+      console.log("ps1    Payment cancelled for user:", req.user ? req.user: 'guest');
+      res.send("Payment cancelled. Please try again.");
+    });
+
+
+app.post("/create-checkout-session", async (req, res) => {
+  const session = await stripe.checkout.sessions.create({
+    line_items: [
+      {
+        price_data: {
+          currency: 'aud',
+          product_data: {
+            name: 'T-shirt',
+          },
+          unit_amount: 5500,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: 'http://localhost:3000/success',
+    cancel_url: 'http://localhost:3000/cancel',
+  });
+
+  res.redirect(303, session.url);
+});
+
+
+//#endregion
+
+
+//#region SMTP Settings
 
   app.get("/updateSMTP", async (req, res) => {
     if (req.isAuthenticated()) {
@@ -255,7 +371,7 @@ app.get("/checkemail", async (req, res) => {
 
 
 
-
+//#endregion 
 
 //#region Bryans Excel UX style
 
