@@ -66,6 +66,7 @@
       <li class="nav-item"><a href="/logout" class="nav-link link-light">Log Out</a></li>
     </ul>
 
+
     <% if (locals.user) { %>
       <div class="d-flex align-items-center">
         <select name="roles" id="roles" class="bg-dark" style="color: white; margin-right: 10px;">
@@ -94,7 +95,20 @@
 
  <body>
 
-
+<div id="notification" 
+     style="position: fixed; 
+            top: 20px; 
+            left: 25%; 
+            width: 50%; 
+            padding: 15px; 
+            background: #ff4444; 
+            color: white; 
+            border-radius: 5px; 
+            display: none; 
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+</div>
 
 
   

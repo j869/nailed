@@ -732,6 +732,18 @@
 </html>
 
 <script>
+
+    function showNotification(message, isError = true) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.display = 'block';
+        notification.style.background = isError ? '#ff4444' : '#4CAF50';
+        
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+    }    
+
         console.log("locals ", <%- JSON.stringify(locals) %>);
     
         //---  add listener to all EDITABLE fields.  When field changes, notify the database
@@ -821,12 +833,25 @@
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
-                const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                try {
+                    const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
+                    console.log("id45     ", response.status, response.statusText);
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            const errorData = await response;
+                            console.log('id48    Validation error:', errorData);
+                            showNotification(errorData.message || 'Validation failed');
+                        } else {
+                            console.log('id58    Error:', response.status);
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    } else {
+                        console.log('id5    response OK');
+
+                    }
+                } catch (error) {
+                    console.log("id38      ", error)
                 }
-                
                 console.log('id9    Update successful');
                 
                 // Update stored original value on success

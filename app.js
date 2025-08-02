@@ -1891,6 +1891,10 @@ app.get("/update", async (req,res) => {
         table = "jobs"
         columnName = "target_date"
         value = newValue;
+        if (isNaN(Date.parse(value))) {
+          console.error("ufg4118  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg411     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -1905,6 +1909,10 @@ app.get("/update", async (req,res) => {
         table = "tasks"
         columnName = "target_date"
         value = newValue;
+        if (isNaN(Date.parse(value))) {
+          console.error("ufg4128  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg412     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -1919,6 +1927,10 @@ app.get("/update", async (req,res) => {
         table = "jobs";
         columnName = "target_date"
         value = newValue;
+        if (isNaN(Date.parse(value))) {
+          console.error("ufg4128  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg413     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -2303,6 +2315,10 @@ app.get("/update", async (req,res) => {
 
         console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);        
           try {  
+            if (isNaN(Date.parse(value))) {
+              console.error("ufg4428  Invalid date value:", value);
+              return res.status(400).send("Invalid date value");
+            }            
             const a4 = await db.query("BEGIN;"); // Start transaction
             console.log("ufg4421     ...update worksheetID("+rowID+") set target date = " + value );
             const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
