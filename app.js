@@ -1854,9 +1854,9 @@ app.get("/update", async (req,res) => {
       return;
     }
     if (!newValue) {
-      console.log("ufg832    Error: newValue is null - write was cancelled");
+      console.log("ufg832    newValue is null ");
       // console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
-      //res.status(400).send("Error: newValue is null");
+      //return res.status(200).send(" newValue is null");
       //return;
     }
     if (!rowID) {
@@ -1887,11 +1887,14 @@ app.get("/update", async (req,res) => {
         }
         break;
       case "jobTargetDate":
-        // console.log("ufg411     [" + newValue + "] ")
+        console.log("ufg411     [" + newValue + "] ")
         table = "jobs"
         columnName = "target_date"
         value = newValue;
-        if (isNaN(Date.parse(value))) {
+        if (newValue === "" || JSON.stringify(decodeURIComponent(newValue)) === "\n") {
+          console.log("ufg41181      date value is null");
+          value = "";
+        } else if (isNaN(Date.parse(value))) {
           console.error("ufg4118  Invalid date value:", value);
           return res.status(400).send("Invalid date value");
         }           
@@ -2000,9 +2003,10 @@ app.get("/update", async (req,res) => {
         console.log("ufg418     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
-          res.status(200).send("Update successful");
-        }
-        else {
+          res.status(200).send("Update successful")
+        } else if (q && q.status === 200) {
+          res.status(200).send("Field already set to this value")
+        } else {
           res.status(500).send("Error updating " + fieldID);
         }
         break;

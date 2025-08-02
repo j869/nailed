@@ -766,11 +766,13 @@
     
     editableElements.forEach(function(element) {
         // Store initial values
+        console.log('id221   setting original value')
         if (element.tagName === "SELECT") {
             originalValues.set(element, element.value);
         } else if (element.type === "checkbox") {
             originalValues.set(element, element.checked);
         } else {
+            console.log('id2213   ... new value is ', element.textContent)
             originalValues.set(element, element.textContent);
         }
         
@@ -801,21 +803,24 @@
                 const target = event.target;
                 
                 // Store current value for potential rollback
-                if (target.tagName === "SELECT") {
-                    originalValues.set(target, target.value);
-                } else if (target.type === "checkbox") {
-                    originalValues.set(target, target.checked);
-                } else {
-                    originalValues.set(target, target.innerText);
-                }
+                // console.log('id222   setting original value')
+                // if (target.tagName === "SELECT") {
+                //     originalValues.set(target, target.value);
+                // } else if (target.type === "checkbox") {
+                //     originalValues.set(target, target.checked);
+                // } else {
+                //     console.log('id2223   ... new value is ', target.innerText)
+                //     originalValues.set(target, target.innerText);
+                // }
                 
+
                 // Determine new value
                 if (target.tagName === "SELECT") {
                     newValue = target.value;
                 } else if (target.type === "checkbox") {
                     newValue = target.checked ? 'complete' : 'pending';
                 } else {
-                    newValue = target.innerText;    //textContent;
+                    newValue = target.innerText.trim();  //textContent;
                     target.contentEditable = false; // Disable editing
                 }
                 
@@ -833,14 +838,14 @@
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
-                try {
+//                try {
                     const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
                     console.log("id45     ", response.status, response.statusText);
                     if (!response.ok) {
                         if (response.status === 400) {
                             const errorData = await response;
                             console.log('id48    Validation error:', errorData);
-                            showNotification(errorData.message || 'Validation failed');
+                            throw new Error('Validation error');
                         } else {
                             console.log('id58    Error:', response.status);
                             throw new Error(`HTTP error! status: ${response.status}`);
@@ -849,12 +854,13 @@
                         console.log('id5    response OK');
 
                     }
-                } catch (error) {
-                    console.log("id38      ", error)
-                }
+  //              } catch (error) {
+                 //   console.log("id38      ", error)
+    //            }
                 console.log('id9    Update successful');
                 
                 // Update stored original value on success
+                console.log('id223   setting original value')
                 if (target.tagName === "SELECT") {
                     originalValues.set(target, target.value);
                 } else if (target.type === "checkbox") {
@@ -864,7 +870,8 @@
                 }
                 
             } catch (error) {
-                console.error('id8     Update failed:', error);
+                console.error('id8     Update failed:', error, 'reset value', event.target);
+                showNotification(error || 'Validation failed');
                 resetToOriginalValue(event.target);
             } finally {
                 isUpdating = false;
@@ -873,8 +880,9 @@
     });
     
     function resetToOriginalValue(element) {
-        console.log("rr1    Resetting to original value");
+        console.log('id224   return to original value')
         const originalValue = originalValues.get(element);
+        console.log("rr1    Resetting to original value", originalValue);
         
         if (element.tagName === "SELECT") {
             element.value = originalValue;
@@ -882,7 +890,7 @@
             element.checked = originalValue;
         } else {
             element.textContent = originalValue;
-            element.contentEditable = false;
+           // element.contentEditable = false;
         }
         
         // Dispatch change event to ensure UI updates
