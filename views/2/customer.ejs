@@ -732,6 +732,18 @@
 </html>
 
 <script>
+
+    function showNotification(message, isError = true) {
+        const notification = document.getElementById('notification');
+        notification.textContent = message;
+        notification.style.display = 'block';
+        notification.style.background = isError ? '#ff4444' : '#4CAF50';
+        
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 5000);
+    }    
+
         console.log("locals ", <%- JSON.stringify(locals) %>);
     
         //---  add listener to all EDITABLE fields.  When field changes, notify the database
@@ -754,11 +766,13 @@
     
     editableElements.forEach(function(element) {
         // Store initial values
+        console.log('id221   setting original value')
         if (element.tagName === "SELECT") {
             originalValues.set(element, element.value);
         } else if (element.type === "checkbox") {
             originalValues.set(element, element.checked);
         } else {
+            console.log('id2213   ... new value is ', element.textContent)
             originalValues.set(element, element.textContent);
         }
         
@@ -789,31 +803,42 @@
                 const target = event.target;
                 
                 // Store current value for potential rollback
-                if (target.tagName === "SELECT") {
-                    originalValues.set(target, target.value);
-                } else if (target.type === "checkbox") {
-                    originalValues.set(target, target.checked);
-                } else {
-                    originalValues.set(target, target.innerText);
-                }
+                // console.log('id222   setting original value')
+                // if (target.tagName === "SELECT") {
+                //     originalValues.set(target, target.value);
+                // } else if (target.type === "checkbox") {
+                //     originalValues.set(target, target.checked);
+                // } else {
+                //     console.log('id2223   ... new value is ', target.innerText)
+                //     originalValues.set(target, target.innerText);
+                // }
                 
+
                 // Determine new value
                 if (target.tagName === "SELECT") {
                     newValue = target.value;
                 } else if (target.type === "checkbox") {
                     newValue = target.checked ? 'complete' : 'pending';
                 } else {
-                    newValue = target.innerText;    //textContent;
+                    newValue = target.innerText.trim();  //textContent;
                     target.contentEditable = false; // Disable editing
                 }
                 
+
                 const fieldID = target.id;
                 const recordID = target.getAttribute('data-record-id');
+                if (fieldID === "jobTitle") {
+                    if (newValue.length > 126) {
+                        console.warn("id3   Task title exceeds 126 characters, truncating");
+                        newValue = newValue.substring(0, 123) + "...";
+                    }
+                }
 
                 console.log("id41    Original:", JSON.stringify(newValue)); // Shows escape chars
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
+<<<<<<< HEAD
                 // const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
                 // Instead of generic /update
                 const response = await fetch(`/api/jobs/${recordID}/status`, {
@@ -825,9 +850,31 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
+=======
+//                try {
+                    const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
+                    console.log("id45     ", response.status, response.statusText);
+                    if (!response.ok) {
+                        if (response.status === 400) {
+                            const errorData = await response;
+                            console.log('id48    Validation error:', errorData);
+                            throw new Error('Validation error');
+                        } else {
+                            console.log('id58    Error:', response.status);
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    } else {
+                        console.log('id5    response OK');
+
+                    }
+  //              } catch (error) {
+                 //   console.log("id38      ", error)
+    //            }
+>>>>>>> 4cc6ce9a256f5b62ee2a8a18450ae9e1d4c7adce
                 console.log('id9    Update successful');
                 
                 // Update stored original value on success
+                console.log('id223   setting original value')
                 if (target.tagName === "SELECT") {
                     originalValues.set(target, target.value);
                 } else if (target.type === "checkbox") {
@@ -837,7 +884,8 @@
                 }
                 
             } catch (error) {
-                console.error('id8     Update failed:', error);
+                console.error('id8     Update failed:', error, 'reset value', event.target);
+                showNotification(error || 'Validation failed');
                 resetToOriginalValue(event.target);
             } finally {
                 isUpdating = false;
@@ -846,8 +894,9 @@
     });
     
     function resetToOriginalValue(element) {
-        console.log("rr1    Resetting to original value");
+        console.log('id224   return to original value')
         const originalValue = originalValues.get(element);
+        console.log("rr1    Resetting to original value", originalValue);
         
         if (element.tagName === "SELECT") {
             element.value = originalValue;
@@ -855,7 +904,7 @@
             element.checked = originalValue;
         } else {
             element.textContent = originalValue;
-            element.contentEditable = false;
+           // element.contentEditable = false;
         }
         
         // Dispatch change event to ensure UI updates

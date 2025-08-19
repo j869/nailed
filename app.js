@@ -1902,9 +1902,9 @@ app.get("/update", async (req,res) => {
       return;
     }
     if (!newValue) {
-      console.log("ufg832    Error: newValue is null - write was cancelled");
+      console.log("ufg832    newValue is null ");
       // console.log("ufg3    inline value edit ", fieldID, newValue, rowID);
-      //res.status(400).send("Error: newValue is null");
+      //return res.status(200).send(" newValue is null");
       //return;
     }
     if (!rowID) {
@@ -1935,10 +1935,17 @@ app.get("/update", async (req,res) => {
         }
         break;
       case "jobTargetDate":
-        // console.log("ufg411     [" + newValue + "] ")
+        console.log("ufg411     [" + newValue + "] ")
         table = "jobs"
         columnName = "target_date"
         value = newValue;
+        if (newValue === "" || JSON.stringify(decodeURIComponent(newValue)) === "\n") {
+          console.log("ufg41181      date value is null");
+          value = "";
+        } else if (isNaN(Date.parse(value))) {
+          console.error("ufg4118  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg411     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -1953,6 +1960,10 @@ app.get("/update", async (req,res) => {
         table = "tasks"
         columnName = "target_date"
         value = newValue;
+        if (isNaN(Date.parse(value))) {
+          console.error("ufg4128  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg412     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -1967,6 +1978,10 @@ app.get("/update", async (req,res) => {
         table = "jobs";
         columnName = "target_date"
         value = newValue;
+        if (isNaN(Date.parse(value))) {
+          console.error("ufg4128  Invalid date value:", value);
+          return res.status(400).send("Invalid date value");
+        }           
         console.log("ufg413     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -2036,9 +2051,10 @@ app.get("/update", async (req,res) => {
         console.log("ufg418     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
-          res.status(200).send("Update successful");
-        }
-        else {
+          res.status(200).send("Update successful")
+        } else if (q && q.status === 200) {
+          res.status(200).send("Field already set to this value")
+        } else {
           res.status(500).send("Error updating " + fieldID);
         }
         break;
@@ -2082,15 +2098,25 @@ app.get("/update", async (req,res) => {
       case "jobTitle":
         table = "jobs";
         columnName = "display_text"
+        if (newValue.length > 126) {
+            console.warn("ufg4243   Job title exceeds 126 characters, truncating");
+            newValue = newValue.substring(0, 123) + "..."; 
+        }        
         value = encodeURIComponent(newValue);
         console.log("ufg422     update "+ table + " set "+ columnName + " = " + value);          
-        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
-        if (q && q.status === 201) {
-          res.status(200).send("Update successful");
+        try {
+          q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+          if (q && q.status === 201) {
+            res.status(200).send("Update successful");
+          }
+          else {
+            res.status(500).send("Error updating " + fieldID);
+          }
+        } catch (error) {
+          console.error("ufg4228     Error updating job title:", error.data);
+          res.send("Error updating job title");
         }
-        else {
-          res.status(500).send("Error updating " + fieldID);
-        }
+
         break;
       case "taskStatus":
         // console.log("    user("+req.user.id+") changed task status to " + newValue + " for rowID: " + rowID )
@@ -2108,6 +2134,10 @@ app.get("/update", async (req,res) => {
       case "taskTitle":
         table = "tasks";
         columnName = "display_text"
+        if (newValue.length > 126) {
+            console.warn("ufg4243   Task title exceeds 126 characters, truncating");
+            newValue = newValue.substring(0, 123) + "...";
+        }        
         value = encodeURIComponent(newValue);
         console.log("ufg424     update "+ table + " set "+ columnName + " = " + value);          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
@@ -2337,6 +2367,10 @@ app.get("/update", async (req,res) => {
 
         console.log("ufg441     update "+ table + " set "+ columnName + " = " + value);        
           try {  
+            if (isNaN(Date.parse(value))) {
+              console.error("ufg4428  Invalid date value:", value);
+              return res.status(400).send("Invalid date value");
+            }            
             const a4 = await db.query("BEGIN;"); // Start transaction
             console.log("ufg4421     ...update worksheetID("+rowID+") set target date = " + value );
             const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);      
