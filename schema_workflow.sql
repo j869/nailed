@@ -2,6 +2,7 @@
 -- New Modular Vic Permits Workflows - Breaking down Product 5 into linked phases
 
 -- Workflow 51: Pre Deposit (Steps 1.00 to 3.99)
+delete from public.products where id = 51;
 insert into products (id, display_text) values (51, 'Pre Deposit');
 delete from public.job_templates where product_id = 51;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Deposit', null, '1.00', '500', 51, 1, null, 5120, 5110, 13);
@@ -58,6 +59,7 @@ update public.job_templates set job_change_array = '[{"antecedent": "complete","
 update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}]}]' where id = 5235 and product_id = 51 and tier = 501;
 
 -- Workflow 52: Report & Consent (Step 4.00)
+delete from public.products where id = 52;
 insert into products (id, display_text) values (52, 'Report & Consent');
 delete from public.job_templates where product_id = 52;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Report & Consent / Buildover', null, '4.00', '500', 52, 1, null, 5240, 5240, 13);
@@ -80,6 +82,7 @@ update public.job_templates set job_change_array = '[{"antecedent": "complete","
 update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}]}]' where id = 5274 and product_id = 52 and tier = 501;
 
 -- Workflow 53: Planning Permit (Step 5.00)
+delete from public.products where id = 53;
 insert into products (id, display_text) values (53, 'Planning Permit');
 delete from public.job_templates where product_id = 53;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Planning Permit', null, '5.00', '500', 53, 1, null, 5280, 5280, 13);
@@ -100,6 +103,7 @@ update public.job_templates set job_change_array = '[{"antecedent": "complete","
 update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}]}]' where id = 5313 and product_id = 53 and tier = 501;
 
 -- Workflow 54: Building Permit (Step 6.00)
+delete from public.products where id = 54;
 insert into products (id, display_text) values (54, 'Building Permit');
 delete from public.job_templates where product_id = 54;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Building Permit', null, '6.00', '500', 54, 1, null, 5320, 5320, 13);
@@ -124,6 +128,7 @@ update public.job_templates set job_change_array = '[{"antecedent": "complete","
 update public.job_templates set job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "55"}]}]' where id = 5365 and product_id = 54 and tier = 501;
 
 -- Workflow 55: Active Permit (Steps 7.00 to 8.99)
+delete from public.products where id = 55;
 insert into products (id, display_text) values (55, 'Active Permit');
 delete from public.job_templates where product_id = 55;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Permit Approved', null, '7.00', '500', 55, 1, null, 5370, 5370, 13);

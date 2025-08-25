@@ -1,4 +1,5 @@
 #!/bin/bash
+# to run use this command: ./run_workflow_setup.sh
 
 # Script to run the workflow setup SQL and verify the results
 # This script will execute the schema_workflow.sql file and run verification tests
