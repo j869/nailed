@@ -1867,6 +1867,219 @@ function deleteHandler(req, res) {
 
 //#endregion
 
+//#region Job Templates CRUD
+
+// GET - Get all job templates (API)
+app.get("/job-templates", async (req, res) => {
+  try {
+    const { product_id } = req.query;
+    
+    // Get all products for the dropdown
+    const productsResult = await pool.query("SELECT id, display_text FROM products ORDER BY id");
+    
+    // Build the job templates query with optional product_id filter
+    let jobTemplatesQuery = "SELECT * FROM job_templates";
+    let queryParams = [];
+    
+    if (product_id && product_id !== '') {
+      jobTemplatesQuery += " WHERE product_id = $1";
+      queryParams.push(product_id);
+    }
+    
+    jobTemplatesQuery += " ORDER BY sort_order, id";
+    
+    const jobTemplatesResult = await pool.query(jobTemplatesQuery, queryParams);
+    
+    res.json({ 
+      jobTemplates: jobTemplatesResult.rows,
+      products: productsResult.rows,
+      selectedProductId: product_id || ''
+    });
+  } catch (error) {
+    console.error("Error fetching job templates:", error);
+    res.status(500).json({ 
+      error: "Error loading job templates"
+    });
+  }
+});
+
+// GET - Get single job template (API)
+app.get("/api/job-templates/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("SELECT * FROM job_templates WHERE id = $1", [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Job template not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error fetching job template:", error);
+    res.status(500).json({ error: "Error fetching job template" });
+  }
+});
+
+// POST - Create new job template (API)
+app.post("/api/job-templates", async (req, res) => {
+  try {
+    const {
+      user_id,
+      role_id,
+      product_id,
+      display_text,
+      free_text,
+      antecedent_array,
+      decendant_array,
+      job_change_array,
+      flow_change_array,
+      reminder_id,
+      change_log,
+      sort_order,
+      tier
+    } = req.body;
+
+    console.log("Creating new job template with data:", req.body);
+
+    // Validate required fields
+    if (!display_text) {
+      return res.status(400).json({ error: "Display text is required" });
+    }
+
+    // Get the next available ID since auto-increment is disabled
+    const maxIdResult = await pool.query("SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM job_templates");
+    const nextId = maxIdResult.rows[0].next_id;
+
+    const result = await pool.query(`
+      INSERT INTO job_templates (
+        id, user_id, role_id, product_id, display_text, free_text, 
+        antecedent_array, decendant_array, job_change_array, flow_change_array,
+        reminder_id, change_log, sort_order, tier
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
+      RETURNING *`,
+      [
+        nextId,
+        user_id || null,
+        role_id || null,
+        product_id || null,
+        display_text,
+        free_text || null,
+        antecedent_array || null,
+        decendant_array || null,
+        job_change_array || null,
+        flow_change_array || null,
+        reminder_id || null,
+        change_log || null,
+        sort_order || null,
+        tier || 500
+      ]
+    );
+
+    console.log("Job template created successfully:", result.rows[0]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error creating job template:", error);
+    res.status(500).json({ error: "Error creating job template", details: error.message });
+  }
+});
+
+// PUT - Update job template (API)
+app.put("/api/job-templates/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      user_id,
+      role_id,
+      product_id,
+      display_text,
+      free_text,
+      antecedent_array,
+      decendant_array,
+      reminder_id,
+      change_log,
+      sort_order,
+      tier
+    } = req.body;
+
+    // Validate required fields
+    if (!display_text) {
+      return res.status(400).json({ error: "Display text is required" });
+    }
+
+    const result = await pool.query(`
+      UPDATE job_templates SET
+        user_id = $1,
+        role_id = $2,
+        product_id = $3,
+        display_text = $4,
+        free_text = $5,
+        antecedent_array = $6,
+        decendant_array = $7,
+        reminder_id = $8,
+        change_log = $9,
+        sort_order = $10,
+        tier = $11
+      WHERE id = $12
+      RETURNING *`,
+      [
+        user_id || null,
+        role_id || null,
+        product_id || null,
+        display_text,
+        free_text || null,
+        antecedent_array || null,
+        decendant_array || null,
+        reminder_id || null,
+        change_log || null,
+        sort_order || null,
+        tier || 500,
+        id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Job template not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error updating job template:", error);
+    res.status(500).json({ error: "Error updating job template" });
+  }
+});
+
+// DELETE - Delete job template (API)
+app.delete("/api/job-templates/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if template is being used by any jobs
+    const jobsUsingTemplate = await pool.query(
+      "SELECT COUNT(*) as count FROM jobs WHERE job_template_id = $1", 
+      [id]
+    );
+    
+    if (parseInt(jobsUsingTemplate.rows[0].count) > 0) {
+      return res.status(400).json({ 
+        error: "Cannot delete job template as it is being used by existing jobs" 
+      });
+    }
+
+    const result = await pool.query("DELETE FROM job_templates WHERE id = $1 RETURNING *", [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Job template not found" });
+    }
+
+    res.json({ message: "Job template deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting job template:", error);
+    res.status(500).json({ error: "Error deleting job template" });
+  }
+});
+
+//#endregion
+
 
 
 

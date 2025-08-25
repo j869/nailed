@@ -1493,6 +1493,45 @@ app.get("/deltask", async (req, res) => {
 //#endregion
 
 
+//#region job templates
+
+app.get("/job-templates", async (req, res) => {
+  if (req.isAuthenticated()) {
+    try {
+      const { product_id } = req.query;
+      let apiUrl = `${API_URL}/job-templates`;
+      
+      if (product_id) {
+        apiUrl += `?product_id=${encodeURIComponent(product_id)}`;
+      }
+      
+      const response = await axios.get(apiUrl);
+      res.render("jobTemplates.ejs", {
+        jobTemplates: response.data.jobTemplates,
+        products: response.data.products,
+        selectedProductId: response.data.selectedProductId,
+        baseURL: baseURL,
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching job templates:", error);
+      res.render("jobTemplates.ejs", {
+        jobTemplates: [],
+        products: [],
+        selectedProductId: '',
+        error: "Error loading job templates",
+        baseURL: baseURL,
+        user: req.user
+      });
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+
 //#region user metadata
 
 app.post("/updateRoles", async (req, res) => {
@@ -2553,6 +2592,165 @@ app.get("/update", async (req,res) => {
         //#endregion
         res.status(200).send("Update successful");   
         break;
+        
+      // Job Templates fields
+      case "display_text":
+        table = "job_templates";
+        columnName = "display_text";
+        value = newValue;
+        console.log("ufg_jt1     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "user_id":
+        table = "job_templates";
+        columnName = "user_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt2     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "role_id":
+        table = "job_templates";
+        columnName = "role_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt3     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "product_id":
+        table = "job_templates";
+        columnName = "product_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt4     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "sort_order":
+        table = "job_templates";
+        columnName = "sort_order";
+        value = newValue;
+        console.log("ufg_jt5     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "tier":
+        table = "job_templates";
+        columnName = "tier";
+        value = newValue === '' ? null : parseFloat(newValue);
+        console.log("ufg_jt6     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "tier":
+        table = "job_templates";
+        columnName = "tier";
+        value = newValue === '' ? null : parseFloat(newValue);
+        console.log("ufg_jt6     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "free_text":
+        table = "job_templates";
+        columnName = "free_text";
+        value = newValue;
+        console.log("ufg_jt7     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "antecedent_array":
+        table = "job_templates";
+        columnName = "antecedent_array";
+        value = newValue;
+        console.log("ufg_jt8     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "decendant_array":
+        table = "job_templates";
+        columnName = "decendant_array";
+        value = newValue;
+        console.log("ufg_jt9     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "decendant_array":
+        table = "job_templates";
+        columnName = "decendant_array";
+        value = newValue;
+        console.log("ufg_jt9     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "job_change_array":
+        table = "job_templates";
+        columnName = "job_change_array";
+        value = newValue;
+        console.log("ufg_jt10    update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "flow_change_array":
+        table = "job_templates";
+        columnName = "flow_change_array";
+        value = newValue;
+        console.log("ufg_jt11    update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+        
       default:
         console.error("ufg8    Unknown field was edited: " + fieldID );
         res.status(500).send("Error updating " + fieldID);    
