@@ -1497,6 +1497,17 @@ app.get("/deltask", async (req, res) => {
 
 app.get("/job-templates", async (req, res) => {
   if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to access Job Templates.</p>
+          <a href="/" style="color: #007bff; text-decoration: none;">← Return to Home</a>
+        </div>
+      `);
+    }
+    
     try {
       const { product_id } = req.query;
       let apiUrl = `${API_URL}/job-templates`;
