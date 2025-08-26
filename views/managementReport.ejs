@@ -42,13 +42,15 @@
                     <tr>
                         <th>Job#</th>
                         <th>Customer</th>
-                        <th>Source</th>
                         <th>Status</th>
-                        <th>Building Type</th>
-                        <th>Size</th>
-                        <th>Quoted</th>
                         <th>Collected</th>
-                        <th>Earnings</th>
+                        <th>Date Ordered</th>
+                        <th>BP Applied</th>
+                        <th>BP Issued</th>
+                        <th>Date Completed</th>
+                        <th>Last Payment Date</th>
+                        <th>Last Payment Amount</th>
+                        <th>Last Payment Desc</th>
                         <th>Next Action</th>
                         <th>Last Action</th>
                         <th>Actions</th>
@@ -59,11 +61,7 @@
                         <% customers.forEach(customer => { %>
                             <tr>
                                 <td><%= customer.job_no || '-' %></td>
-                                <td>
-                                    <strong><%= customer.full_name %></strong><br>
-                                    <small class="text-muted"><%= customer.primary_phone %></small>
-                                </td>
-                                <td><%= customer.work_source || '-' %></td>
+                                <td><strong><%= customer.full_name %></strong></td>
                                 <td>
                                     <span class="badge 
                                         <% if (customer.current_status === 'completed') { %>badge-success<% } 
@@ -73,15 +71,6 @@
                                         <%= customer.current_status || 'Unknown' %>
                                     </span>
                                 </td>
-                                <td><%= customer.building_type || '-' %></td>
-                                <td><%= customer.slab_size || '-' %></td>
-                                <td>
-                                    <% if (customer.quoted_estimate) { %>
-                                        $<%= parseFloat(customer.quoted_estimate).toLocaleString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
-                                </td>
                                 <td>
                                     <% if (customer.invoices_collected) { %>
                                         $<%= parseFloat(customer.invoices_collected).toLocaleString() %>
@@ -90,11 +79,49 @@
                                     <% } %>
                                 </td>
                                 <td>
-                                    <% if (customer.job_earnings) { %>
-                                        $<%= parseFloat(customer.job_earnings).toLocaleString() %>
+                                    <% if (customer.date_ordered) { %>
+                                        <%= new Date(customer.date_ordered).toLocaleDateString() %>
                                     <% } else { %>
                                         -
                                     <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.date_bp_applied) { %>
+                                        <%= new Date(customer.date_bp_applied).toLocaleDateString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.date_bp_issued) { %>
+                                        <%= new Date(customer.date_bp_issued).toLocaleDateString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.date_completed) { %>
+                                        <%= new Date(customer.date_completed).toLocaleDateString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.last_payment_date) { %>
+                                        <%= new Date(customer.last_payment_date).toLocaleDateString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.last_payment_amount) { %>
+                                        $<%= parseFloat(customer.last_payment_amount).toLocaleString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <small><%= customer.last_payment_description || '-' %></small>
                                 </td>
                                 <td>
                                     <small><%= customer.next_action_description || '-' %></small>
@@ -110,14 +137,14 @@
                                 </td>
                                 <td>
                                     <form method="post" action="/updateCustomer/<%= customer.id %>" style="display: inline;">
-                                        <button class="btn btn-sm btn-primary" type="submit" name="action" value="view">View</button>
+                                        <button class="btn btn-sm btn-primary" type="submit" name="action" value="view">Edit</button>
                                     </form>
                                 </td>
                             </tr>
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="12" class="text-center">No customers found</td>
+                            <td colspan="14" class="text-center">No customers found</td>
                         </tr>
                     <% } %>
                 </tbody>

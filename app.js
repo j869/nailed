@@ -1029,9 +1029,10 @@ app.get("/management-report", async (req, res) => {
       // Simple query to get all customers with their basic information
       const customersQuery = `
         SELECT 
-          id, job_no, full_name, primary_phone, work_source, current_status,
-          building_type, slab_size, quoted_estimate, invoices_collected, 
-          job_earnings, next_action_description, date_last_actioned
+          id, job_no, full_name, current_status, invoices_collected,
+          date_ordered, date_bp_applied, date_bp_issued, date_completed,
+          last_payment_date, last_payment_amount, last_payment_description,
+          next_action_description, date_last_actioned
         FROM customers 
         ORDER BY 
           CASE current_status
