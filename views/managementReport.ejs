@@ -36,38 +36,41 @@
         </div>
 
         <!-- Customer Report Table -->
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
+        <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table table-striped table-hover" style="min-width: 1200px;">
                 <thead class="table-dark">
                     <tr>
-                        <th>Job#</th>
-                        <th>Customer</th>
-                        <th>Status</th>
-                        <th>Collected</th>
-                        <th>Date Ordered</th>
-                        <th>BP Applied</th>
-                        <th>BP Issued</th>
-                        <th>Date Completed</th>
-                        <th>Last Payment Date</th>
-                        <th>Last Payment Amount</th>
-                        <th>Last Payment Desc</th>
-                        <th>Next Action</th>
-                        <th>Last Action</th>
-                        <th>Actions</th>
+                        <th style="min-width: 60px;">Edit</th>
+                        <th style="min-width: 80px;">Job#</th>
+                        <th style="min-width: 150px;">Customer</th>
+                        <th style="min-width: 100px;">Status</th>
+                        <th style="min-width: 100px;">Collected</th>
+                        <th style="min-width: 110px;">Date Ordered</th>
+                        <th style="min-width: 110px;">BP Applied</th>
+                        <th style="min-width: 100px;">BP Issued</th>
+                        <th style="min-width: 120px;">Date Completed</th>
+                        <th style="min-width: 130px;">Last Payment Date</th>
+                        <th style="min-width: 140px;">Last Payment Amount</th>
+                        <th style="min-width: 150px;">Last Payment Desc</th>
+                        <th style="min-width: 120px;">Next Action</th>
+                        <th style="min-width: 100px;">Last Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <% if (customers && customers.length > 0) { %>
                         <% customers.forEach(customer => { %>
                             <tr>
+                                <td>
+                                    <form method="post" action="/updateCustomer/<%= customer.id %>" style="display: inline;">
+                                        <button class="btn btn-sm btn-outline-secondary" type="submit" name="action" value="view" title="Edit Customer">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </form>
+                                </td>
                                 <td><%= customer.job_no || '-' %></td>
                                 <td><strong><%= customer.full_name %></strong></td>
                                 <td>
-                                    <span class="badge 
-                                        <% if (customer.current_status === 'completed') { %>badge-success<% } 
-                                        else if (customer.current_status === 'active') { %>badge-primary<% } 
-                                        else if (customer.current_status === 'pending') { %>badge-warning<% } 
-                                        else { %>badge-secondary<% } %>">
+                                    <span class="badge badge-light text-dark border">
                                         <%= customer.current_status || 'Unknown' %>
                                     </span>
                                 </td>
@@ -134,11 +137,6 @@
                                             -
                                         <% } %>
                                     </small>
-                                </td>
-                                <td>
-                                    <form method="post" action="/updateCustomer/<%= customer.id %>" style="display: inline;">
-                                        <button class="btn btn-sm btn-primary" type="submit" name="action" value="view">Edit</button>
-                                    </form>
                                 </td>
                             </tr>
                         <% }); %>
