@@ -1022,6 +1022,51 @@ app.get("/customers", async (req, res) => {
   }    
 });
 
+app.get("/management-report", async (req, res) => {
+  console.log("m1      navigate to MANAGEMENT REPORT page");
+  if (req.isAuthenticated()) {
+    try {
+      // Simple query to get all customers with their basic information
+      const customersQuery = `
+        SELECT 
+          id, job_no, full_name, primary_phone, work_source, current_status,
+          building_type, slab_size, quoted_estimate, invoices_collected, 
+          job_earnings, next_action_description, date_last_actioned
+        FROM customers 
+        ORDER BY 
+          CASE current_status
+            WHEN 'active' THEN 1
+            WHEN 'pending' THEN 2
+            WHEN 'completed' THEN 3
+            ELSE 4
+          END,
+          full_name
+      `;
+      
+      const customersResult = await db.query(customersQuery);
+      
+      // Calculate simple counts
+      const activeCount = customersResult.rows.filter(c => c.current_status === 'active').length;
+      const completedCount = customersResult.rows.filter(c => c.current_status === 'completed').length;
+      
+      console.log("m2       Management Report loaded:", customersResult.rowCount, "customers");
+      
+      res.render("managementReport.ejs", {
+        user: req.user,
+        customers: customersResult.rows,
+        activeCount: activeCount,
+        completedCount: completedCount
+      });
+      
+    } catch (err) {
+      console.error("Error loading management report:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
 app.post("/addCustomer", async (req, res) => {
   console.log("n1      USER is adding a new customer ");
   if (req.isAuthenticated()) {

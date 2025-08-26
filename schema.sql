@@ -843,3 +843,72 @@ ADD COLUMN flow_change_array TEXT;
 
 
 
+
+
+
+
+
+ALTER TABLE worksheets ADD COLUMN job_id integer;
+COMMENT ON COLUMN public.worksheets.job_id IS 'References the related job for this worksheet';
+
+update products set display_text = 'Active Permits' where id = 5;
+
+
+
+-- cleaning database from orphaned records
+delete from customers where id in(select c.id from customers c left join products p on c.current_status = p.display_text where p.id is null)
+delete from builds b where not exists (select 1 from customers where b.customer_id = id)
+delete from jobs j where not exists (select 1 from builds b where j.build_id = b.id)
+delete from job_process_flow f where not exists (select 1 from jobs j where f.antecedent_id = j.id or f.decendant_id = j.id)
+delete from reminders r where not exists (select 1 from jobs j where r.id = j.reminder_id)
+delete from job_templates t where not exists (select 1 from products p where p.id = t.product_id)
+drop table user_work_schedule;
+drop table work_schedule;
+
+
+
+-- Enhanced customers table with comprehensive job and financial tracking
+CREATE TABLE IF NOT EXISTS public.customers (
+    id serial NOT NULL,
+    
+    -- Contact and billing information
+    full_name character varying(255) NOT NULL,
+    home_address character varying(511),
+    primary_phone character varying(15) NOT NULL,
+    primary_email character varying(255),
+    contact_other text,
+    current_status character varying(255),
+    follow_up timestamp without time zone,
+    
+    -- Job information
+    job_no character varying(50),
+    site_location character varying(511),
+    building_type character varying(100),
+    permit_type character varying(100),
+    slab_size character varying(100),
+    council_responsible character varying(100),
+    owner_builder_permit boolean DEFAULT false,
+    work_source character varying(50),
+    
+    -- Timeline tracking
+    date_ordered date,
+    date_bp_applied date,
+    date_bp_issued date,
+    date_completed date,
+    date_last_actioned timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    next_action_description text,
+
+    -- Financial summary
+    quoted_estimate decimal(10,2),
+    fees_paid_out decimal(10,2),
+    invoices_collected decimal(10,2),
+    job_earnings decimal(10,2),
+    
+    -- Last payment tracking
+    last_payment_date date,
+    last_payment_amount decimal(10,2),
+    last_payment_description text,
+    
+    CONSTRAINT customers_pkey PRIMARY KEY (id)
+);
+

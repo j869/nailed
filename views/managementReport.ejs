@@ -1,0 +1,129 @@
+<%- include('partials/header') %>
+
+<div class="jumbotron text-center">
+    <div class="container">
+        <h1 class="display-3">Management Report</h1>
+        <p class="lead">Customer overview and status</p>
+        
+        <br><hr><br>
+        
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h4><%= customers.length %></h4>
+                        <p>Total Customers</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h4><%= activeCount %></h4>
+                        <p>Active Jobs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h4><%= completedCount %></h4>
+                        <p>Completed Jobs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Report Table -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Job#</th>
+                        <th>Customer</th>
+                        <th>Source</th>
+                        <th>Status</th>
+                        <th>Building Type</th>
+                        <th>Size</th>
+                        <th>Quoted</th>
+                        <th>Collected</th>
+                        <th>Earnings</th>
+                        <th>Next Action</th>
+                        <th>Last Action</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (customers && customers.length > 0) { %>
+                        <% customers.forEach(customer => { %>
+                            <tr>
+                                <td><%= customer.job_no || '-' %></td>
+                                <td>
+                                    <strong><%= customer.full_name %></strong><br>
+                                    <small class="text-muted"><%= customer.primary_phone %></small>
+                                </td>
+                                <td><%= customer.work_source || '-' %></td>
+                                <td>
+                                    <span class="badge 
+                                        <% if (customer.current_status === 'completed') { %>badge-success<% } 
+                                        else if (customer.current_status === 'active') { %>badge-primary<% } 
+                                        else if (customer.current_status === 'pending') { %>badge-warning<% } 
+                                        else { %>badge-secondary<% } %>">
+                                        <%= customer.current_status || 'Unknown' %>
+                                    </span>
+                                </td>
+                                <td><%= customer.building_type || '-' %></td>
+                                <td><%= customer.slab_size || '-' %></td>
+                                <td>
+                                    <% if (customer.quoted_estimate) { %>
+                                        $<%= parseFloat(customer.quoted_estimate).toLocaleString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.invoices_collected) { %>
+                                        $<%= parseFloat(customer.invoices_collected).toLocaleString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (customer.job_earnings) { %>
+                                        $<%= parseFloat(customer.job_earnings).toLocaleString() %>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <small><%= customer.next_action_description || '-' %></small>
+                                </td>
+                                <td>
+                                    <small>
+                                        <% if (customer.date_last_actioned) { %>
+                                            <%= new Date(customer.date_last_actioned).toLocaleDateString() %>
+                                        <% } else { %>
+                                            -
+                                        <% } %>
+                                    </small>
+                                </td>
+                                <td>
+                                    <form method="post" action="/updateCustomer/<%= customer.id %>" style="display: inline;">
+                                        <button class="btn btn-sm btn-primary" type="submit" name="action" value="view">View</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="12" class="text-center">No customers found</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
