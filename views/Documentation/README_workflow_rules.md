@@ -154,6 +154,62 @@ Most job templates use this pattern:
 - **Tier 501**: Individual tasks within phases
 - **Tier 502+**: Sub-tasks (if used)
 
+## Antecedent Inheritance Rules
+
+### Critical Workflow Rule: Tier-Based Antecedent Inheritance
+
+The workflow system follows strict inheritance rules for antecedent relationships that are essential for proper workflow sequencing:
+
+#### **Rule 1: Tier 500 (Header) Inheritance**
+```
+Tier 500 tasks inherit their antecedent from the PREVIOUS tier 500 task
+```
+
+**Example from Workflow 51 (Pre Deposit)**:
+- `"Deposit" (5110)` - antecedent: `null` (first task)
+- `"Document Preparation" (5131)` - antecedent: `5128` (previous tier 500: "Builder")
+- `"Site Plan" (5179)` - antecedent: `5131` (previous tier 500: "Document Preparation")
+
+#### **Rule 2: Tier 501 (Regular Task) Inheritance**
+```
+Tier 501 tasks ALWAYS inherit from their parent tier 500 task
+```
+
+**Example from Workflow 51 (Pre Deposit)**:
+- All tasks under "Deposit" section → antecedent: `5110` (parent: "Deposit")
+- All tasks under "Document Preparation" section → antecedent: `5131` (parent: "Document Preparation")
+- All tasks under "Site Plan" section → antecedent: `5179` (parent: "Site Plan")
+
+### **Why This Matters**
+
+This inheritance structure creates a hierarchical dependency system where:
+
+1. **Phase Control**: Tier 500 tasks act as gatekeepers for entire workflow phases
+2. **Section Dependencies**: Each section only becomes available when its header (tier 500) is completed
+3. **Logical Progression**: Phases follow a sequential order while allowing parallel work within phases
+4. **Workflow Integrity**: Prevents tasks from becoming available before their prerequisites are met
+
+### **Implementation Impact**
+
+When creating new workflows or modifying existing ones, always ensure:
+- Tier 500 tasks link to the previous tier 500 task (creating phase sequence)
+- Tier 501 tasks link to their immediate tier 500 parent (creating section control)
+- First tier 500 task in a workflow has `antecedent_array: null`
+
+**Incorrect Pattern** ❌:
+```sql
+-- Tier 501 task linking to previous tier 501 task
+antecedent_array: 5176  -- Previous tier 501 task
+```
+
+**Correct Pattern** ✅:
+```sql
+-- Tier 501 task linking to parent tier 500 task  
+antecedent_array: 5179  -- Parent tier 500 task
+```
+
+This rule ensures that all tasks within a section become available simultaneously once the section header is completed, rather than creating unnecessary sequential dependencies within workflow phases.
+
 ## Sort Order Logic
 
 Sort orders follow a hierarchical numbering system:
@@ -172,6 +228,77 @@ Examples:
 2. **Permit Completion → Archive**: Final permit jobs move customer to archive status
 3. **Construction Dependencies**: Concrete curing delays affect erecting schedules
 4. **Archive Categories**: Different archive types for different completion reasons
+
+## Modular Workflow System (Products 51-55)
+
+### New Branching Permit Workflows
+The original monolithic Product 5 (Vic Permits) has been redesigned into 5 modular workflows with branching logic:
+
+| Product ID | Display Text | Purpose |
+|------------|--------------|---------|
+| 51 | Pre Deposit | Initial setup and site planning (Steps 1.00-3.99) |
+| 52 | Report & Consent | R&C permit processing (Step 4.00) |
+| 53 | Planning Permit | Planning permit processing (Step 5.00) |
+| 54 | Building Permit | Building permit processing (Step 6.00) |
+| 55 | Active Permit | Final permit processing and amendments (Steps 7.00-8.99) |
+
+### Branching Logic Flow
+
+#### **From Workflow 51 (Pre Deposit)**:
+Three possible paths based on permit requirements:
+- **Standard Path**: → Workflow 52 (Report & Consent)
+- **Skip R&C**: → Workflow 53 (Planning Permit) 
+- **Skip R&C & PP**: → Workflow 54 (Building Permit)
+
+#### **From Workflow 52 (Report & Consent)**:
+Two possible paths:
+- **Standard Path**: → Workflow 53 (Planning Permit)
+- **Skip PP**: → Workflow 54 (Building Permit)
+
+#### **Sequential Flow**:
+- Workflow 53 → Workflow 54 (Building Permit)
+- Workflow 54 → Workflow 55 (Active Permit)
+- Workflow 55 → Archive customer
+
+### Branching Implementation
+
+**Workflow 51 Branching Tasks**:
+```sql
+-- ID 5233: Standard path to R&C
+job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "52"}]}]'
+
+-- ID 5234: Skip R&C, go to Planning Permit  
+job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "53"}]}]'
+
+-- ID 5235: Skip R&C & PP, go to Building Permit
+job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}]}]'
+```
+
+**Workflow 52 Branching Tasks**:
+```sql
+-- ID 5273: Standard path to Planning Permit
+job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "53"}]}]'
+
+-- ID 5274: Skip PP, go to Building Permit
+job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}]}]'
+```
+
+### Benefits of Modular Design
+
+1. **Flexibility**: Choose appropriate permit path based on project requirements
+2. **Efficiency**: Skip unnecessary permit phases when not required
+3. **Tracking**: Better visibility into specific permit phase progress
+4. **Maintenance**: Easier to modify individual permit processes
+5. **Reporting**: Granular analytics on permit phase completion times
+
+### ID Range Allocation
+
+To prevent conflicts, each modular workflow uses dedicated ID ranges:
+- **Workflow 51**: 5110-5235 (126 IDs reserved)
+- **Workflow 52**: 5240-5274 (35 IDs reserved)  
+- **Workflow 53**: 5280-5313 (34 IDs reserved)
+- **Workflow 54**: 5320-5365 (46 IDs reserved)
+- **Workflow 55**: 5370-5424 (55 IDs reserved)
 
 ## Implementation Notes
 
