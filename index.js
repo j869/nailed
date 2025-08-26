@@ -9,7 +9,6 @@ import cors from "cors";
 import nodemailer from "nodemailer";
 import { ImapFlow } from 'imapflow';
 import crypto from 'crypto';   //const crypto = require('crypto');
-import moment from 'moment';
 import axios from "axios";
 
 
@@ -2075,6 +2074,79 @@ app.delete("/api/job-templates/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting job template:", error);
     res.status(500).json({ error: "Error deleting job template" });
+  }
+});
+
+// GET - Get single product (API)
+app.get("/api/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("SELECT * FROM products WHERE id = $1", [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    res.status(500).json({ error: "Error fetching product" });
+  }
+});
+
+// PUT - Update product (API)
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { display_text, user_id = 1 } = req.body;
+
+    // Validate required fields
+    if (!display_text || display_text.trim() === '') {
+      return res.status(400).json({ error: "Display text is required" });
+    }
+
+    // Get current product data for change log
+    const currentResult = await pool.query("SELECT display_text, change_log FROM products WHERE id = $1", [id]);
+    if (currentResult.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const currentProduct = currentResult.rows[0];
+    const oldDisplayText = currentProduct.display_text;
+    
+    // Create change log entry
+    const currentDate = new Date().toLocaleDateString('en-GB', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: '2-digit' 
+    }).replace(/ /g, '-');
+    const changeEntry = `${currentDate} U${user_id}: name "${oldDisplayText}" → "${display_text}"`;
+    
+    // Append to existing change log or create new one
+    const existingChangeLog = currentProduct.change_log || '';
+    const newChangeLog = existingChangeLog ? 
+      `${existingChangeLog}; ${changeEntry}` : 
+      changeEntry;
+
+    // Update the product
+    const result = await pool.query(`
+      UPDATE products SET
+        display_text = $1,
+        change_log = $2
+      WHERE id = $3
+      RETURNING *`,
+      [display_text.trim(), newChangeLog, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    console.log(`Product ${id} updated: "${oldDisplayText}" → "${display_text}" by user ${user_id}`);
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ error: "Error updating product", details: error.message });
   }
 });
 

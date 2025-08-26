@@ -3,26 +3,37 @@
 <div class="container mt-4">
     <h2>Job Templates Management</h2>
     
-    <!-- Filter and Add New Record -->
+    <!-- Filter and Product Rename -->
     <div class="row mb-3">
         <div class="col-md-6">
-            <button class="btn btn-success" id="addNewTemplateBtn" onclick="addNewJobTemplate()" 
-                    <%= !locals.selectedProductId ? 'disabled' : '' %>>
-                + Add New Job Template
-            </button>
+            <!-- Product Rename Section -->
+            <% if (locals.selectedProductId) { %>
+            <div class="mb-2">
+                <label for="productNameInput" class="form-label">Rename Selected Product:</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="productNameInput" 
+                           placeholder="Change product name" maxlength="255">
+                    <button class="btn btn-outline-primary" type="button" onclick="renameProduct()">
+                        Rename
+                    </button>
+                </div>
+            </div>
+            <% } %>
         </div>
         <div class="col-md-6">
             <label for="productFilter" class="form-label">Filter by Workflow:</label>
-            <select class="form-select" id="productFilter" onchange="filterByProduct()">>
-                <option value="">All Products</option>
-                <% if (locals.products) { %>
-                    <% products.forEach(function(product) { %>
-                        <option value="<%= product.id %>" <%= locals.selectedProductId == product.id ? 'selected' : '' %>>
-                            <%= product.display_text %> (ID: <%= product.id %>)
-                        </option>
-                    <% }); %>
-                <% } %>
-            </select>
+            <div class="input-group">
+                <select class="form-select" id="productFilter" onchange="filterByProduct()">
+                    <option value="">All Products</option>
+                    <% if (locals.products) { %>
+                        <% products.forEach(function(product) { %>
+                            <option value="<%= product.id %>" <%= locals.selectedProductId == product.id ? 'selected' : '' %>>
+                                <%= product.display_text %> (ID: <%= product.id %>)
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -87,6 +98,19 @@
             </table>
         </div>
     </div>
+
+    <!-- Add New Job Template Section -->
+    <div class="row mt-3">
+        <div class="col">
+            <button class="btn btn-success" id="addNewTemplateBtn" onclick="addNewJobTemplate()" 
+                    <%= !locals.selectedProductId ? 'disabled' : '' %>>
+                + Add Job to this template
+            </button>
+            <% if (!locals.selectedProductId) { %>
+                <small class="text-muted ms-2">Select a product above to enable adding new templates</small>
+            <% } %>
+        </div>
+    </div>
 </div>
 
 <!-- JSON Editor Modal -->
@@ -99,14 +123,13 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label for="jsonFieldName" class="form-label">Field:</label>
-                    <input type="text" class="form-control" id="jsonFieldName" readonly>
+                    <label for="jsonContent" class="form-label">JSON Content:</label>
+                    <textarea class="form-control" id="jsonContent" rows="10"></textarea>
                 </div>
                 <div class="mb-3">
-                    <label for="jsonContent" class="form-label">JSON Content:</label>
-                    <textarea class="form-control" id="jsonContent" rows="10" style="font-family: monospace;"></textarea>
+                    <input type="hidden" id="jsonRecordId">
+                    <input type="hidden" id="jsonFieldName">
                 </div>
-                <input type="hidden" id="jsonRecordId">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -151,6 +174,58 @@ function updateAddButtonState() {
     } else {
         addButton.disabled = false;
         addButton.title = '';
+    }
+}
+
+// Rename product directly without modal
+async function renameProduct() {
+    const productFilter = document.getElementById('productFilter');
+    const selectedProductId = productFilter.value;
+    const productNameInput = document.getElementById('productNameInput');
+    const newDisplayText = productNameInput.value.trim();
+    
+    if (!selectedProductId) {
+        alert('Please select a product first.');
+        return;
+    }
+    
+    if (!newDisplayText) {
+        alert('Product name cannot be empty.');
+        return;
+    }
+    
+    try {
+        console.log('Updating product:', selectedProductId, 'with name:', newDisplayText);
+        const fullApiUrl = `${apiUrl}/api/products/${selectedProductId}`;
+        
+        const response = await fetch(fullApiUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                display_text: newDisplayText,
+                user_id: 1 // Default user ID, could be made dynamic based on session
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const updatedProduct = await response.json();
+        console.log('Product updated successfully:', updatedProduct);
+        
+        // Clear the input field
+        productNameInput.value = '';
+        
+        // Refresh the page to show updated product name in dropdown
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error updating product:', error);
+        alert(`Error updating product: ${error.message}`);
     }
 }
 
