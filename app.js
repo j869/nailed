@@ -1030,9 +1030,14 @@ app.get("/management-report", async (req, res) => {
       const customersQuery = `
         SELECT 
           id, job_no, full_name, current_status, invoices_collected,
-          date_ordered, date_bp_applied, date_bp_issued, date_completed,
-          last_payment_date, last_payment_amount, last_payment_description,
-          next_action_description, date_last_actioned
+          TO_CHAR(date_ordered, 'DD-Mon-YY') AS date_ordered,
+          TO_CHAR(date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
+          TO_CHAR(date_bp_issued, 'DD-Mon-YY') AS date_bp_issued,
+          TO_CHAR(date_completed, 'DD-Mon-YY') AS date_completed,
+          TO_CHAR(last_payment_date, 'DD-Mon-YY') AS last_payment_date,
+          last_payment_amount, last_payment_description,
+          next_action_description,
+          TO_CHAR(date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
         FROM customers 
         ORDER BY 
           CASE current_status

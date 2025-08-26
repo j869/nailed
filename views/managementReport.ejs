@@ -79,23 +79,15 @@
                                 </td>
                                 <td>
                                     <small>
-                                        <% if (customer.date_last_actioned) { %>
-                                            <%= new Date(customer.date_last_actioned).toLocaleDateString() %>
-                                        <% } else { %>
-                                            -
-                                        <% } %>
+                                        <%= customer.date_last_actioned || '-' %>
                                     </small>
                                 </td>
                                 <td>
-                                    <% if (customer.last_payment_date) { %>
-                                        <%= new Date(customer.last_payment_date).toLocaleDateString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
+                                    <%= customer.last_payment_date || '-' %>
                                 </td>
                                 <td>
                                     <% if (customer.last_payment_amount) { %>
-                                        $<%= parseFloat(customer.last_payment_amount).toLocaleString() %>
+                                        $<%= parseFloat(customer.last_payment_amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) %>
                                     <% } else { %>
                                         -
                                     <% } %>
@@ -105,38 +97,22 @@
                                 </td>
                                 <td>
                                     <% if (customer.invoices_collected) { %>
-                                        $<%= parseFloat(customer.invoices_collected).toLocaleString() %>
+                                        $<%= parseFloat(customer.invoices_collected).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) %>
                                     <% } else { %>
                                         -
                                     <% } %>
                                 </td>
                                 <td>
-                                    <% if (customer.date_ordered) { %>
-                                        <%= new Date(customer.date_ordered).toLocaleDateString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
+                                    <%= customer.date_ordered || '-' %>
                                 </td>
                                 <td>
-                                    <% if (customer.date_bp_applied) { %>
-                                        <%= new Date(customer.date_bp_applied).toLocaleDateString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
+                                    <%= customer.date_bp_applied || '-' %>
                                 </td>
                                 <td>
-                                    <% if (customer.date_bp_issued) { %>
-                                        <%= new Date(customer.date_bp_issued).toLocaleDateString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
+                                    <%= customer.date_bp_issued || '-' %>
                                 </td>
                                 <td>
-                                    <% if (customer.date_completed) { %>
-                                        <%= new Date(customer.date_completed).toLocaleDateString() %>
-                                    <% } else { %>
-                                        -
-                                    <% } %>
+                                    <%= customer.date_completed || '-' %>
                                 </td>
                             </tr>
                         <% }); %>
