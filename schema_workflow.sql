@@ -129,7 +129,7 @@ update public.job_templates set job_change_array = '[{"antecedent": "complete","
 
 -- Workflow 55: Active Permit (Steps 7.00 to 8.99)
 delete from public.products where id = 55;
-insert into products (id, display_text) values (55, 'Active Permit');
+insert into products (id, display_text) values (55, 'Pre-Archive');
 delete from public.job_templates where product_id = 55;
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Permit Approved', null, '7.00', '500', 55, 1, null, 5370, 5370, 13);
 INSERT INTO public.job_templates(display_text, free_text, sort_order, tier, product_id, reminder_id, antecedent_array, decendant_array, id, user_id) VALUES ('Ensure permit was paid', null, '7.03', '501', 55, 1, 5370, 5373, 5373, 13);
