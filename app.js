@@ -1029,7 +1029,8 @@ app.get("/management-report", async (req, res) => {
       // Simple query to get all customers with their basic information
       const customersQuery = `
         SELECT 
-          id, job_no, full_name, current_status, invoices_collected,
+          id, job_no, full_name, primary_phone, current_status, invoices_collected,
+          site_location, slab_size, building_type,
           TO_CHAR(date_ordered, 'DD-Mon-YY') AS date_ordered,
           TO_CHAR(date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
           TO_CHAR(date_bp_issued, 'DD-Mon-YY') AS date_bp_issued,
@@ -1163,22 +1164,71 @@ app.post("/updateCustomer/:id", async (req, res) => {
     const userID = parseInt(req.params.id);
     switch (action) {
       case "update":
-            // a known fault is that this will not set non alphabetical characters {} " ' etc - you need to excape them for security reasons too
-            const updateSQL = "UPDATE customers SET     " +
-            "full_name='" + req.body.fullName + "', " +
-            "home_address='" + req.body.homeAddress + "', " +
-            "primary_phone='" + req.body.primaryPhone + "', " +
-            "primary_email='" + req.body.primaryEmail + "', " +
-            "contact_other='" + req.body.contactOther + "', " + 
-            "current_status='" + req.body.currentStatus + "' " +
-            "WHERE id=" + userID + " RETURNING *"    
+            // Use parameterized query to prevent SQL injection and handle special characters
+            const updateSQL = `
+              UPDATE customers SET     
+                full_name = $1,
+                home_address = $2,
+                primary_phone = $3,
+                primary_email = $4,
+                contact_other = $5,
+                current_status = $6,
+                job_no = $7,
+                site_location = $8,
+                building_type = $9,
+                permit_type = $10,
+                slab_size = $11,
+                council_responsible = $12,
+                owner_builder_permit = $13,
+                work_source = $14,
+                date_ordered = $15,
+                date_bp_applied = $16,
+                date_bp_issued = $17,
+                date_completed = $18,
+                quoted_estimate = $19,
+                invoices_collected = $20,
+                fees_paid_out = $21,
+                job_earnings = $22,
+                next_action_description = $23,
+                follow_up = $24,
+                date_last_actioned = CURRENT_TIMESTAMP
+              WHERE id = $25 
+              RETURNING *`;
+              
+            const params = [
+              req.body.fullName,
+              req.body.homeAddress,
+              req.body.primaryPhone,
+              req.body.primaryEmail,
+              req.body.contactOther,
+              req.body.currentStatus,
+              req.body.jobNo,
+              req.body.siteLocation,
+              req.body.buildingType,
+              req.body.permitType,
+              req.body.slabSize,
+              req.body.councilResponsible,
+              req.body.ownerBuilderPermit === 'on' ? true : false,
+              req.body.workSource,
+              req.body.dateOrdered || null,
+              req.body.dateBpApplied || null,
+              req.body.dateBpIssued || null,
+              req.body.dateCompleted || null,
+              req.body.quotedEstimate || null,
+              req.body.invoicesCollected || null,
+              req.body.feesPaidOut || null,
+              req.body.jobEarnings || null,
+              req.body.nextActionDescription,
+              req.body.followUp || null,
+              userID
+            ];
+            
             try {
-              //  "UPDATE customers SET full_name='$1', primary_phone='$2', primary_email='$3', contact_other='$4', current_status='$5', contact_history='$6') WHERE id=$7 RETURNING *",
-              //  [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, null, req.body.contactHistory, 5]
-              const result = await db.query(updateSQL);
+              const result = await db.query(updateSQL, params);
               const updatedCustomer = result.rows[0];
+              console.log("Customer updated successfully:", updatedCustomer.id);
             } catch (err) {
-              console.error(err);
+              console.error("Error updating customer:", err);
               //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
             }
 
