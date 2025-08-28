@@ -1026,7 +1026,14 @@ app.get("/management-report", async (req, res) => {
   console.log("m1      navigate to MANAGEMENT REPORT page");
   if (req.isAuthenticated()) {
     try {
-      // Simple query to get all customers with their basic information
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+      
+      // Enhanced query with security filtering using either/or logic
       const customersQuery = `
         SELECT 
           id, job_no, full_name, primary_phone, current_status, invoices_collected,
@@ -1040,6 +1047,7 @@ app.get("/management-report", async (req, res) => {
           next_action_description,
           TO_CHAR(date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
         FROM customers 
+        WHERE (${processedSecurityClause})
         ORDER BY 
           CASE current_status
             WHEN 'active' THEN 1
@@ -1052,11 +1060,11 @@ app.get("/management-report", async (req, res) => {
       
       const customersResult = await db.query(customersQuery);
       
-      // Calculate simple counts
+      // Calculate simple counts from filtered data
       const activeCount = customersResult.rows.filter(c => c.current_status === 'active').length;
       const completedCount = customersResult.rows.filter(c => c.current_status === 'completed').length;
       
-      console.log("m2       Management Report loaded:", customersResult.rowCount, "customers");
+      console.log("m2       Management Report loaded:", customersResult.rowCount, "customers (security filtered)");
       
       res.render("managementReport.ejs", {
         user: req.user,

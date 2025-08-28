@@ -121,3 +121,36 @@ COMMENT ON COLUMN public.customers.last_payment_date IS 'Date of most recent pay
 COMMENT ON COLUMN public.customers.last_payment_amount IS 'Amount of most recent payment';
 COMMENT ON COLUMN public.customers.last_payment_description IS 'Description of most recent payment';
 
+
+
+-- Add data security clearance column to users table
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS data_security text;
+CREATE INDEX IF NOT EXISTS idx_users_data_security ON public.users(data_security);
+COMMENT ON COLUMN public.users.data_security IS 'SQL WHERE clause for user data access control. Use "1=1" for admin access, "id IN (SELECT customer_id FROM user_accessible_customers WHERE assigned_user_id = $USER_ID)" for job-based access, or "1=0" for no access';
+
+-- Create simple security view mapping job user assignments to customer access
+DROP VIEW IF EXISTS public.user_accessible_customers;
+CREATE VIEW public.user_accessible_customers AS
+SELECT DISTINCT 
+    c.id as customer_id,
+    j.user_id as assigned_user_id
+FROM public.customers c
+INNER JOIN public.builds b ON c.id = b.customer_id  
+INNER JOIN public.jobs j ON b.id = j.build_id
+WHERE j.user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
+
+-- Add documentation
+COMMENT ON VIEW public.user_accessible_customers IS 'Simple security view mapping job user assignments to customer access - returns customer_id for each assigned user_id';
+
+-- 1. Admin access (all customers): 
+--    update users set data_security = '1=1' where id = ?
+
+-- 2. User sees only customers with jobs assigned to them:
+--    update users set data_security = 'id IN (SELECT customer_id FROM user_accessible_customers WHERE assigned_user_id = $USER_ID)' where id = ?
+
+-- 3. No access:
+--    update users set data_security = '1=0' where id = ?
+
+
+
