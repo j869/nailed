@@ -392,11 +392,11 @@ async function getJobs(parentID, parentTier, logString) {
 
 
 
-async function getBuildData(buildID) {
+async function getBuildData(buildID, userSecurityClause = '1=1') {
   try {
     console.log("bc1       getBuildData called for buildID: ", buildID);
     
-    // 1. Get build information
+    // 1. Get build information with customer access verification
     const buildResult = await db.query(`
       SELECT 
         b.id, 
@@ -408,18 +408,19 @@ async function getBuildData(buildID) {
         p.display_text AS product_description
       FROM builds AS b
       JOIN products AS p ON b.product_id = p.id
-      WHERE b.id = $1
+      JOIN customers c ON b.customer_id = c.id
+      WHERE b.id = $1 AND (${userSecurityClause})
     `, [buildID]);
 
     if (buildResult.rows.length === 0) {
-      console.log(`bc18      Build ${buildID} not found`);
+      console.log(`bc18      Build ${buildID} not found or access denied`);
       return [];
     }
 
     const buildData = buildResult.rows[0];
     const customerID = buildData.customer_id;
 
-    // 2. Get customer information
+    // 2. Get customer information (already verified access above)
     const customerResult = await db.query(`
       SELECT 
         id, full_name, home_address, primary_phone, primary_email, 
@@ -555,15 +556,19 @@ let allCustomers = [];
     console.log("b1      navigate to WORKFLOW_LISTVIEW by user("+ req.user.id +") ")
     const buildID = req.params.id || "";
       try {
+          // Get user's security clause for data access control
+          const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+          const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+          
+          // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+          const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
   
           if (buildID) {
             console.log("b2       retrieving all jobs for build("+buildID+")");
 
-         
-
-            const allCustomers = await getBuildData(buildID);
+            const allCustomers = await getBuildData(buildID, processedSecurityClause);
             if (allCustomers.length === 0) {
-              console.log("b2a      No jobs found for build("+buildID+")");
+              console.log("b2a      No jobs found for build("+buildID+") or access denied");
               res.redirect("/");
               return;
             }
@@ -575,8 +580,12 @@ let allCustomers = [];
             
           } else {
             console.log("b3   ");
-            // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers");
+            // If there's no search term, fetch all customers and their builds with security filtering
+              const customersResult = await db.query(`
+                SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
+                FROM customers c
+                WHERE (${processedSecurityClause})
+              `);
               // customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
               //   if (customer.follow_up) {
               //       customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
@@ -639,11 +648,17 @@ app.get("/2/customers", async (req, res) => {
       
       const query = req.query.query || "";
       try {
+              // Get user's security clause for data access control
+              const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+              const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+              
+              // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+              const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
               let allCustomers;
               if (query) {
                 console.log("d2      User serched for a term: ", query);
-                // If there is a search term, fetch matching customers and their builds
+                // Enhanced search query with security filtering
                 const customersQuery = `
                     SELECT 
                         c.id, 
@@ -671,24 +686,12 @@ app.get("/2/customers", async (req, res) => {
                             OR c.primary_email ILIKE $1 
                             OR c.contact_other ILIKE $1 
                             OR c.current_status ILIKE $1
-                        ) AND (
-                            EXISTS (
-                              SELECT 1 
-                              FROM jobs j 
-                              WHERE j.build_id = b.id 
-                              AND j.user_id = $2
-                            )     OR EXISTS (
-                              SELECT 1
-                              FROM users u
-                              WHERE u.id = $2
-                              AND u.roles = 'sysadmin'
-                            )
-                        )
+                        ) AND (${processedSecurityClause})
                     ORDER BY 
                         c.follow_up ASC;
                 `;
         
-                const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);
+                const customersResult = await db.query(customersQuery, [`%${query}%`]);
                 // console.log("d21        search returned " + customersResult.rowCount + " records");
         
                 if (customersResult.rowCount > 0) {
@@ -738,7 +741,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
             console.log("d31      No search terms ");
 
-            // Execute query to get customers and builds for the given user_id
+            // Enhanced no-search query with security filtering
             const customersResult = await db.query(`
                 SELECT 
                     c.id, 
@@ -761,21 +764,10 @@ app.get("/2/customers", async (req, res) => {
                     builds b ON b.customer_id = c.id
                 LEFT JOIN 
                     products p ON b.product_id = p.id
-                WHERE 
-                    EXISTS (
-                      SELECT 1 
-                      FROM jobs j 
-                      WHERE j.build_id = b.id 
-                      AND j.user_id = $1
-                    )     OR EXISTS (
-                      SELECT 1
-                      FROM users u
-                      WHERE u.id = $1
-                      AND u.roles = 'sysadmin'
-                    )
+                WHERE (${processedSecurityClause})
                 ORDER BY 
                     c.contact_other ASC;
-            `, [req.user.id]);
+            `);
         
         
             // Format follow_up value and structure the data
@@ -895,9 +887,19 @@ app.get("/3/customers", async (req, res) => {
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
-      // Perform the search operation based on the query
-      // For example, you might want to search for customers with names matching the query
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+
+      // Enhanced customer search query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c 
+        WHERE (c.full_name LIKE $1 OR c.primary_phone LIKE $1 OR c.home_address LIKE $1) 
+        AND (${processedSecurityClause})
+      `, [`%${query}%`]);
       console.log("cc1  ");
 
       let allCustomers = result.rows;
@@ -941,30 +943,39 @@ app.get("/customer/:id", async (req, res) => {
   if (req.isAuthenticated()) {
     console.log("c1      navigate to EDIT_CUSTOMER_DETAILS for custID: ", custID);
 
-
     try {
-      const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+
+      // Enhanced customer query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})
+      `, [custID]);
+      
       let customer = result.rows;
       if (customer.length !== 1) {
-        if (customer.length === 0) {       
-          //add new customer
-          console.log("c2      new customer being added: ", custID);
-          res.render("customer.ejs", { user : req.user });
+        if (customer.length === 0) {
+          console.log("c2      Customer not found or access denied for custID: ", custID);
+          res.redirect("/2/customers"); // Redirect to customer list instead of allowing new customer creation
           return;
         }
         console.error("c28     Error: Expected 1 row, but received " + customer.length + " rows.");      
       }
 
+      // Enhanced builds query with customer access verification (customer already verified above)
       const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
       let builds = qryBuilds.rows;
 
       const qryProducts = await db.query("SELECT id, display_text FROM products order by display_text;");
       let products = qryProducts.rows;
 
-      //read emails for the customer
+      //read emails for the customer (customer access already verified)
       const qryEmails = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
       let emails = qryEmails.rows;
-
 
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
@@ -992,11 +1003,24 @@ app.get("/customers", async (req, res) => {
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
-      // Perform the search operation based on the query
-      // For example, you might want to search for customers with names matching the query
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
-      const statusList = await db.query("SELECT DISTINCT current_status FROM customers");
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      // Enhanced status list query with security filtering
+      const statusList = await db.query(`
+        SELECT DISTINCT c.current_status FROM customers c WHERE (${processedSecurityClause})
+      `);
+      
+      // Enhanced customer search query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c 
+        WHERE (c.full_name LIKE $1 OR c.primary_phone LIKE $1 OR c.home_address LIKE $1) 
+        AND (${processedSecurityClause})
+      `, [`%${query}%`]);
 
       const customersByStatus = statusList.rows.reduce((acc, status) => {
         acc[status.current_status] = result.rows.filter(customer => customer.current_status === status.current_status);
@@ -1033,29 +1057,29 @@ app.get("/management-report", async (req, res) => {
       // Replace $USER_ID placeholder with actual user ID for dynamic clauses
       const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
       
-      // Enhanced query with security filtering using either/or logic
+      // Enhanced query with security filtering
       const customersQuery = `
         SELECT 
-          id, job_no, full_name, primary_phone, current_status, invoices_collected,
-          site_location, slab_size, building_type,
-          TO_CHAR(date_ordered, 'DD-Mon-YY') AS date_ordered,
-          TO_CHAR(date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
-          TO_CHAR(date_bp_issued, 'DD-Mon-YY') AS date_bp_issued,
-          TO_CHAR(date_completed, 'DD-Mon-YY') AS date_completed,
-          TO_CHAR(last_payment_date, 'DD-Mon-YY') AS last_payment_date,
-          last_payment_amount, last_payment_description,
-          next_action_description,
-          TO_CHAR(date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
-        FROM customers 
+          c.id, c.job_no, c.full_name, c.primary_phone, c.current_status, c.invoices_collected,
+          c.site_location, c.slab_size, c.building_type,
+          TO_CHAR(c.date_ordered, 'DD-Mon-YY') AS date_ordered,
+          TO_CHAR(c.date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
+          TO_CHAR(c.date_bp_issued, 'DD-Mon-YY') AS date_bp_issued,
+          TO_CHAR(c.date_completed, 'DD-Mon-YY') AS date_completed,
+          TO_CHAR(c.last_payment_date, 'DD-Mon-YY') AS last_payment_date,
+          c.last_payment_amount, c.last_payment_description,
+          c.next_action_description,
+          TO_CHAR(c.date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
+        FROM customers c
         WHERE (${processedSecurityClause})
         ORDER BY 
-          CASE current_status
+          CASE c.current_status
             WHEN 'active' THEN 1
             WHEN 'pending' THEN 2
             WHEN 'completed' THEN 3
             ELSE 4
           END,
-          full_name
+          c.full_name
       `;
       
       const customersResult = await db.query(customersQuery);
@@ -1089,9 +1113,13 @@ app.post("/addCustomer", async (req, res) => {
     const currentTime = new Date(); // Get the current time
     currentTime.setDate(currentTime.getDate() + 21); // Add 21 days
     
+    // Get user security clause for duplicate checking
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     //check if the customer name already exists
     if (req.body.fullName) {
-      const existingCustomer = await db.query("SELECT * FROM customers WHERE LOWER(full_name) = LOWER($1)", [req.body.fullName]);
+      const existingCustomer = await db.query(`SELECT * FROM customers c WHERE LOWER(c.full_name) = LOWER($1) AND (${processedSecurityClause})`, [req.body.fullName]);
       if (existingCustomer.rows.length > 0) {
         console.log("n81         Customer already exists: ", req.body.fullName);
         res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
@@ -1100,7 +1128,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if email already exists
     if (req.body.primaryEmail) {
-      const existingEmail = await db.query("SELECT * FROM customers WHERE primary_email = $1", [req.body.primaryEmail]);
+      const existingEmail = await db.query(`SELECT * FROM customers c WHERE c.primary_email = $1 AND (${processedSecurityClause})`, [req.body.primaryEmail]);
       if (existingEmail.rows.length > 0) {
         console.log("n82         Email already exists: ", req.body.primaryEmail);
         res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
@@ -1109,7 +1137,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if phone number already exists
     if (req.body.primaryPhone) {
-      const existingPhone = await db.query("SELECT * FROM customers WHERE primary_phone = $1", [req.body.primaryPhone]);
+      const existingPhone = await db.query(`SELECT * FROM customers c WHERE c.primary_phone = $1 AND (${processedSecurityClause})`, [req.body.primaryPhone]);
       if (existingPhone.rows.length > 0) {
         console.log("n83         Phone number already exists: ", req.body.primaryPhone);
         res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
@@ -1118,7 +1146,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if address already exists
     if (req.body.homeAddress) {
-      const existingAddress = await db.query("SELECT * FROM customers WHERE home_address = $1", [req.body.homeAddress]);
+      const existingAddress = await db.query(`SELECT * FROM customers c WHERE c.home_address = $1 AND (${processedSecurityClause})`, [req.body.homeAddress]);
       if (existingAddress.rows.length > 0) {
         console.log("n84         Address already exists: ", req.body.homeAddress);
         res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
@@ -1127,7 +1155,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if other contact already exists
     if (req.body.contactOther) {
-      const existingContact = await db.query("SELECT * FROM customers WHERE contact_other = $1", [req.body.contactOther]);
+      const existingContact = await db.query(`SELECT * FROM customers c WHERE c.contact_other = $1 AND (${processedSecurityClause})`, [req.body.contactOther]);
       if (existingContact.rows.length > 0) {
         console.log("n85         Other contact already exists: ", req.body.contactOther);
         res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
@@ -1170,8 +1198,20 @@ app.post("/updateCustomer/:id", async (req, res) => {
   if (req.isAuthenticated()) {
     const action = req.body.action;     // did the user click delete, update, view, or
     const userID = parseInt(req.params.id);
+    
+    // Get user security clause for customer access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     switch (action) {
       case "update":
+            // Check access before updating
+            const updateAccessCheck = await db.query(`SELECT 1 FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [userID]);
+            if (updateAccessCheck.rows.length === 0) {
+              console.log("Access denied for customer update: ", userID);
+              return res.redirect("/login");
+            }
+            
             // Use parameterized query to prevent SQL injection and handle special characters
             const updateSQL = `
               UPDATE customers SET     
@@ -1245,6 +1285,13 @@ app.post("/updateCustomer/:id", async (req, res) => {
             res.redirect("/customer/" + userID);
             break;
       case "delete":
+            // Check access before deleting
+            const deleteAccessCheck = await db.query(`SELECT 1 FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [userID]);
+            if (deleteAccessCheck.rows.length === 0) {
+              console.log("Access denied for customer deletion: ", userID);
+              return res.redirect("/login");
+            }
+            
             try {
               const result = await db.query("DELETE FROM customers WHERE id=" + userID + " RETURNING 1" );
               const result2 = await db.query("DELETE FROM builds WHERE customer_id =" + userID + " RETURNING 1" );
@@ -1285,8 +1332,23 @@ try {
     const buildID = req.body.buildId;
     const status = req.body.status;    //string 'true' or 'false'
 
-    // Fetch the current status of the build from the database
-    const result = await db.query("SELECT current_status FROM builds WHERE id = $1", [buildID]);
+    // Get user security clause for build access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+
+    // Fetch the current status of the build from the database with access control
+    const result = await db.query(`
+        SELECT b.current_status 
+        FROM builds b 
+        JOIN customers c ON b.customer_id = c.id 
+        WHERE b.id = $1 AND (${processedSecurityClause})
+    `, [buildID]);
+    
+    if (result.rows.length === 0) {
+        console.log("tc2   Access denied or build not found: ", buildID);
+        return res.status(403).json({ error: "Access denied or build not found" });
+    }
+    
     const currentStatus = result.rows[0].current_status;
 
     // Update logic based on currentStatus and status values
@@ -1336,11 +1398,18 @@ app.post("/addBuild", async (req, res) => {
       let custAddress;
       console.log("e1       USER("+req.user.id+") is adding a workflow to build() for cust(" + custID + ")", req.body);
 
-      const cust = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      // Get user security clause for customer access control
+      const userSecurityClause = await getUserSecurityClause(req.user.id);
+      const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+
+      const cust = await db.query(`SELECT * FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [custID]);
       if (cust.rows.length === 0) {
-        custAddress = cust.rows[0].home_address ;
-        console.log("e12       customer address: ", custAddress);
+        console.log("e12a      Access denied or customer not found: ", custID);
+        return res.redirect("/login");
       }
+      
+      custAddress = cust.rows[0].home_address;
+      console.log("e12       customer address: ", custAddress);
 
       const result = await db.query("INSERT INTO builds (customer_id, product_id, enquiry_date, site_address) VALUES ($1, $2, $3::timestamp, $4) RETURNING *", [req.body.customer_id, req.body.product_id, req.body.enquiry_date, custAddress]);
       const newBuild = result.rows[0];    
@@ -1370,6 +1439,10 @@ app.post("/updateBuild/:id", async (req, res) => {
   console.log("f2       action: ", action);
   if (req.isAuthenticated()) {
     
+    // Get user security clause for build access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     switch (action) {
       case "update":
         // console.log(action);
@@ -1394,6 +1467,12 @@ app.post("/updateBuild/:id", async (req, res) => {
         break;
       case "delete":
         try {
+          // Check access before deleting
+          const accessCheck = await db.query(`SELECT 1 FROM builds b JOIN customers c ON b.customer_id = c.id WHERE b.id = $1 AND (${processedSecurityClause})`, [buildID]);
+          if (accessCheck.rows.length === 0) {
+            console.log("f3a       Access denied for build deletion: ", buildID);
+            return res.redirect("/login");
+          }
           const result = await db.query("DELETE FROM builds WHERE id=" + buildID + " RETURNING 1" );
         } catch (err) {
           console.error(err);
@@ -1403,7 +1482,12 @@ app.post("/updateBuild/:id", async (req, res) => {
         res.redirect("/customer/" + req.body.customer_id);
         break;
       case "view":
-        const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
+        // Check access before retrieving job_id
+        const accessResult = await db.query(`SELECT b.job_id FROM builds b JOIN customers c ON b.customer_id = c.id WHERE b.id = $1 AND (${processedSecurityClause})`, [buildID]);
+        if (accessResult.rows.length === 0) {
+          console.log("f7a       Access denied for build view: ", buildID);
+          return res.redirect("/login");
+        }
         // console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
         // res.redirect("/jobs/" + result.rows[0].job_id);
         res.redirect("/2/build/" + buildID);
