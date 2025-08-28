@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Management</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        h1 { 
+            color: #333; 
+            border-bottom: 2px solid #007bff; 
+            padding-bottom: 10px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        th { 
+            background-color: #f8f9fa; 
+            font-weight: bold; 
+        }
+        tr:hover { 
+            background-color: #f5f5f5; 
+        }
+        .btn { 
+            padding: 6px 12px; 
+            text-decoration: none; 
+            border-radius: 4px; 
+            font-size: 14px; 
+        }
+        .btn-primary { 
+            background-color: #007bff; 
+            color: white; 
+        }
+        .btn-secondary { 
+            background-color: #6c757d; 
+            color: white; 
+        }
+        .btn:hover { 
+            opacity: 0.8; 
+        }
+        .security-code { 
+            font-family: monospace; 
+            background-color: #f8f9fa; 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+            font-size: 12px; 
+            max-width: 200px; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+        }
+        .nav { 
+            margin-bottom: 20px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="nav">
+            <a href="/" class="btn btn-secondary">← Home</a>
+        </div>
+        
+        <h1>User Management</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Email</th>
+                    <th>Full Name</th>
+                    <th>Display Name</th>
+                    <th>Access Type</th>
+                    <th>Data Security</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% users.forEach(function(editUser) { %>
+                <tr>
+                    <td><%= editUser.id %></td>
+                    <td><%= editUser.email %></td>
+                    <td><%= editUser.full_name || '-' %></td>
+                    <td><%= editUser.display_name || '-' %></td>
+                    <td><%= editUser.roles || '-' %></td>
+                    <td>
+                        <div class="security-code" title="<%= editUser.data_security || '-' %>">
+                            <%= editUser.data_security || '-' %>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="/admin/users/<%= editUser.id %>" class="btn btn-primary">Edit</a>
+                    </td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+        
+        <% if (users.length === 0) { %>
+            <p style="text-align: center; color: #666; margin-top: 40px;">No users found.</p>
+        <% } %>
+    </div>
+</body>
+</html>

@@ -59,6 +59,17 @@ const db = new pg.Client({
 db.connect();
 //#endregion
 
+// Helper function to get user's security clause
+async function getUserSecurityClause(userId) {
+  try {
+    const result = await db.query('SELECT data_security FROM users WHERE id = $1', [userId]);
+    return result.rows[0]?.data_security || '1=0'; // Default to no access
+  } catch (error) {
+    console.error('Error fetching user security clause:', error);
+    return '1=0'; // Default to no access on error
+  }
+}
+
 
 
 // Middleware to make session user available on req.user for convenience
@@ -1727,6 +1738,109 @@ app.get("/job-templates", async (req, res) => {
         baseURL: baseURL,
         user: req.user
       });
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+//#region admin user management
+
+app.get("/admin/users", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to manage users.</p>
+          <a href="/" style="color: #007bff; text-decoration: none;">← Return to Home</a>
+        </div>
+      `);
+    }
+    
+    try {
+      const result = await db.query(`
+        SELECT id, email, full_name, display_name, data_security, roles 
+        FROM users 
+        ORDER BY id
+      `);
+      
+      res.render("admin/users.ejs", {
+        users: result.rows,
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).send("Error loading user list");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/admin/users/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to edit users.</p>
+          <a href="/admin/users" style="color: #007bff; text-decoration: none;">← Return to User List</a>
+        </div>
+      `);
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const result = await db.query(`
+        SELECT id, email, full_name, display_name, data_security, roles 
+        FROM users 
+        WHERE id = $1
+      `, [userId]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).send("User not found");
+      }
+      
+      res.render("admin/editUser.ejs", {
+        editUser: result.rows[0],
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).send("Error loading user");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/admin/users/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send("Access denied");
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const { email, full_name, display_name, data_security, roles } = req.body;
+      
+      await db.query(`
+        UPDATE users 
+        SET email = $1, full_name = $2, display_name = $3, data_security = $4, roles = $5
+        WHERE id = $6
+      `, [email, full_name, display_name, data_security, roles, userId]);
+      
+      console.log(`Admin ${req.user.id} updated user ${userId}`);
+      res.redirect("/admin/users");
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).send("Error updating user");
     }
   } else {
     res.redirect("/login");

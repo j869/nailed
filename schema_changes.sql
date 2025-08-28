@@ -22,12 +22,6 @@ COMMENT ON COLUMN public.financials.category IS 'Transaction category (e.g., ini
 COMMENT ON COLUMN public.financials.created_at IS 'Timestamp when record was created';
 
 
-
-
--- =============================================================================
--- MIGRATION SCRIPT FOR EXISTING DATABASES - Simple ALTER TABLE approach
--- =============================================================================
-
 -- Add new job information columns
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS job_no character varying(50);
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS site_location character varying(511);
@@ -143,16 +137,10 @@ CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
 -- Add documentation
 COMMENT ON VIEW public.user_accessible_customers IS 'Simple security view mapping job user assignments to customer access - returns customer_id for each assigned user_id';
 
--- 1. Admin access (all customers): 
---    update users set data_security = '1=1' where id = ?
+-- add security on existing users
+UPDATE users SET data_security = 'c.id IN (SELECT customer_id FROM user_accessible_customers WHERE assigned_user_id = ' || id || ')';
+UPDATE users SET data_security = '1=1' WHERE id = 1;
 
--- 2. User sees only customers with jobs assigned to them:
---    update users set data_security = 'c.id IN (SELECT customer_id FROM user_accessible_customers WHERE assigned_user_id = $USER_ID)' where id = ?
 
--- 3. No access:
---    update users set data_security = '1=0' where id = ?
-
-UPDATE users SET data_security = 'c.id IN (SELECT customer_id FROM user_accessible_customers WHERE assigned_user_id = ' || id || ')' WHERE id = 1;
-UPDATE users SET data_security = '1=1' WHERE id = 2;
 
 
