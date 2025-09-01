@@ -15,45 +15,195 @@
     
 
                 <form class="item" method="post" action="/updateCustomer/<%= data.id %>">
-                    <div class="d-flex justify-content-between">
+                    <div class="d-flex justify-content-between mb-3">
                         <button class="update btn btn-primary" type="submit" name="action" value="update">Update Customer</button>
                         <button class="delete btn btn-danger" type="button" onclick="confirmDelete(<%= data.id %>)">Delete Customer</button>
                     </div>
-                    <div class="container" style="max-width: 600px;">
-                        <div class="mb-3">
-                            <!-- <label for="fullName" class="form-label">Full Name:</label> -->
-                            <input type="text" class="form-control" id="fullName" placeholder="Full name" name="fullName" value="<%= data.full_name %>">
+                    
+                    <div class="container" style="max-width: 800px;">
+                        <!-- Basic Information -->
+                        <h5 class="text-left mb-3">Basic Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" name="fullName" value="<%= data.full_name || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="jobNo" class="form-label">Job Number</label>
+                                <input type="text" class="form-control" id="jobNo" name="jobNo" value="<%= data.job_no || '' %>">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <!-- <label for="homeAddress" class="form-label">Build Address:</label> -->
-                            <input type="text" class="form-control" id="homeAddress" placeholder="Home address" name="homeAddress" value="<%= data.home_address %>">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="homeAddress" class="form-label">Home Address</label>
+                                <input type="text" class="form-control" id="homeAddress" name="homeAddress" value="<%= data.home_address || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="siteLocation" class="form-label">Site Location</label>
+                                <input type="text" class="form-control" id="siteLocation" name="siteLocation" value="<%= data.site_location || '' %>">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <!-- <label for="primaryPhone" class="form-label">Primary Phone:</label> -->
-                            <input type="text" class="form-control" id="primaryPhone" placeholder="Primary phone" name="primaryPhone" value="<%= data.primary_phone %>">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="primaryPhone" class="form-label">Primary Phone</label>
+                                <input type="text" class="form-control" id="primaryPhone" name="primaryPhone" value="<%= data.primary_phone || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="primaryEmail" class="form-label">Primary Email</label>
+                                <input type="email" class="form-control" id="primaryEmail" name="primaryEmail" value="<%= data.primary_email || '' %>">
+                            </div>
                         </div>
+                        
                         <div class="mb-3">
-                            <!-- <label for="primaryEmail" class="form-label">Primary Email:</label> -->
-                            <input type="text" class="form-control" id="primaryEmail" placeholder="Primary email" name="primaryEmail" value="<%= data.primary_email %>">
+                            <label for="contactOther" class="form-label">Additional Contact Info</label>
+                            <textarea class="form-control" id="contactOther" name="contactOther" rows="2"><%= data.contact_other || '' %></textarea>
                         </div>
+
+                        <!-- Job Information -->
+                        <h5 class="text-left mb-3 mt-4">Job Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="buildingType" class="form-label">Building Type</label>
+                                <input type="text" class="form-control" id="buildingType" name="buildingType" value="<%= data.building_type || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="slabSize" class="form-label">Slab Size</label>
+                                <input type="text" class="form-control" id="slabSize" name="slabSize" value="<%= data.slab_size || '' %>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="permitType" class="form-label">Permit Type</label>
+                                <input type="text" class="form-control" id="permitType" name="permitType" value="<%= data.permit_type || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="councilResponsible" class="form-label">Council Responsible</label>
+                                <input type="text" class="form-control" id="councilResponsible" name="councilResponsible" value="<%= data.council_responsible || '' %>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="workSource" class="form-label">Work Source</label>
+                                <select class="form-control" id="workSource" name="workSource">
+                                    <option value="">Select Source</option>
+                                    <option value="BPA" <%= data.work_source === 'BPA' ? 'selected' : '' %>>BPA (Self-sourced)</option>
+                                    <option value="E" <%= data.work_source === 'E' ? 'selected' : '' %>>Eureka Sheds</option>
+                                    <option value="Best Sheds" <%= data.work_source === 'Best Sheds' ? 'selected' : '' %>>Best Sheds</option>
+                                    <option value="Facebook" <%= data.work_source === 'Facebook' ? 'selected' : '' %>>Facebook Marketing</option>
+                                    <option value="Other" <%= data.work_source === 'Other' ? 'selected' : '' %>>Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input" type="checkbox" id="ownerBuilderPermit" name="ownerBuilderPermit" <%= data.owner_builder_permit ? 'checked' : '' %>>
+                                    <label class="form-check-label" for="ownerBuilderPermit">
+                                        Owner Builder Permit Required
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Information -->
+                        <h5 class="text-left mb-3 mt-4">Timeline</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dateOrdered" class="form-label">Date Ordered</label>
+                                <input type="date" class="form-control" id="dateOrdered" name="dateOrdered" 
+                                       value="<%= data.date_ordered ? new Date(data.date_ordered).toISOString().substring(0, 10) : '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dateBpApplied" class="form-label">BP Applied Date</label>
+                                <input type="date" class="form-control" id="dateBpApplied" name="dateBpApplied" 
+                                       value="<%= data.date_bp_applied ? new Date(data.date_bp_applied).toISOString().substring(0, 10) : '' %>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="dateBpIssued" class="form-label">BP Issued Date</label>
+                                <input type="date" class="form-control" id="dateBpIssued" name="dateBpIssued" 
+                                       value="<%= data.date_bp_issued ? new Date(data.date_bp_issued).toISOString().substring(0, 10) : '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dateCompleted" class="form-label">Date Completed</label>
+                                <input type="date" class="form-control" id="dateCompleted" name="dateCompleted" 
+                                       value="<%= data.date_completed ? new Date(data.date_completed).toISOString().substring(0, 10) : '' %>">
+                            </div>
+                        </div>
+
+                        <!-- Financial Information -->
+                        <h5 class="text-left mb-3 mt-4">Financial Information</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quotedEstimate" class="form-label">Quoted Estimate ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="quotedEstimate" name="quotedEstimate" 
+                                       value="<%= data.quoted_estimate || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="invoicesCollected" class="form-label">Invoices Collected ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="invoicesCollected" name="invoicesCollected" 
+                                       value="<%= data.invoices_collected || '' %>">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="feesPaidOut" class="form-label">Fees Paid Out ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="feesPaidOut" name="feesPaidOut" 
+                                       value="<%= data.fees_paid_out || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="jobEarnings" class="form-label">Job Earnings ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="jobEarnings" name="jobEarnings" 
+                                       value="<%= data.job_earnings || '' %>">
+                            </div>
+                        </div>
+
+                        <!-- Action Tracking -->
+                        <h5 class="text-left mb-3 mt-4">Action Tracking</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="currentStatus" class="form-label">Current Status</label>
+                                <input type="text" class="form-control" id="currentStatus" name="currentStatus" 
+                                       value="<%= data.current_status || '' %>">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="followUp" class="form-label">Follow Up Date</label>
+                                <% let followUp = ""; %>
+                                <% if (data.follow_up) { followUp = new Date(data.follow_up).toISOString().substring(0, 16); } %>
+                                <input type="datetime-local" class="form-control" id="followUp" name="followUp" value="<%= followUp %>">
+                            </div>
+                        </div>
+                        
                         <div class="mb-3">
-                            <!-- <label for="contactOther" class="form-label">Contact Other:</label> -->
-                            <input type="text" class="form-control" id="contactOther" placeholder="ID Number" name="contactOther" value="<%= data.contact_other %>">
+                            <label for="nextActionDescription" class="form-label">Next Action Description</label>
+                            <textarea class="form-control" id="nextActionDescription" name="nextActionDescription" rows="3"><%= data.next_action_description || '' %></textarea>
                         </div>
-                        <div class="mb-3" style="display:none;">
-                            <!-- <label for="currentStatus" class="form-label">Current Status:</label> -->
-                            <input type="text" class="form-control" id="currentStatus" placeholder="Workflow" name="currentStatus" value="<%= data.current_status %>" readonly>
+
+                        <!-- Last Payment Information (Read-only) -->
+                        <h5 class="text-left mb-3 mt-4">Last Payment Information</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="lastPaymentDate" class="form-label">Last Payment Date</label>
+                                <input type="date" class="form-control" id="lastPaymentDate" name="lastPaymentDate" readonly
+                                       value="<%= data.last_payment_date ? new Date(data.last_payment_date).toISOString().substring(0, 10) : '' %>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="lastPaymentAmount" class="form-label">Last Payment Amount ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="lastPaymentAmount" name="lastPaymentAmount" readonly
+                                       value="<%= data.last_payment_amount || '' %>">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="lastPaymentDescription" class="form-label">Last Payment Description</label>
+                                <input type="text" class="form-control" id="lastPaymentDescription" name="lastPaymentDescription" readonly
+                                       value="<%= data.last_payment_description || '' %>">
+                            </div>
                         </div>
                     </div>
-                    </div>
-                    <div style="display:none;" >
-                        <label for="followUp">Follow Up:</label>
-                        <% let followUp = ""; %>
-                        <% if (data.follow_up) {
-                            followUp = data.follow_up.toISOString().substring(0, 16);
-                        } %>
-                        <input type="datetime-local" id="followUp" name="followUp" value="<%= followUp %>">
-                    </div>            
                 </form>
 
 

@@ -1,0 +1,452 @@
+<%- include('partials/header') %>
+
+<div class="container mt-4">
+    <h2>Job Templates Management</h2>
+    
+    <!-- Filter and Product Rename -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <!-- Product Rename Section -->
+            <% if (locals.selectedProductId) { %>
+            <div class="mb-2">
+                <label for="productNameInput" class="form-label">Rename Selected Product:</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="productNameInput" 
+                           placeholder="Change product name" maxlength="255">
+                    <button class="btn btn-outline-primary" type="button" onclick="renameProduct()">
+                        Rename
+                    </button>
+                </div>
+            </div>
+            <% } %>
+        </div>
+        <div class="col-md-6">
+            <label for="productFilter" class="form-label">Filter by Workflow:</label>
+            <div class="input-group">
+                <select class="form-select" id="productFilter" onchange="filterByProduct()">
+                    <option value="">All Products</option>
+                    <% if (locals.products) { %>
+                        <% products.forEach(function(product) { %>
+                            <option value="<%= product.id %>" <%= locals.selectedProductId == product.id ? 'selected' : '' %>>
+                                <%= product.display_text %> (ID: <%= product.id %>)
+                            </option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Templates Table -->
+    <div class="row">
+        <div class="col">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Display Text</th>
+                        <th>User ID</th>
+                        <th>Role ID</th>
+                        <th>Product ID</th>
+                        <th>Sort Order</th>
+                        <th>Tier</th>
+                        <th>Free Text</th>
+                        <th>Antecedent Array</th>
+                        <th>Descendant Array</th>
+                        <th>Job Change Array</th>
+                        <th>Flow Change Array</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (locals.jobTemplates && jobTemplates.length > 0) { %>
+                        <% jobTemplates.forEach(function(template) { %>
+                            <tr>
+                                <td><%= template.id %></td>
+                                <td class="editable" contenteditable="true" id="display_text" data-record-id="<%= template.id %>"><%= template.display_text %></td>
+                                <td class="editable" contenteditable="true" id="user_id" data-record-id="<%= template.id %>"><%= template.user_id || '' %></td>
+                                <td class="editable" contenteditable="true" id="role_id" data-record-id="<%= template.id %>"><%= template.role_id || '' %></td>
+                                <td class="editable" contenteditable="true" id="product_id" data-record-id="<%= template.id %>"><%= template.product_id || '' %></td>
+                                <td class="editable" contenteditable="true" id="sort_order" data-record-id="<%= template.id %>"><%= template.sort_order || '' %></td>
+                                <td class="editable" contenteditable="true" id="tier" data-record-id="<%= template.id %>"><%= template.tier || '' %></td>
+                                <td class="editable" contenteditable="true" id="free_text" data-record-id="<%= template.id %>"><%= template.free_text || '' %></td>
+                                <td class="editable" contenteditable="true" id="antecedent_array" data-record-id="<%= template.id %>"><%= template.antecedent_array || '' %></td>
+                                <td class="editable" contenteditable="true" id="decendant_array" data-record-id="<%= template.id %>"><%= template.decendant_array || '' %></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info" onclick="editJsonField(<%= template.id %>, 'job_change_array')">
+                                        <% 
+                                        const jobChangeValue = template.job_change_array || '';
+                                        const displayText = jobChangeValue.trim() ? 
+                                            (jobChangeValue.length > 20 ? jobChangeValue.substring(0, 20) + '...' : jobChangeValue) : 
+                                            'null';
+                                        %>
+                                        <%= displayText %>
+                                    </button>
+                                </td>
+                                <td class="editable" contenteditable="true" id="flow_change_array" data-record-id="<%= template.id %>"><%= template.flow_change_array || '' %></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate(<%= template.id %>)">Delete</button>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="13" class="text-center">No job templates found</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add New Job Template Section -->
+    <div class="row mt-3">
+        <div class="col">
+            <button class="btn btn-success" id="addNewTemplateBtn" onclick="addNewJobTemplate()" 
+                    <%= !locals.selectedProductId ? 'disabled' : '' %>>
+                + Add Job to this template
+            </button>
+            <% if (!locals.selectedProductId) { %>
+                <small class="text-muted ms-2">Select a product above to enable adding new templates</small>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Editor Modal -->
+<div class="modal fade" id="jsonEditorModal" tabindex="-1" aria-labelledby="jsonEditorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jsonEditorModalLabel">Edit JSON Field</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="jsonContent" class="form-label">JSON Content:</label>
+                    <textarea class="form-control" id="jsonContent" rows="10"></textarea>
+                </div>
+                <div class="mb-3">
+                    <input type="hidden" id="jsonRecordId">
+                    <input type="hidden" id="jsonFieldName">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveJsonField()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Get API URL (index.js server)
+const baseUrl = "<%= baseURL %>";
+const apiUrl = baseUrl ? baseUrl.replace("3000", "4000") : "http://localhost:4000";
+console.log('Base URL:', baseUrl);
+console.log('API URL:', apiUrl);
+
+// Filter table by product ID - triggers page refresh
+function filterByProduct() {
+    const filterValue = document.getElementById('productFilter').value;
+    const currentUrl = new URL(window.location);
+    
+    if (filterValue === '') {
+        // Remove product_id parameter
+        currentUrl.searchParams.delete('product_id');
+    } else {
+        // Set product_id parameter
+        currentUrl.searchParams.set('product_id', filterValue);
+    }
+    
+    // Refresh the page with new parameters
+    window.location.href = currentUrl.toString();
+}
+
+// Update button state based on product filter
+function updateAddButtonState() {
+    const productFilter = document.getElementById('productFilter');
+    const addButton = document.getElementById('addNewTemplateBtn');
+    
+    if (productFilter.value === '') {
+        addButton.disabled = true;
+        addButton.title = 'Select a product to enable adding new templates';
+    } else {
+        addButton.disabled = false;
+        addButton.title = '';
+    }
+}
+
+// Rename product directly without modal
+async function renameProduct() {
+    const productFilter = document.getElementById('productFilter');
+    const selectedProductId = productFilter.value;
+    const productNameInput = document.getElementById('productNameInput');
+    const newDisplayText = productNameInput.value.trim();
+    
+    if (!selectedProductId) {
+        alert('Please select a product first.');
+        return;
+    }
+    
+    if (!newDisplayText) {
+        alert('Product name cannot be empty.');
+        return;
+    }
+    
+    try {
+        console.log('Updating product:', selectedProductId, 'with name:', newDisplayText);
+        const fullApiUrl = `${apiUrl}/api/products/${selectedProductId}`;
+        
+        const response = await fetch(fullApiUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                display_text: newDisplayText,
+                user_id: 1 // Default user ID, could be made dynamic based on session
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const updatedProduct = await response.json();
+        console.log('Product updated successfully:', updatedProduct);
+        
+        // Clear the input field
+        productNameInput.value = '';
+        
+        // Refresh the page to show updated product name in dropdown
+        window.location.reload();
+        
+    } catch (error) {
+        console.error('Error updating product:', error);
+        alert(`Error updating product: ${error.message}`);
+    }
+}
+
+// Add new job template with placeholder values
+async function addNewJobTemplate() {
+    console.log('Adding new job template with placeholder values');
+    
+    // Get the selected product ID from the filter
+    const productFilter = document.getElementById('productFilter');
+    const selectedProductId = productFilter.value;
+    
+    // Don't allow creation if no product is selected
+    if (!selectedProductId) {
+        alert('Please select a product before adding a new job template.');
+        return;
+    }
+    
+    try {
+        const fullApiUrl = `${apiUrl}/api/job-templates`;
+        console.log('Attempting to create new template at URL:', fullApiUrl);
+        console.log('Using product ID:', selectedProductId);
+        
+        // Create a new template with placeholder values, using the filtered product ID
+        const newTemplate = {
+            display_text: 'New Job Template',
+            user_id: 1,
+            role_id: 1,
+            product_id: parseInt(selectedProductId),
+            sort_order: '999',
+            tier: 500,
+            free_text: '',
+            antecedent_array: '',
+            decendant_array: '',
+            job_change_array: '',
+            flow_change_array: ''
+        };
+        
+        const response = await fetch(fullApiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(newTemplate)
+        });
+        
+        console.log('Create response status:', response.status);
+        console.log('Create response ok:', response.ok);
+        
+        if (response.ok) {
+            console.log('New template created successfully');
+            // Reload the page to show the new record
+            window.location.reload();
+        } else {
+            const error = await response.text();
+            console.error('Create error response:', error);
+            alert('Error creating new template: ' + error);
+        }
+    } catch (error) {
+        console.error('Error creating new template:', error);
+        alert('Error creating new template: ' + error.message);
+    }
+}
+
+// Edit JSON field in modal
+async function editJsonField(recordId, fieldName) {
+    console.log('editJsonField called with:', { recordId, fieldName });
+    console.log('recordId type:', typeof recordId);
+    console.log('fieldName type:', typeof fieldName);
+    
+    try {
+        // Fetch the current data from index.js server
+        const fullApiUrl = `${apiUrl}/api/job-templates/${recordId}`;
+        console.log('Attempting to fetch from URL:', fullApiUrl);
+        
+        const response = await fetch(fullApiUrl);
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            console.error('Response not ok. Status:', response.status, 'StatusText:', response.statusText);
+            const errorText = await response.text();
+            console.error('Error response body:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const template = await response.json();
+        console.log('Template data received:', template);
+        console.log('Field value for', fieldName, ':', template[fieldName]);
+        
+        // Populate modal
+        document.getElementById('jsonRecordId').value = recordId;
+        document.getElementById('jsonFieldName').value = fieldName;
+        
+        // Format JSON for better readability
+        let formattedContent = template[fieldName] || '';
+        if (formattedContent && formattedContent.trim()) {
+            try {
+                // Try to parse and format as JSON
+                const parsed = JSON.parse(formattedContent);
+                formattedContent = JSON.stringify(parsed, null, 2);
+                console.log('JSON formatted successfully');
+            } catch (e) {
+                // If it's not valid JSON, just use the original content
+                console.log('Content is not valid JSON, using as-is:', e.message);
+            }
+        }
+        
+        document.getElementById('jsonContent').value = formattedContent;
+        
+        console.log('Modal fields populated');
+        
+        // Show modal
+        const modalElement = document.getElementById('jsonEditorModal');
+        console.log('Modal element found:', modalElement);
+        
+        const modal = new bootstrap.Modal(modalElement);
+        console.log('Bootstrap modal created');
+        
+        modal.show();
+        console.log('Modal shown');
+        
+    } catch (error) {
+        console.error('Full error object:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        alert(`Error loading template data: ${error.message}`);
+    }
+}
+
+// Save JSON field
+async function saveJsonField() {
+    const recordId = document.getElementById('jsonRecordId').value;
+    const fieldName = document.getElementById('jsonFieldName').value;
+    const newValue = document.getElementById('jsonContent').value;
+    
+    try {
+        const response = await fetch(`/update?fieldID=${fieldName}&newValue=${encodeURIComponent(newValue)}&whereID=${recordId}`);
+        
+        if (response.ok) {
+            console.log('JSON field updated successfully.');
+            // Hide modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('jsonEditorModal'));
+            modal.hide();
+            // Optionally reload the page to show updated data
+            // window.location.reload();
+        } else {
+            throw new Error('Failed to update JSON field.');
+        }
+    } catch (error) {
+        console.error('Error updating JSON field:', error);
+        alert('Error updating JSON field');
+    }
+}
+
+// Delete template
+async function deleteTemplate(id) {
+    console.log('deleteTemplate called with id:', id);
+    
+    if (!confirm('Are you sure you want to delete this job template?')) {
+        return;
+    }
+    
+    try {
+        const fullApiUrl = `${apiUrl}/api/job-templates/${id}`;
+        console.log('Attempting to delete from URL:', fullApiUrl);
+        
+        const response = await fetch(fullApiUrl, {
+            method: 'DELETE'
+        });
+        
+        console.log('Delete response status:', response.status);
+        console.log('Delete response ok:', response.ok);
+        
+        if (response.ok) {
+            console.log('Template deleted successfully');
+            window.location.reload();
+        } else {
+            const error = await response.text();
+            console.error('Delete error response:', error);
+            alert('Error deleting template: ' + error);
+        }
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        alert('Error deleting template: ' + error.message);
+    }
+}
+
+// Inline editing functionality - same pattern as other forms
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize button state based on current filter
+    updateAddButtonState();
+    
+    const editableElements = document.querySelectorAll('.editable');
+    editableElements.forEach(function(element) {
+        element.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+            event.target.contentEditable = true;
+            event.target.focus();
+        });
+        element.addEventListener('blur', function(event) {
+            const newValue = event.target.textContent;
+            const fieldID = event.target.id;
+            const recordID = event.target.getAttribute('data-record-id');
+            
+            console.log('Updating job template:', fieldID, newValue, recordID);
+            
+            fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Job template updated successfully.');
+                    } else {
+                        throw new Error('Failed to update job template.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+    });
+});
+</script>
+
+<%- include('partials/footer') %>

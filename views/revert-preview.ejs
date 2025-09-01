@@ -1,0 +1,128 @@
+<%- include('partials/header') %>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-file-code"></i> Revert Script Preview</h2>
+        <div>
+          <a href="/admin/customers/import/reverts" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to List
+          </a>
+          <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#executeModal">
+            <i class="fas fa-undo"></i> Execute Revert
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Script: <code><%= filename %></code></h5>
+          <span class="badge bg-info">
+            <%= (content.length / 1024).toFixed(1) %> KB
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <pre class="bg-dark text-light p-3 mb-0" style="max-height: 600px; overflow-y: auto;"><code><%= content %></code></pre>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <div class="alert alert-danger">
+          <h6><i class="fas fa-exclamation-triangle"></i> Warning:</h6>
+          <p class="mb-0">
+            Executing this revert script will <strong>permanently undo</strong> all changes made during the corresponding import operation. 
+            This action cannot be undone. Please review the script carefully before proceeding.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Execute Confirmation Modal -->
+<div class="modal fade" id="executeModal" tabindex="-1" aria-labelledby="executeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="executeModalLabel">
+          <i class="fas fa-exclamation-triangle"></i> Confirm Revert Execution
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>You are about to execute:</strong></p>
+        <p><code><%= filename %></code></p>
+        <p>This will:</p>
+        <ul>
+          <li>Delete any customers that were created during the import</li>
+          <li>Restore any customers that were updated to their previous state</li>
+          <li>Remove any associated workflows and builds that were created</li>
+          <li>Archive this revert script (it cannot be executed again)</li>
+        </ul>
+        <div class="alert alert-warning">
+          <strong>Warning:</strong> This action is irreversible. Make sure you have reviewed the script above.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmExecute">
+          <i class="fas fa-undo"></i> Execute Revert
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('confirmExecute').addEventListener('click', async function() {
+  const button = this;
+  const modal = bootstrap.Modal.getInstance(document.getElementById('executeModal'));
+  
+  // Disable button and show loading
+  button.disabled = true;
+  button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Executing...';
+  
+  try {
+    const response = await fetch('/admin/customers/import/revert/<%= filename %>/execute', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Success - redirect to list with success message
+      window.location.href = '/admin/customers/import/reverts?success=' + encodeURIComponent(result.message);
+    } else {
+      // Error
+      alert('Error: ' + result.error);
+      button.disabled = false;
+      button.innerHTML = '<i class="fas fa-undo"></i> Execute Revert';
+    }
+  } catch (error) {
+    alert('Error executing revert: ' + error.message);
+    button.disabled = false;
+    button.innerHTML = '<i class="fas fa-undo"></i> Execute Revert';
+  }
+  
+  modal.hide();
+});
+
+// Show success message if present in URL
+const urlParams = new URLSearchParams(window.location.search);
+const successMessage = urlParams.get('success');
+if (successMessage) {
+  const alertDiv = document.createElement('div');
+  alertDiv.className = 'alert alert-success alert-dismissible fade show';
+  alertDiv.innerHTML = `
+    <i class="fas fa-check-circle"></i> ${successMessage}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  document.querySelector('.container-fluid .row .col-12').insertBefore(alertDiv, document.querySelector('h2').parentElement);
+}
+</script>
+
+<%- include('partials/footer') %>

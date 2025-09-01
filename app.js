@@ -1,5 +1,7 @@
 //#region imports
 import express from "express";
+import multer from "multer";
+import ExcelJS from "exceljs";
 import bodyParser from "body-parser";
 import axios from "axios";
 import pg from "pg";
@@ -11,16 +13,54 @@ import env from "dotenv";
 import { main }  from './trigger2.js';
 import moment from 'moment';
 import e from "express";
+import fs from "fs";
+import path from "path";
 
 
 
 const app = express();
+// Set view engine
+app.set("view engine", "ejs");
+app.set("views", "./views");
+
+// Multer setup for file upload (max 10MB)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    console.log(`File upload attempt: ${file.originalname} with MIME type: ${file.mimetype}`);
+    
+    const allowedMimeTypes = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+      "application/vnd.ms-excel", // .xls
+      "application/vnd.ms-excel.sheet.macroEnabled.12", // .xlsm (standard)
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsm (sometimes reported as this)
+      "application/octet-stream" // Fallback for some systems
+    ];
+    
+    const allowedExtensions = ['.xlsx', '.xls', '.xlsm'];
+    const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
+    
+    if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
+      cb(null, true);
+    } else {
+      console.log(`File rejected: ${file.originalname} (MIME: ${file.mimetype}, Extension: ${fileExtension})`);
+      cb(new Error(`Only .xlsx, .xls, and .xlsm files are allowed. Received: ${file.mimetype} for file: ${file.originalname}`));
+    }
+  }
+});
 const port = 3000;
 let baseURL = "";
 const saltRounds = 10;
 
 env.config();
 const API_URL = process.env.API_URL     //"http://localhost:4000";
+
+// Ensure logs directory exists
+const logsDir = path.join(process.cwd(), 'logs', 'customer_imports');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // Serve static files first (no session processing needed)
 app.use(express.static("public"));
@@ -58,6 +98,593 @@ const db = new pg.Client({
 });
 db.connect();
 //#endregion
+// MVP: Customer Import Page (GET)
+app.get("/admin/customers/import", (req, res) => {
+  const sessionId = req.sessionID?.substring(0, 8) || 'unknown';
+  const userId = req.user?.id || 'unknown';
+  console.log(`ci1     [${sessionId}] USER(${userId}) navigated to Customer Import page`);
+  
+  if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+    console.log(`ci2     [${sessionId}] Access denied - USER(${userId}) does not have sysadmin role`);
+    return res.status(403).send("Access denied");
+  }
+  
+  console.log(`ci3     [${sessionId}] Rendering customer import page for USER(${userId})`);
+  res.render("customer-import");
+});
+
+// MVP: Customer Excel Import Route (POST)
+app.post("/admin/customers/import", upload.single("customerFile"), async (req, res) => {
+  const sessionId = req.sessionID?.substring(0, 8) || 'unknown';
+  const userId = req.user?.id || 'unknown';
+  const importId = Date.now().toString().slice(-6); // Last 6 digits of timestamp as import ID
+  
+  console.log(`ci10    [${sessionId}][${importId}] USER(${userId}) started Excel import`);
+  
+  if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+    console.log(`ci11    [${sessionId}][${importId}] Access denied - USER(${userId}) does not have sysadmin role`);
+    return res.status(403).json({ error: "Access denied" });
+  }
+  
+  if (!req.file) {
+    console.log(`ci12    [${sessionId}][${importId}] No file uploaded by USER(${userId})`);
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  
+  console.log(`ci13    [${sessionId}][${importId}] Processing file: ${req.file.originalname} (${req.file.size} bytes) for USER(${userId})`);
+  
+  let errors = [];
+  let imported = 0;
+  let updated = 0;
+  let sheetsProcessed = 0;
+  const options = {
+    createBuilds: req.body.createBuilds === 'on',
+    startWorkflows: req.body.startWorkflows === 'on',
+    duplicateAction: req.body.duplicateAction || 'update'
+  };
+  
+  // Create revert script
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const revertFileName = `import_${timestamp}_${userId}.sql`;
+  const revertFilePath = path.join(logsDir, revertFileName);
+  let revertScript = [];
+  let createdBuilds = [];
+  let createdWorkflows = [];
+  
+  // Add header to revert script
+  revertScript.push(`-- Customer Import Revert Script`);
+  revertScript.push(`-- Import Date: ${new Date().toISOString()}`);
+  revertScript.push(`-- User ID: ${userId}`);
+  revertScript.push(`-- Original File: ${req.file.originalname}`);
+  revertScript.push(`-- Import ID: ${importId}`);
+  revertScript.push(`-- WARNING: Execute this script to undo ALL changes from this import`);
+  revertScript.push(`\\echo 'Starting revert of import ${importId}'`);
+  revertScript.push(`BEGIN;`);
+  revertScript.push(``);
+  
+  // Helper function to escape SQL values
+  function escapeSQLValue(value) {
+    if (value === null || value === undefined) return 'NULL';
+    if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+    if (typeof value === 'number') return value.toString();
+    if (value instanceof Date) return `'${value.toISOString().split('T')[0]}'`;
+    // String values - escape single quotes
+    return `'${value.toString().replace(/'/g, "''")}'`;
+  }
+  
+  // Helper function to create build with workflow
+  async function createBuildWithWorkflow(customerId, productId, customerAddress, userId, sessionId, importId) {
+    try {
+      console.log(`ci25a   [${sessionId}][${importId}] Creating build for customer ${customerId} with product ${productId}`);
+      
+      // Create the build
+      const result = await db.query(
+        "INSERT INTO builds (customer_id, product_id, enquiry_date, site_address) VALUES ($1, $2, NOW(), $3) RETURNING *", 
+        [customerId, productId, customerAddress]
+      );
+      const newBuild = result.rows[0];    
+      const buildID = newBuild.id;
+      
+      console.log(`ci25b   [${sessionId}][${importId}] Created build ${buildID}, starting workflow...`);
+      
+      // Start workflow by calling the API
+      const response = await axios.get(`${API_URL}/addjob?precedence=origin&id=${buildID}`);
+      
+      // Update build with job_id and assign to user
+      await db.query("UPDATE builds SET job_id = $1 WHERE id = $2", [response.data.id, buildID]);
+      await db.query("UPDATE jobs SET user_id = $1 WHERE build_id = $2", [userId, buildID]);
+      
+      console.log(`ci25c   [${sessionId}][${importId}] Workflow started for build ${buildID} with job ${response.data.id}`);
+      
+      return { buildId: buildID, jobId: response.data.id };
+    } catch (error) {
+      console.log(`ci25d   [${sessionId}][${importId}] Error creating build/workflow: ${error.message}`);
+      throw error;
+    }
+  }
+  
+  // Helper function to parse Excel dates
+  function parseExcelDate(value) {
+    if (!value) return null;
+    if (value instanceof Date) return value.toISOString().split('T')[0];
+    if (typeof value === 'number') {
+      // Excel serial date
+      const date = new Date((value - 25569) * 86400 * 1000);
+      return date.toISOString().split('T')[0];
+    }
+    if (typeof value === 'string') {
+      // Try to parse various date formats
+      const formats = [
+        /(\d{1,2})\.(\d{1,2})\.(\d{4})/,  // 07.10.2024
+        /(\d{1,2})\/(\d{1,2})\/(\d{4})/,  // 7/14/2022
+        /(\d{1,2})-(\w{3})/               // 15-Jul
+      ];
+      
+      for (const format of formats) {
+        const match = value.match(format);
+        if (match) {
+          if (format.source.includes('\\w')) {
+            // Month name format
+            const day = match[1];
+            const month = match[2];
+            const year = new Date().getFullYear(); // Current year for month-only dates
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthNum = monthNames.indexOf(month) + 1;
+            if (monthNum > 0) {
+              return `${year}-${monthNum.toString().padStart(2, '0')}-${day.padStart(2, '0')}`;
+            }
+          } else {
+            const day = match[1];
+            const month = match[2];
+            const year = match[3];
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          }
+        }
+      }
+    }
+    return null;
+  }
+  
+  // Helper function to parse currency
+  function parseCurrency(value) {
+    if (!value || value === '#VALUE!') return null;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      const cleaned = value.replace(/[$,]/g, '');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? null : num;
+    }
+    return null;
+  }
+  
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    console.log(`ci14    [${sessionId}][${importId}] Excel file loaded successfully, found ${workbook.worksheets.length} sheets`);
+    
+    for (const worksheet of workbook.worksheets) {
+      const sheetName = worksheet.name;
+      console.log(`ci15    [${sessionId}][${importId}] Checking sheet: "${sheetName}"`);
+      
+      if (!/current|completed/i.test(sheetName)) {
+        console.log(`ci16    [${sessionId}][${importId}] Skipping sheet "${sheetName}" (not current/completed)`);
+        continue;
+      }
+      
+      sheetsProcessed++;
+      console.log(`ci17    [${sessionId}][${importId}] Processing sheet "${sheetName}"`);
+      
+      const rows = [];
+      let headers = {};
+      
+      // Get headers from row 2 (for Permit Register format)
+      const headerRow = worksheet.getRow(2);
+      headerRow.eachCell((cell, colNumber) => {
+        let value = cell.value;
+        // Handle formula cells
+        if (cell.formula) {
+          value = cell.result || cell.text || value;
+        } else if (cell.text) {
+          value = cell.text;
+        }
+        headers[colNumber] = value;
+      });
+      
+      // Process data rows starting from row 9 (where actual data begins in Permit Register)
+      for (let rowNumber = 9; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
+        
+        // Check if row has actual meaningful data (not empty or formula-only)
+        let hasRealData = false;
+        let hasCustomerName = false;
+        let hasPhoneNumber = false;
+        const rowData = {};
+        
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          let value = cell.value;
+          
+          // Handle formula cells
+          if (cell.formula) {
+            value = cell.result || cell.text;
+          } else if (cell.text) {
+            value = cell.text;
+          }
+          
+          // Skip null, undefined, empty strings, and formula placeholders
+          if (value === null || value === undefined || value === '' || String(value).startsWith('FORMULA:')) {
+            value = '';
+          } else {
+            // Convert to string and trim whitespace
+            value = String(value).trim();
+            if (value !== '') {
+              hasRealData = true;
+              
+              // Check for essential fields based on header
+              const header = headers[colNumber];
+              if (header === 'Customer Name' && value) {
+                hasCustomerName = true;
+              }
+              if (header === 'Phone #' && value) {
+                hasPhoneNumber = true;
+              }
+            }
+          }
+          
+          const header = headers[colNumber];
+          if (header) {
+            rowData[header] = value;
+          }
+        });
+        
+        // Concatenate columns A and B for Job Number
+        const colA = row.getCell(1).value;
+        const colB = row.getCell(2).value;
+        if (colA || colB) {
+          const jobNo = `${colA || ''}${colB || ''}`.trim();
+          if (jobNo) {
+            rowData["Job No"] = jobNo;
+            hasRealData = true;
+          }
+        }
+        
+        // Only process rows that have meaningful data and at least Customer Name or Phone #
+        // This filters out completely empty rows and rows with only formatting/formulas
+        if (hasRealData && (hasCustomerName || hasPhoneNumber)) {
+          rows.push({ data: rowData, rowNumber });
+        }
+      }
+      
+      console.log(`ci18    [${sessionId}][${importId}] Found ${rows.length} data rows in sheet "${sheetName}"`);
+      
+      for (const { data: row, rowNumber } of rows) {
+        try {
+          // Map Excel columns to database fields
+          const customer = {
+            full_name: row["Customer Name"] || "",
+            primary_phone: row["Phone #"] || "",
+            home_address: row["Address"] || row["Site Location"] || "",
+            job_no: row["Job No"] || "",
+            site_location: row["Site Location"] || "",
+            building_type: row["Building Type"] || "",
+            permit_type: row["Type of permit req"] || "",
+            slab_size: row["Size"] || "",
+            council_responsible: row["Council (planning)"] || "",
+            owner_builder_permit: (row["OB?"] === "Y" || row["OB?"] === "Yes"),
+            current_status: /completed/i.test(sheetName) ? "Complete" : (row["Current Status"] || ""),
+            date_ordered: parseExcelDate(row["Order Date"]),
+            date_bp_applied: parseExcelDate(row["BP App date"]),
+            date_bp_issued: parseExcelDate(row["Date Building Permit Issued"]),
+            quoted_estimate: parseCurrency(row["Quoted Estimate"]),
+            fees_paid_out: parseCurrency(row["Fees paid Out"] || row["Fees paid out"]),
+            job_earnings: parseCurrency(row["Job Earnings"]),
+            next_action_description: row["Waiting on:"] || ""
+          };
+          
+          // Validate required fields
+          if (!customer.full_name || !customer.primary_phone) {
+            const errorMsg = `Row ${rowNumber} (${customer.full_name || 'Unknown'}): Missing required fields (Customer Name and Phone #)`;
+            console.log(`ci19    [${sessionId}][${importId}] Error - ${errorMsg}`);
+            errors.push(errorMsg);
+            continue;
+          }
+          
+          console.log(`ci20    [${sessionId}][${importId}] Processing customer: ${customer.full_name} (${customer.primary_phone})`);
+          
+          // Check for duplicates and get existing data
+          let existingCustomer = null;
+          try {
+            const duplicateCheck = await db.query(
+              "SELECT * FROM customers WHERE LOWER(full_name) = LOWER($1) OR primary_phone = $2 LIMIT 1",
+              [customer.full_name, customer.primary_phone]
+            );
+            existingCustomer = duplicateCheck.rows[0];
+          } catch (dbError) {
+            console.log(`ci21    [${sessionId}][${importId}] DB error checking duplicates: ${dbError.message}`);
+          }
+          
+          if (existingCustomer && options.duplicateAction === 'skip') {
+            console.log(`ci22    [${sessionId}][${importId}] Skipping duplicate: ${customer.full_name}`);
+            continue;
+          }
+          
+          // Insert or update customer with revert script generation
+          try {
+            if (existingCustomer && options.duplicateAction === 'update') {
+              // Generate revert UPDATE statement with original values
+              const revertUpdate = `UPDATE customers SET 
+                full_name = ${escapeSQLValue(existingCustomer.full_name)},
+                primary_phone = ${escapeSQLValue(existingCustomer.primary_phone)},
+                home_address = ${escapeSQLValue(existingCustomer.home_address)},
+                job_no = ${escapeSQLValue(existingCustomer.job_no)},
+                site_location = ${escapeSQLValue(existingCustomer.site_location)},
+                building_type = ${escapeSQLValue(existingCustomer.building_type)},
+                permit_type = ${escapeSQLValue(existingCustomer.permit_type)},
+                slab_size = ${escapeSQLValue(existingCustomer.slab_size)},
+                council_responsible = ${escapeSQLValue(existingCustomer.council_responsible)},
+                owner_builder_permit = ${escapeSQLValue(existingCustomer.owner_builder_permit)},
+                current_status = ${escapeSQLValue(existingCustomer.current_status)},
+                date_ordered = ${escapeSQLValue(existingCustomer.date_ordered)},
+                date_bp_applied = ${escapeSQLValue(existingCustomer.date_bp_applied)},
+                date_bp_issued = ${escapeSQLValue(existingCustomer.date_bp_issued)},
+                quoted_estimate = ${escapeSQLValue(existingCustomer.quoted_estimate)},
+                fees_paid_out = ${escapeSQLValue(existingCustomer.fees_paid_out)},
+                job_earnings = ${escapeSQLValue(existingCustomer.job_earnings)},
+                next_action_description = ${escapeSQLValue(existingCustomer.next_action_description)},
+                date_last_actioned = ${escapeSQLValue(existingCustomer.date_last_actioned)}
+              WHERE id = ${existingCustomer.id};`;
+              
+              revertScript.push(`-- Revert update for customer: ${customer.full_name}`);
+              revertScript.push(revertUpdate);
+              revertScript.push('');
+              
+              // Update existing customer
+              await db.query(`
+                UPDATE customers SET 
+                  full_name = $1, primary_phone = $2, home_address = $3, job_no = $4,
+                  site_location = $5, building_type = $6, permit_type = $7, slab_size = $8,
+                  council_responsible = $9, owner_builder_permit = $10, current_status = $11,
+                  date_ordered = $12, date_bp_applied = $13, date_bp_issued = $14,
+                  quoted_estimate = $15, fees_paid_out = $16, job_earnings = $17,
+                  next_action_description = $18, date_last_actioned = CURRENT_TIMESTAMP
+                WHERE id = $19
+              `, [
+                customer.full_name, customer.primary_phone, customer.home_address, customer.job_no,
+                customer.site_location, customer.building_type, customer.permit_type, customer.slab_size,
+                customer.council_responsible, customer.owner_builder_permit, customer.current_status,
+                customer.date_ordered, customer.date_bp_applied, customer.date_bp_issued,
+                customer.quoted_estimate, customer.fees_paid_out, customer.job_earnings,
+                customer.next_action_description, existingCustomer.id
+              ]);
+              console.log(`ci23    [${sessionId}][${importId}] Updated customer: ${customer.full_name}`);
+              updated++;
+            } else {
+              // Insert new customer
+              const result = await db.query(`
+                INSERT INTO customers (
+                  full_name, primary_phone, home_address, job_no, site_location, building_type,
+                  permit_type, slab_size, council_responsible, owner_builder_permit, current_status,
+                  date_ordered, date_bp_applied, date_bp_issued, quoted_estimate, fees_paid_out,
+                  job_earnings, next_action_description, follow_up
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_DATE + INTERVAL '21 days')
+                RETURNING id
+              `, [
+                customer.full_name, customer.primary_phone, customer.home_address, customer.job_no,
+                customer.site_location, customer.building_type, customer.permit_type, customer.slab_size,
+                customer.council_responsible, customer.owner_builder_permit, customer.current_status,
+                customer.date_ordered, customer.date_bp_applied, customer.date_bp_issued,
+                customer.quoted_estimate, customer.fees_paid_out, customer.job_earnings,
+                customer.next_action_description
+              ]);
+              
+              const newCustomerId = result.rows[0].id;
+              
+              // Generate revert DELETE statement
+              revertScript.push(`-- Revert insert for customer: ${customer.full_name}`);
+              revertScript.push(`DELETE FROM customers WHERE id = ${newCustomerId};`);
+              revertScript.push('');
+              
+              console.log(`ci24    [${sessionId}][${importId}] Inserted new customer: ${customer.full_name} (ID: ${newCustomerId})`);
+              
+              // Create build and workflow based on sheet type
+              let buildId = null;
+              let jobId = null;
+              if (options.startWorkflows) {
+                try {
+                  // Determine product ID based on sheet name
+                  const productId = /completed/i.test(sheetName) ? 6 : 5; // 6 for Archive - Completed Permits, 5 for Active Permits
+                  const productName = productId === 6 ? 'Archive - Completed Permits' : 'Active Permits';
+                  
+                  console.log(`ci25    [${sessionId}][${importId}] Creating ${productName} workflow for customer ${newCustomerId}`);
+                  
+                  const buildResult = await createBuildWithWorkflow(
+                    newCustomerId, 
+                    productId, 
+                    customer.home_address, 
+                    req.user.id, 
+                    sessionId, 
+                    importId
+                  );
+                  
+                  buildId = buildResult.buildId;
+                  jobId = buildResult.jobId;
+                  
+                  // Track for revert script
+                  createdBuilds.push(buildId);
+                  createdWorkflows.push(jobId);
+                  
+                  console.log(`ci26    [${sessionId}][${importId}] Created build ${buildId} with workflow ${jobId} for customer ${newCustomerId}`);
+                } catch (workflowError) {
+                  console.log(`ci27    [${sessionId}][${importId}] Warning: Failed to create workflow for customer ${newCustomerId}: ${workflowError.message}`);
+                  // Continue with import even if workflow creation fails
+                }
+              }
+              
+              imported++;
+            }
+          } catch (dbError) {
+            const errorMsg = `Row ${rowNumber} (${customer.full_name}): Database error - ${dbError.message}`;
+            console.log(`ci27    [${sessionId}][${importId}] DB Error - ${errorMsg}`);
+            errors.push(errorMsg);
+          }
+          
+        } catch (rowError) {
+          const errorMsg = `Row ${rowNumber}: Processing error - ${rowError.message}`;
+          console.log(`ci28    [${sessionId}][${importId}] Row Error - ${errorMsg}`);
+          errors.push(errorMsg);
+        }
+      }
+    }
+    
+    // Add workflow/build cleanup to revert script (in reverse order)
+    if (createdWorkflows.length > 0) {
+      revertScript.push(`-- Delete created workflows (${createdWorkflows.length})`);
+      createdWorkflows.forEach(workflowId => {
+        revertScript.push(`DELETE FROM jobs WHERE id = ${workflowId};`);
+      });
+      revertScript.push('');
+    }
+    
+    if (createdBuilds.length > 0) {
+      revertScript.push(`-- Delete created builds (${createdBuilds.length})`);
+      createdBuilds.forEach(buildId => {
+        revertScript.push(`DELETE FROM builds WHERE id = ${buildId};`);
+      });
+      revertScript.push('');
+    }
+    
+    // Finalize revert script
+    revertScript.push(`COMMIT;`);
+    revertScript.push(`\\echo 'Revert completed successfully'`);
+    
+    // Write revert script to file
+    fs.writeFileSync(revertFilePath, revertScript.join('\n'));
+    console.log(`ci29    [${sessionId}][${importId}] Revert script saved: ${revertFileName}`);
+    
+    console.log(`ci30    [${sessionId}][${importId}] Import completed - Sheets processed: ${sheetsProcessed}, New customers: ${imported}, Updated customers: ${updated}, Errors: ${errors.length}, Builds created: ${createdBuilds.length}, Workflows started: ${createdWorkflows.length}`);
+    
+    res.json({ 
+      imported, 
+      updated, 
+      errors, 
+      buildsCreated: createdBuilds.length,
+      workflowsStarted: createdWorkflows.length,
+      revertFile: revertFileName,
+      revertPath: `/admin/customers/import/revert/${revertFileName}`
+    });
+    
+  } catch (e) {
+    console.error(`ci31    [${sessionId}][${importId}] Import failed with error:`, e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Customer Import Revert Management Routes
+app.get("/admin/customers/import/reverts", async (req, res) => {
+  if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+    return res.status(403).send("Access denied");
+  }
+  
+  try {
+    // List all revert files
+    const revertFiles = fs.readdirSync(logsDir)
+      .filter(file => file.startsWith('import_') && file.endsWith('.sql'))
+      .map(file => {
+        const stats = fs.statSync(path.join(logsDir, file));
+        return {
+          filename: file,
+          size: stats.size,
+          created: stats.mtime,
+          path: `/admin/customers/import/revert/${file}`
+        };
+      })
+      .sort((a, b) => b.created - a.created);
+      
+    res.render("revert-list", { revertFiles });
+  } catch (error) {
+    console.error("Error listing revert files:", error);
+    res.status(500).send("Error loading revert files");
+  }
+});
+
+app.get("/admin/customers/import/revert/:filename", async (req, res) => {
+  if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+    return res.status(403).send("Access denied");
+  }
+  
+  const filename = req.params.filename;
+  const filePath = path.join(logsDir, filename);
+  
+  // Security check - ensure filename is safe
+  if (!filename.match(/^import_[\d\-T]+_\d+\.sql$/)) {
+    return res.status(400).send("Invalid filename");
+  }
+  
+  try {
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).send("Revert file not found");
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    res.render("revert-preview", { filename, content });
+  } catch (error) {
+    console.error("Error reading revert file:", error);
+    res.status(500).send("Error reading revert file");
+  }
+});
+
+app.post("/admin/customers/import/revert/:filename/execute", async (req, res) => {
+  if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+    return res.status(403).json({ error: "Access denied" });
+  }
+  
+  const filename = req.params.filename;
+  const filePath = path.join(logsDir, filename);
+  
+  // Security check - ensure filename is safe
+  if (!filename.match(/^import_[\d\-T]+_\d+\.sql$/)) {
+    return res.status(400).json({ error: "Invalid filename" });
+  }
+  
+  try {
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "Revert file not found" });
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf8');
+    
+    // Execute the revert script
+    const result = await db.query(content);
+    
+    console.log(`Revert executed successfully for file: ${filename} by user: ${req.user.id}`);
+    
+    // Archive the executed revert file
+    const archivedName = filename.replace('.sql', '_executed.sql');
+    fs.renameSync(filePath, path.join(logsDir, archivedName));
+    
+    res.json({ 
+      success: true, 
+      message: "Revert executed successfully",
+      archivedAs: archivedName
+    });
+    
+  } catch (error) {
+    console.error("Error executing revert:", error);
+    res.status(500).json({ 
+      error: "Error executing revert: " + error.message 
+    });
+  }
+});
+
+// Helper function to get user's security clause
+async function getUserSecurityClause(userId) {
+  try {
+    const result = await db.query('SELECT data_security FROM users WHERE id = $1', [userId]);
+    return result.rows[0]?.data_security || '1=0'; // Default to no access
+  } catch (error) {
+    console.error('Error fetching user security clause:', error);
+    return '1=0'; // Default to no access on error
+  }
+}
 
 
 
@@ -440,11 +1067,11 @@ async function getJobs(parentID, parentTier, logString) {
 
 
 
-async function getBuildData(buildID) {
+async function getBuildData(buildID, userSecurityClause = '1=1') {
   try {
     console.log("bc1       getBuildData called for buildID: ", buildID);
     
-    // 1. Get build information
+    // 1. Get build information with customer access verification
     const buildResult = await db.query(`
       SELECT 
         b.id, 
@@ -456,18 +1083,19 @@ async function getBuildData(buildID) {
         p.display_text AS product_description
       FROM builds AS b
       JOIN products AS p ON b.product_id = p.id
-      WHERE b.id = $1
+      JOIN customers c ON b.customer_id = c.id
+      WHERE b.id = $1 AND (${userSecurityClause})
     `, [buildID]);
 
     if (buildResult.rows.length === 0) {
-      console.log(`bc18      Build ${buildID} not found`);
+      console.log(`bc18      Build ${buildID} not found or access denied`);
       return [];
     }
 
     const buildData = buildResult.rows[0];
     const customerID = buildData.customer_id;
 
-    // 2. Get customer information
+    // 2. Get customer information (already verified access above)
     const customerResult = await db.query(`
       SELECT 
         id, full_name, home_address, primary_phone, primary_email, 
@@ -603,15 +1231,19 @@ let allCustomers = [];
     console.log("b1      navigate to WORKFLOW_LISTVIEW by user("+ req.user.id +") ")
     const buildID = req.params.id || "";
       try {
+          // Get user's security clause for data access control
+          const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+          const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+          
+          // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+          const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
   
           if (buildID) {
             console.log("b2       retrieving all jobs for build("+buildID+")");
 
-         
-
-            const allCustomers = await getBuildData(buildID);
+            const allCustomers = await getBuildData(buildID, processedSecurityClause);
             if (allCustomers.length === 0) {
-              console.log("b2a      No jobs found for build("+buildID+")");
+              console.log("b2a      No jobs found for build("+buildID+") or access denied");
               res.redirect("/");
               return;
             }
@@ -623,8 +1255,12 @@ let allCustomers = [];
             
           } else {
             console.log("b3   ");
-            // If there's no search term, fetch all customers and their builds
-              const customersResult = await db.query("SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up FROM customers");
+            // If there's no search term, fetch all customers and their builds with security filtering
+              const customersResult = await db.query(`
+                SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
+                FROM customers c
+                WHERE (${processedSecurityClause})
+              `);
               // customersResult.rows.forEach(customer => {     // Format follow_up value in short date format
               //   if (customer.follow_up) {
               //       customer.follow_up = new Date(customer.follow_up).toLocaleDateString();
@@ -687,11 +1323,17 @@ app.get("/2/customers", async (req, res) => {
       
       const query = req.query.query || "";
       try {
+              // Get user's security clause for data access control
+              const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+              const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+              
+              // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+              const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
               let allCustomers;
               if (query) {
                 console.log("d2      User serched for a term: ", query);
-                // If there is a search term, fetch matching customers and their builds
+                // Enhanced search query with security filtering
                 const customersQuery = `
                     SELECT 
                         c.id, 
@@ -719,24 +1361,12 @@ app.get("/2/customers", async (req, res) => {
                             OR c.primary_email ILIKE $1 
                             OR c.contact_other ILIKE $1 
                             OR c.current_status ILIKE $1
-                        ) AND (
-                            EXISTS (
-                              SELECT 1 
-                              FROM jobs j 
-                              WHERE j.build_id = b.id 
-                              AND j.user_id = $2
-                            )     OR EXISTS (
-                              SELECT 1
-                              FROM users u
-                              WHERE u.id = $2
-                              AND u.roles = 'sysadmin'
-                            )
-                        )
+                        ) AND (${processedSecurityClause})
                     ORDER BY 
                         c.follow_up ASC;
                 `;
         
-                const customersResult = await db.query(customersQuery, [`%${query}%`, req.user.id]);
+                const customersResult = await db.query(customersQuery, [`%${query}%`]);
                 // console.log("d21        search returned " + customersResult.rowCount + " records");
         
                 if (customersResult.rowCount > 0) {
@@ -786,7 +1416,7 @@ app.get("/2/customers", async (req, res) => {
           } else {
             console.log("d31      No search terms ");
 
-            // Execute query to get customers and builds for the given user_id
+            // Enhanced no-search query with security filtering
             const customersResult = await db.query(`
                 SELECT 
                     c.id, 
@@ -809,21 +1439,10 @@ app.get("/2/customers", async (req, res) => {
                     builds b ON b.customer_id = c.id
                 LEFT JOIN 
                     products p ON b.product_id = p.id
-                WHERE 
-                    EXISTS (
-                      SELECT 1 
-                      FROM jobs j 
-                      WHERE j.build_id = b.id 
-                      AND j.user_id = $1
-                    )     OR EXISTS (
-                      SELECT 1
-                      FROM users u
-                      WHERE u.id = $1
-                      AND u.roles = 'sysadmin'
-                    )
+                WHERE (${processedSecurityClause})
                 ORDER BY 
                     c.contact_other ASC;
-            `, [req.user.id]);
+            `);
         
         
             // Format follow_up value and structure the data
@@ -943,9 +1562,19 @@ app.get("/3/customers", async (req, res) => {
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
-      // Perform the search operation based on the query
-      // For example, you might want to search for customers with names matching the query
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+
+      // Enhanced customer search query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c 
+        WHERE (c.full_name LIKE $1 OR c.primary_phone LIKE $1 OR c.home_address LIKE $1) 
+        AND (${processedSecurityClause})
+      `, [`%${query}%`]);
       console.log("cc1  ");
 
       let allCustomers = result.rows;
@@ -989,30 +1618,39 @@ app.get("/customer/:id", async (req, res) => {
   if (req.isAuthenticated()) {
     console.log("c1      navigate to EDIT_CUSTOMER_DETAILS for custID: ", custID);
 
-
     try {
-      const result = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+
+      // Enhanced customer query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})
+      `, [custID]);
+      
       let customer = result.rows;
       if (customer.length !== 1) {
-        if (customer.length === 0) {       
-          //add new customer
-          console.log("c2      new customer being added: ", custID);
-          res.render("customer.ejs", { user : req.user });
+        if (customer.length === 0) {
+          console.log("c2      Customer not found or access denied for custID: ", custID);
+          res.redirect("/2/customers"); // Redirect to customer list instead of allowing new customer creation
           return;
         }
         console.error("c28     Error: Expected 1 row, but received " + customer.length + " rows.");      
       }
 
+      // Enhanced builds query with customer access verification (customer already verified above)
       const qryBuilds = await db.query("SELECT products.display_text, builds.id, builds.customer_id, builds.product_id, builds.enquiry_date FROM builds INNER JOIN products ON builds.product_id = products.id WHERE customer_id = $1", [custID]);
       let builds = qryBuilds.rows;
 
       const qryProducts = await db.query("SELECT id, display_text FROM products order by display_text;");
       let products = qryProducts.rows;
 
-      //read emails for the customer
+      //read emails for the customer (customer access already verified)
       const qryEmails = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
       let emails = qryEmails.rows;
-
 
       // Render the search results page or handle them as needed
       //res.render("searchResults.ejs", { results: searchResults });
@@ -1040,11 +1678,24 @@ app.get("/customers", async (req, res) => {
   if (req.isAuthenticated()) {
     const query = req.query.query || "";     // runs when user logs in and returns all customers
     try {
-      // Perform the search operation based on the query
-      // For example, you might want to search for customers with names matching the query
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
-      const statusList = await db.query("SELECT DISTINCT current_status FROM customers");
-      const result = await db.query("SELECT * FROM customers WHERE full_name LIKE $1 OR primary_phone LIKE $1 OR home_address LIKE $1", [`%${query}%`]);
+      // Enhanced status list query with security filtering
+      const statusList = await db.query(`
+        SELECT DISTINCT c.current_status FROM customers c WHERE (${processedSecurityClause})
+      `);
+      
+      // Enhanced customer search query with security filtering
+      const result = await db.query(`
+        SELECT * FROM customers c 
+        WHERE (c.full_name LIKE $1 OR c.primary_phone LIKE $1 OR c.home_address LIKE $1) 
+        AND (${processedSecurityClause})
+      `, [`%${query}%`]);
 
       const customersByStatus = statusList.rows.reduce((acc, status) => {
         acc[status.current_status] = result.rows.filter(customer => customer.current_status === status.current_status);
@@ -1070,6 +1721,66 @@ app.get("/customers", async (req, res) => {
   }    
 });
 
+app.get("/management-report", async (req, res) => {
+  console.log("m1      navigate to MANAGEMENT REPORT page");
+  if (req.isAuthenticated()) {
+    try {
+      // Get user's security clause for data access control
+      const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
+      const securityClause = securityResult.rows[0]?.data_security || '1=0'; // Default to no access
+      
+      // Replace $USER_ID placeholder with actual user ID for dynamic clauses
+      const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
+      
+      // Enhanced query with security filtering
+      const customersQuery = `
+        SELECT 
+          c.id, c.job_no, c.full_name, c.primary_phone, c.current_status, c.invoices_collected,
+          c.site_location, c.slab_size, c.building_type,
+          TO_CHAR(c.date_ordered, 'DD-Mon-YY') AS date_ordered,
+          TO_CHAR(c.date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
+          TO_CHAR(c.date_bp_issued, 'DD-Mon-YY') AS date_bp_issued,
+          TO_CHAR(c.date_completed, 'DD-Mon-YY') AS date_completed,
+          TO_CHAR(c.last_payment_date, 'DD-Mon-YY') AS last_payment_date,
+          c.last_payment_amount, c.last_payment_description,
+          c.next_action_description,
+          TO_CHAR(c.date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
+        FROM customers c
+        WHERE (${processedSecurityClause})
+        ORDER BY 
+          CASE c.current_status
+            WHEN 'active' THEN 1
+            WHEN 'pending' THEN 2
+            WHEN 'completed' THEN 3
+            ELSE 4
+          END,
+          c.full_name
+      `;
+      
+      const customersResult = await db.query(customersQuery);
+      
+      // Calculate simple counts from filtered data
+      const activeCount = customersResult.rows.filter(c => c.current_status === 'active').length;
+      const completedCount = customersResult.rows.filter(c => c.current_status === 'completed').length;
+      
+      console.log("m2       Management Report loaded:", customersResult.rowCount, "customers (security filtered)");
+      
+      res.render("managementReport.ejs", {
+        user: req.user,
+        customers: customersResult.rows,
+        activeCount: activeCount,
+        completedCount: completedCount
+      });
+      
+    } catch (err) {
+      console.error("Error loading management report:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
 app.post("/addCustomer", async (req, res) => {
   console.log("n1      USER is adding a new customer ");
   if (req.isAuthenticated()) {
@@ -1077,9 +1788,13 @@ app.post("/addCustomer", async (req, res) => {
     const currentTime = new Date(); // Get the current time
     currentTime.setDate(currentTime.getDate() + 21); // Add 21 days
     
+    // Get user security clause for duplicate checking
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     //check if the customer name already exists
     if (req.body.fullName) {
-      const existingCustomer = await db.query("SELECT * FROM customers WHERE LOWER(full_name) = LOWER($1)", [req.body.fullName]);
+      const existingCustomer = await db.query(`SELECT * FROM customers c WHERE LOWER(c.full_name) = LOWER($1) AND (${processedSecurityClause})`, [req.body.fullName]);
       if (existingCustomer.rows.length > 0) {
         console.log("n81         Customer already exists: ", req.body.fullName);
         res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
@@ -1088,7 +1803,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if email already exists
     if (req.body.primaryEmail) {
-      const existingEmail = await db.query("SELECT * FROM customers WHERE primary_email = $1", [req.body.primaryEmail]);
+      const existingEmail = await db.query(`SELECT * FROM customers c WHERE c.primary_email = $1 AND (${processedSecurityClause})`, [req.body.primaryEmail]);
       if (existingEmail.rows.length > 0) {
         console.log("n82         Email already exists: ", req.body.primaryEmail);
         res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
@@ -1097,7 +1812,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if phone number already exists
     if (req.body.primaryPhone) {
-      const existingPhone = await db.query("SELECT * FROM customers WHERE primary_phone = $1", [req.body.primaryPhone]);
+      const existingPhone = await db.query(`SELECT * FROM customers c WHERE c.primary_phone = $1 AND (${processedSecurityClause})`, [req.body.primaryPhone]);
       if (existingPhone.rows.length > 0) {
         console.log("n83         Phone number already exists: ", req.body.primaryPhone);
         res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
@@ -1106,7 +1821,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if address already exists
     if (req.body.homeAddress) {
-      const existingAddress = await db.query("SELECT * FROM customers WHERE home_address = $1", [req.body.homeAddress]);
+      const existingAddress = await db.query(`SELECT * FROM customers c WHERE c.home_address = $1 AND (${processedSecurityClause})`, [req.body.homeAddress]);
       if (existingAddress.rows.length > 0) {
         console.log("n84         Address already exists: ", req.body.homeAddress);
         res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
@@ -1115,7 +1830,7 @@ app.post("/addCustomer", async (req, res) => {
     }
     //check if other contact already exists
     if (req.body.contactOther) {
-      const existingContact = await db.query("SELECT * FROM customers WHERE contact_other = $1", [req.body.contactOther]);
+      const existingContact = await db.query(`SELECT * FROM customers c WHERE c.contact_other = $1 AND (${processedSecurityClause})`, [req.body.contactOther]);
       if (existingContact.rows.length > 0) {
         console.log("n85         Other contact already exists: ", req.body.contactOther);
         res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
@@ -1158,24 +1873,85 @@ app.post("/updateCustomer/:id", async (req, res) => {
   if (req.isAuthenticated()) {
     const action = req.body.action;     // did the user click delete, update, view, or
     const userID = parseInt(req.params.id);
+    
+    // Get user security clause for customer access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     switch (action) {
       case "update":
-            // a known fault is that this will not set non alphabetical characters {} " ' etc - you need to excape them for security reasons too
-            const updateSQL = "UPDATE customers SET     " +
-            "full_name='" + req.body.fullName + "', " +
-            "home_address='" + req.body.homeAddress + "', " +
-            "primary_phone='" + req.body.primaryPhone + "', " +
-            "primary_email='" + req.body.primaryEmail + "', " +
-            "contact_other='" + req.body.contactOther + "', " + 
-            "current_status='" + req.body.currentStatus + "' " +
-            "WHERE id=" + userID + " RETURNING *"    
+            // Check access before updating
+            const updateAccessCheck = await db.query(`SELECT 1 FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [userID]);
+            if (updateAccessCheck.rows.length === 0) {
+              console.log("Access denied for customer update: ", userID);
+              return res.redirect("/login");
+            }
+            
+            // Use parameterized query to prevent SQL injection and handle special characters
+            const updateSQL = `
+              UPDATE customers SET     
+                full_name = $1,
+                home_address = $2,
+                primary_phone = $3,
+                primary_email = $4,
+                contact_other = $5,
+                current_status = $6,
+                job_no = $7,
+                site_location = $8,
+                building_type = $9,
+                permit_type = $10,
+                slab_size = $11,
+                council_responsible = $12,
+                owner_builder_permit = $13,
+                work_source = $14,
+                date_ordered = $15,
+                date_bp_applied = $16,
+                date_bp_issued = $17,
+                date_completed = $18,
+                quoted_estimate = $19,
+                invoices_collected = $20,
+                fees_paid_out = $21,
+                job_earnings = $22,
+                next_action_description = $23,
+                follow_up = $24,
+                date_last_actioned = CURRENT_TIMESTAMP
+              WHERE id = $25 
+              RETURNING *`;
+              
+            const params = [
+              req.body.fullName,
+              req.body.homeAddress,
+              req.body.primaryPhone,
+              req.body.primaryEmail,
+              req.body.contactOther,
+              req.body.currentStatus,
+              req.body.jobNo,
+              req.body.siteLocation,
+              req.body.buildingType,
+              req.body.permitType,
+              req.body.slabSize,
+              req.body.councilResponsible,
+              req.body.ownerBuilderPermit === 'on' ? true : false,
+              req.body.workSource,
+              req.body.dateOrdered || null,
+              req.body.dateBpApplied || null,
+              req.body.dateBpIssued || null,
+              req.body.dateCompleted || null,
+              req.body.quotedEstimate || null,
+              req.body.invoicesCollected || null,
+              req.body.feesPaidOut || null,
+              req.body.jobEarnings || null,
+              req.body.nextActionDescription,
+              req.body.followUp || null,
+              userID
+            ];
+            
             try {
-              //  "UPDATE customers SET full_name='$1', primary_phone='$2', primary_email='$3', contact_other='$4', current_status='$5', contact_history='$6') WHERE id=$7 RETURNING *",
-              //  [req.body.fullName, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, null, req.body.contactHistory, 5]
-              const result = await db.query(updateSQL);
+              const result = await db.query(updateSQL, params);
               const updatedCustomer = result.rows[0];
+              console.log("Customer updated successfully:", updatedCustomer.id);
             } catch (err) {
-              console.error(err);
+              console.error("Error updating customer:", err);
               //res.status(500).send("Internal Server Error");         // I need to create and render an error page that notifies me of the error
             }
 
@@ -1184,6 +1960,13 @@ app.post("/updateCustomer/:id", async (req, res) => {
             res.redirect("/customer/" + userID);
             break;
       case "delete":
+            // Check access before deleting
+            const deleteAccessCheck = await db.query(`SELECT 1 FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [userID]);
+            if (deleteAccessCheck.rows.length === 0) {
+              console.log("Access denied for customer deletion: ", userID);
+              return res.redirect("/login");
+            }
+            
             try {
               const result = await db.query("DELETE FROM customers WHERE id=" + userID + " RETURNING 1" );
               const result2 = await db.query("DELETE FROM builds WHERE customer_id =" + userID + " RETURNING 1" );
@@ -1224,8 +2007,23 @@ try {
     const buildID = req.body.buildId;
     const status = req.body.status;    //string 'true' or 'false'
 
-    // Fetch the current status of the build from the database
-    const result = await db.query("SELECT current_status FROM builds WHERE id = $1", [buildID]);
+    // Get user security clause for build access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+
+    // Fetch the current status of the build from the database with access control
+    const result = await db.query(`
+        SELECT b.current_status 
+        FROM builds b 
+        JOIN customers c ON b.customer_id = c.id 
+        WHERE b.id = $1 AND (${processedSecurityClause})
+    `, [buildID]);
+    
+    if (result.rows.length === 0) {
+        console.log("tc2   Access denied or build not found: ", buildID);
+        return res.status(403).json({ error: "Access denied or build not found" });
+    }
+    
     const currentStatus = result.rows[0].current_status;
 
     // Update logic based on currentStatus and status values
@@ -1275,11 +2073,18 @@ app.post("/addBuild", async (req, res) => {
       let custAddress;
       console.log("e1       USER("+req.user.id+") is adding a workflow to build() for cust(" + custID + ")", req.body);
 
-      const cust = await db.query("SELECT * FROM customers WHERE id = $1", [custID]);
+      // Get user security clause for customer access control
+      const userSecurityClause = await getUserSecurityClause(req.user.id);
+      const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+
+      const cust = await db.query(`SELECT * FROM customers c WHERE c.id = $1 AND (${processedSecurityClause})`, [custID]);
       if (cust.rows.length === 0) {
-        custAddress = cust.rows[0].home_address ;
-        console.log("e12       customer address: ", custAddress);
+        console.log("e12a      Access denied or customer not found: ", custID);
+        return res.redirect("/login");
       }
+      
+      custAddress = cust.rows[0].home_address;
+      console.log("e12       customer address: ", custAddress);
 
       const result = await db.query("INSERT INTO builds (customer_id, product_id, enquiry_date, site_address) VALUES ($1, $2, $3::timestamp, $4) RETURNING *", [req.body.customer_id, req.body.product_id, req.body.enquiry_date, custAddress]);
       const newBuild = result.rows[0];    
@@ -1309,6 +2114,10 @@ app.post("/updateBuild/:id", async (req, res) => {
   console.log("f2       action: ", action);
   if (req.isAuthenticated()) {
     
+    // Get user security clause for build access control
+    const userSecurityClause = await getUserSecurityClause(req.user.id);
+    const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    
     switch (action) {
       case "update":
         // console.log(action);
@@ -1333,6 +2142,12 @@ app.post("/updateBuild/:id", async (req, res) => {
         break;
       case "delete":
         try {
+          // Check access before deleting
+          const accessCheck = await db.query(`SELECT 1 FROM builds b JOIN customers c ON b.customer_id = c.id WHERE b.id = $1 AND (${processedSecurityClause})`, [buildID]);
+          if (accessCheck.rows.length === 0) {
+            console.log("f3a       Access denied for build deletion: ", buildID);
+            return res.redirect("/login");
+          }
           const result = await db.query("DELETE FROM builds WHERE id=" + buildID + " RETURNING 1" );
         } catch (err) {
           console.error(err);
@@ -1342,7 +2157,12 @@ app.post("/updateBuild/:id", async (req, res) => {
         res.redirect("/customer/" + req.body.customer_id);
         break;
       case "view":
-        const result = await db.query("SELECT job_id FROM builds WHERE id=" + buildID  );
+        // Check access before retrieving job_id
+        const accessResult = await db.query(`SELECT b.job_id FROM builds b JOIN customers c ON b.customer_id = c.id WHERE b.id = $1 AND (${processedSecurityClause})`, [buildID]);
+        if (accessResult.rows.length === 0) {
+          console.log("f7a       Access denied for build view: ", buildID);
+          return res.redirect("/login");
+        }
         // console.log("f7    updateBuild/   case:view    job_id="+result.rows[0]);
         // res.redirect("/jobs/" + result.rows[0].job_id);
         res.redirect("/2/build/" + buildID);
@@ -1533,6 +2353,159 @@ app.get("/deltask", async (req, res) => {
     }
     console.log("dlt9   success")
     res.redirect("/jobs/" + req.query.jobnum);
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+
+//#region job templates
+
+app.get("/job-templates", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to access Job Templates.</p>
+          <a href="/" style="color: #007bff; text-decoration: none;">← Return to Home</a>
+        </div>
+      `);
+    }
+    
+    try {
+      const { product_id } = req.query;
+      let apiUrl = `${API_URL}/job-templates`;
+      
+      if (product_id) {
+        apiUrl += `?product_id=${encodeURIComponent(product_id)}`;
+      }
+      
+      const response = await axios.get(apiUrl);
+      res.render("jobTemplates.ejs", {
+        jobTemplates: response.data.jobTemplates,
+        products: response.data.products,
+        selectedProductId: response.data.selectedProductId,
+        baseURL: baseURL,
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching job templates:", error);
+      res.render("jobTemplates.ejs", {
+        jobTemplates: [],
+        products: [],
+        selectedProductId: '',
+        error: "Error loading job templates",
+        baseURL: baseURL,
+        user: req.user
+      });
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+//#endregion
+
+//#region admin user management
+
+app.get("/admin/users", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to manage users.</p>
+          <a href="/" style="color: #007bff; text-decoration: none;">← Return to Home</a>
+        </div>
+      `);
+    }
+    
+    try {
+      const result = await db.query(`
+        SELECT id, email, full_name, display_name, data_security, roles 
+        FROM users 
+        ORDER BY id
+      `);
+      
+      res.render("admin/users.ejs", {
+        users: result.rows,
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).send("Error loading user list");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.get("/admin/users/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send(`
+        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
+          <h1 style="color: #dc3545;">Access Denied</h1>
+          <p>System administrator privileges required to edit users.</p>
+          <a href="/admin/users" style="color: #007bff; text-decoration: none;">← Return to User List</a>
+        </div>
+      `);
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const result = await db.query(`
+        SELECT id, email, full_name, display_name, data_security, roles 
+        FROM users 
+        WHERE id = $1
+      `, [userId]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).send("User not found");
+      }
+      
+      res.render("admin/editUser.ejs", {
+        editUser: result.rows[0],
+        user: req.user
+      });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).send("Error loading user");
+    }
+  } else {
+    res.redirect("/login");
+  }
+});
+
+app.post("/admin/users/:id", async (req, res) => {
+  if (req.isAuthenticated()) {
+    // Check if user has sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      return res.status(403).send("Access denied");
+    }
+    
+    try {
+      const userId = parseInt(req.params.id);
+      const { email, full_name, display_name, data_security, roles } = req.body;
+      
+      await db.query(`
+        UPDATE users 
+        SET email = $1, full_name = $2, display_name = $3, data_security = $4, roles = $5
+        WHERE id = $6
+      `, [email, full_name, display_name, data_security, roles, userId]);
+      
+      console.log(`Admin ${req.user.id} updated user ${userId}`);
+      res.redirect("/admin/users");
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).send("Error updating user");
+    }
   } else {
     res.redirect("/login");
   }
@@ -2601,6 +3574,165 @@ app.get("/update", async (req,res) => {
         //#endregion
         res.status(200).send("Update successful");   
         break;
+        
+      // Job Templates fields
+      case "display_text":
+        table = "job_templates";
+        columnName = "display_text";
+        value = newValue;
+        console.log("ufg_jt1     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "user_id":
+        table = "job_templates";
+        columnName = "user_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt2     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "role_id":
+        table = "job_templates";
+        columnName = "role_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt3     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "product_id":
+        table = "job_templates";
+        columnName = "product_id";
+        value = newValue === '' ? null : parseInt(newValue);
+        console.log("ufg_jt4     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "sort_order":
+        table = "job_templates";
+        columnName = "sort_order";
+        value = newValue;
+        console.log("ufg_jt5     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "tier":
+        table = "job_templates";
+        columnName = "tier";
+        value = newValue === '' ? null : parseFloat(newValue);
+        console.log("ufg_jt6     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "tier":
+        table = "job_templates";
+        columnName = "tier";
+        value = newValue === '' ? null : parseFloat(newValue);
+        console.log("ufg_jt6     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "free_text":
+        table = "job_templates";
+        columnName = "free_text";
+        value = newValue;
+        console.log("ufg_jt7     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "antecedent_array":
+        table = "job_templates";
+        columnName = "antecedent_array";
+        value = newValue;
+        console.log("ufg_jt8     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "decendant_array":
+        table = "job_templates";
+        columnName = "decendant_array";
+        value = newValue;
+        console.log("ufg_jt9     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "decendant_array":
+        table = "job_templates";
+        columnName = "decendant_array";
+        value = newValue;
+        console.log("ufg_jt9     update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "job_change_array":
+        table = "job_templates";
+        columnName = "job_change_array";
+        value = newValue;
+        console.log("ufg_jt10    update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+      case "flow_change_array":
+        table = "job_templates";
+        columnName = "flow_change_array";
+        value = newValue;
+        console.log("ufg_jt11    update "+ table + " set "+ columnName + " = " + value);
+        q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+        if (q && q.status === 201) {
+          res.status(200).send("Update successful");
+        } else {
+          res.status(500).send("Error updating " + fieldID);
+        }
+        break;
+        
       default:
         console.error("ufg8    Unknown field was edited: " + fieldID );
         res.status(500).send("Error updating " + fieldID);    
