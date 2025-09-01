@@ -905,55 +905,6 @@ app.get("/", async (req, res) => {
 });
 
 
-//#region Stripe checkout
-
-const stripe = require('stripe')(env.STRIPE_SECRET);    //removed session secret
-
-app.get("/checkout", (req, res) => {
-  if (!req.isAuthenticated()) {
-    console.log("dc1    User not authenticated, redirecting to login page");
-    return res.redirect("/login");
-  }
-  console.log("dc1    User(" + req.user.id + ") navigated to CHECKOUT page");
-
-  res.render("checkout.ejs");
-});
-
-
-app.post('/create-checkout-session', async (req, res) => {
-  const session = await stripe.checkout.sessions.create({
-    line_items: [{
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: 'T-shirt',
-        },
-        unit_amount: 2000,
-      },
-      quantity: 1,
-    }],
-    mode: 'payment',
-    ui_mode: 'embedded',
-    return_url: 'https://example.com/checkout/return?session_id={CHECKOUT_SESSION_ID}'
-  });
-
-  res.send({clientSecret: session.client_secret});
-});
-
-
-app.get('/session_status', async (req, res) => {
-  const session = await stripe.checkout.sessions.retrieve(req.query.session_id);
-
-  res.send({
-    status: session.status,
-    payment_status: session.payment_status,
-    customer_email: session.customer_details.email
-  });
-});
-
-
-//#endregion
-
 app.get("/daytaskUpdate", (req, res) => {
   console.log("dup1    ");
   main();
