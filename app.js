@@ -98,6 +98,109 @@ const db = new pg.Client({
 });
 db.connect();
 //#endregion
+
+// DEMO: Rule Engine Administration Interface
+app.get("/demo/rules", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  
+  console.log(`demo1   USER(${req.user.id}) accessing rule engine demo`);
+  res.render("admin/rule-engine-demo");
+});
+
+// DEMO: Rule Engine API Endpoint for testing
+app.post("/demo/rules/test", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ success: false, error: "Not authenticated" });
+  }
+
+  try {
+    // Import the RuleEngine (would be at module level in production)
+    const { RuleEngine } = await import('./utils/ruleEngine.js');
+    const ruleEngine = new RuleEngine();
+
+    const { fieldID, newValue, rowID } = req.body;
+    
+    console.log(`demo2   USER(${req.user.id}) testing rule engine - ${fieldID}: ${newValue}`);
+
+    // Create mock context for demo
+    const context = {
+      user: req.user,
+      axios: {
+        get: async (url, params) => {
+          console.log(`demo3   Mock API call: ${url}`, params);
+          return { status: 201, data: { success: true } };
+        }
+      },
+      API_URL: process.env.API_URL || 'http://localhost:3000/api',
+      db: db
+    };
+
+    const result = await ruleEngine.processUpdate(
+      { fieldID, newValue, rowID, table: null },
+      context
+    );
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Demo rule engine error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// DEMO: Get field configurations
+app.get("/demo/rules/configs", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  // Return demo configurations
+  const demoConfigs = {
+    jobTitle: {
+      table: 'jobs',
+      column: 'display_text',
+      validations: [
+        { type: 'required' },
+        { type: 'maxLength', value: 126 }
+      ],
+      encoding: 'uri',
+      preActions: [],
+      postActions: [
+        {
+          type: 'notify',
+          condition: 'always',
+          params: { message: 'Job title updated' }
+        }
+      ]
+    },
+    jobStatus: {
+      table: 'jobs',
+      column: 'current_status',
+      validations: [{ type: 'required' }],
+      preActions: [],
+      postActions: [
+        {
+          type: 'updateDate',
+          condition: { field: 'current_status', value: 'complete' },
+          params: { table: 'jobs', column: 'completed_date', value: 'now' }
+        },
+        {
+          type: 'executeWorkflow',
+          condition: 'always',
+          params: { triggerField: 'change_array' }
+        }
+      ]
+    }
+  };
+
+  res.json(demoConfigs);
+});
+
 // MVP: Customer Import Page (GET)
 app.get("/admin/customers/import", (req, res) => {
   const sessionId = req.sessionID?.substring(0, 8) || 'unknown';
@@ -2856,7 +2959,65 @@ app.post("/updateUserStatusOrder", async (req, res) => {
   }
 });
 
+// ENHANCED UPDATE ROUTE - Using Rule Engine (Stage 1 Demo)
+app.get("/update-v2", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    console.error("ufg89v2  User not authenticated, redirecting to login page");
+    return res.redirect("/login");
+  }
 
+  try {
+    const { fieldID, newValue, whereID: rowID, btn: calledByButton } = req.query;
+    const decodedValue = newValue ? decodeURIComponent(newValue) : '';
+    
+    console.log(`ufgv2_1  USER(${req.user.id}) updating ${fieldID} to "${decodedValue}" for rowID ${rowID}`);
+
+    // Validate required parameters
+    if (!fieldID) {
+      console.error("ufgv2_2  Error: fieldID is null");
+      return res.status(400).send("Error: fieldID is required");
+    }
+    
+    if (!rowID) {
+      console.error("ufgv2_3  Error: rowID is null");
+      return res.status(400).send("Error: rowID is required");
+    }
+
+    // Import and initialize the enhanced change processor
+    const { default: ChangeProcessor } = await import('./utils/changeProcessor.js');
+    const changeProcessor = new ChangeProcessor(db, axios, process.env.API_URL);
+
+    // Process the update using the rule engine
+    const updateRequest = {
+      fieldID,
+      newValue: decodedValue,
+      rowID,
+      calledByButton,
+      originalValue: newValue
+    };
+
+    const result = await changeProcessor.processFieldUpdate(updateRequest, req.user);
+
+    if (result.success) {
+      console.log(`ufgv2_4  Successfully processed ${fieldID} update`);
+      res.status(200).send("Update successful");
+    } else if (result.fallbackToLegacy) {
+      console.log(`ufgv2_5  Falling back to legacy route for ${fieldID}`);
+      // Redirect to legacy route with same parameters
+      const queryString = new URLSearchParams(req.query).toString();
+      return res.redirect(`/update?${queryString}`);
+    } else {
+      console.error(`ufgv2_6  Update failed: ${result.error}`);
+      res.status(500).send(`Error updating ${fieldID}: ${result.error}`);
+    }
+
+  } catch (error) {
+    console.error("ufgv2_7  Exception in enhanced update route:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+// LEGACY UPDATE ROUTE - Original Implementation
 app.get("/update", async (req,res) => {
   if (req.isAuthenticated()) {
     const called_by_button = req.query.btn || 'na';

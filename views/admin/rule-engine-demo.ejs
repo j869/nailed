@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Engine Demo - Data Integrity Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <style>
+        .rule-editor {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+        .test-success {
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        .nav-pills .nav-link.active {
+            background-color: #0d6efd;
+        }
+        .field-config-card {
+            transition: all 0.3s ease;
+        }
+        .field-config-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="bi bi-gear"></i> Rule Engine Demo - Admin Dashboard
+                    <small class="text-muted fs-6">Stage 1: Prototype & Testing</small>
+                </h1>
+                
+                <div class="alert alert-info" role="alert">
+                    <h5 class="alert-heading">Demo Mode Active</h5>
+                    <p>This is a standalone demo of the new rule engine system. No production data will be modified.</p>
+                    <hr>
+                    <p class="mb-0">Use this interface to prototype and test trigger rules before integrating with the main application.</p>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="field-config-tab" data-bs-toggle="pill" data-bs-target="#field-config" type="button" role="tab">Field Configurations</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="rule-editor-tab" data-bs-toggle="pill" data-bs-target="#rule-editor" type="button" role="tab">Rule Editor</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="test-runner-tab" data-bs-toggle="pill" data-bs-target="#test-runner" type="button" role="tab">Test Runner</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-status-tab" data-bs-toggle="pill" data-bs-target="#system-status" type="button" role="tab">System Status</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="adminTabContent">
+            <!-- Field Configurations Tab -->
+            <div class="tab-pane fade show active" id="field-config" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Field Configurations</h5>
+                            </div>
+                            <div class="card-body">
+                                <select class="form-select mb-3" id="fieldSelector">
+                                    <option value="">Select a field...</option>
+                                    <option value="jobTitle">Job Title</option>
+                                    <option value="jobStatus">Job Status</option>
+                                    <option value="taskTitle">Task Title</option>
+                                    <option value="taskStatus">Task Status</option>
+                                    <option value="customerName">Customer Name</option>
+                                </select>
+                                
+                                <button class="btn btn-primary btn-sm me-2" onclick="loadFieldConfig()">Load Config</button>
+                                <button class="btn btn-success btn-sm me-2" onclick="saveFieldConfig()">Save Config</button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="createNewField()">New Field</button>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6>Quick Actions</h6>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-outline-primary btn-sm d-block w-100 mb-2" onclick="exportAllConfigs()">Export All</button>
+                                <button class="btn btn-outline-warning btn-sm d-block w-100 mb-2" onclick="importConfigs()">Import</button>
+                                <button class="btn btn-outline-danger btn-sm d-block w-100" onclick="resetToDefaults()">Reset to Defaults</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card field-config-card">
+                            <div class="card-header">
+                                <h5>Field Configuration Editor</h5>
+                                <small class="text-muted">Edit validation rules, actions, and behavior</small>
+                            </div>
+                            <div class="card-body">
+                                <div id="fieldConfigEditor">
+                                    <div class="alert alert-secondary text-center">
+                                        Select a field from the left panel to edit its configuration
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rule Editor Tab -->
+            <div class="tab-pane fade" id="rule-editor" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>JSON Rule Editor</h5>
+                            </div>
+                            <div class="card-body">
+                                <textarea class="form-control rule-editor" id="ruleJsonEditor" rows="20" placeholder="Enter JSON rule configuration here..."></textarea>
+                                <div class="mt-3">
+                                    <button class="btn btn-primary me-2" onclick="validateJson()">Validate JSON</button>
+                                    <button class="btn btn-success me-2" onclick="previewRule()">Preview Rule</button>
+                                    <button class="btn btn-outline-secondary" onclick="formatJson()">Format JSON</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Rule Preview</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="rulePreview" class="json-display">
+                                    Rule preview will appear here...
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6>Rule Templates</h6>
+                            </div>
+                            <div class="card-body">
+                                <select class="form-select mb-2" id="ruleTemplate">
+                                    <option value="">Select a template...</option>
+                                    <option value="statusChange">Status Change Rule</option>
+                                    <option value="fieldUpdate">Field Update Rule</option>
+                                    <option value="workflow">Workflow Rule</option>
+                                </select>
+                                <button class="btn btn-outline-primary btn-sm" onclick="loadTemplate()">Load Template</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test Runner Tab -->
+            <div class="tab-pane fade" id="test-runner" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Test Update Request</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="testForm">
+                                    <div class="mb-3">
+                                        <label for="testFieldID" class="form-label">Field ID</label>
+                                        <select class="form-select" id="testFieldID">
+                                            <option value="jobTitle">jobTitle</option>
+                                            <option value="jobStatus">jobStatus</option>
+                                            <option value="taskTitle">taskTitle</option>
+                                            <option value="taskStatus">taskStatus</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="testNewValue" class="form-label">New Value</label>
+                                        <input type="text" class="form-control" id="testNewValue" placeholder="Enter test value">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="testRowID" class="form-label">Row ID</label>
+                                        <input type="number" class="form-control" id="testRowID" value="123" placeholder="Enter row ID">
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label for="testUserID" class="form-label">User ID (for context)</label>
+                                        <input type="number" class="form-control" id="testUserID" value="1" placeholder="Enter user ID">
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-primary" onclick="runTest()">Run Test</button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="clearTestResults()">Clear Results</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Test Results</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="testResults">
+                                    <div class="alert alert-secondary text-center">
+                                        Run a test to see results here
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status Tab -->
+            <div class="tab-pane fade" id="system-status" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Rule Engine Status</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>Status:</span>
+                                    <span class="badge bg-success">Active (Demo)</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span>Version:</span>
+                                    <span>1.0.0-demo</span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span>Field Configs:</span>
+                                    <span id="configCount">5</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Recent Activity</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="activityLog">
+                                    <small class="text-muted">Activity log will appear here...</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6>Field Configuration Summary</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Field ID</th>
+                                                <th>Table</th>
+                                                <th>Column</th>
+                                                <th>Validations</th>
+                                                <th>Pre-Actions</th>
+                                                <th>Post-Actions</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="configSummary">
+                                            <!-- Will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    
+    <script>
+        // Demo field configurations
+        const fieldConfigs = {
+            'jobTitle': {
+                table: 'jobs',
+                column: 'display_text',
+                validations: [
+                    { type: 'required' },
+                    { type: 'maxLength', value: 126 }
+                ],
+                encoding: 'uri',
+                preActions: [],
+                postActions: [
+                    {
+                        type: 'notify',
+                        condition: 'always',
+                        params: { message: 'Job title updated' }
+                    }
+                ]
+            },
+            'jobStatus': {
+                table: 'jobs',
+                column: 'current_status',
+                validations: [{ type: 'required' }],
+                preActions: [],
+                postActions: [
+                    {
+                        type: 'updateDate',
+                        condition: { field: 'current_status', value: 'complete' },
+                        params: { table: 'jobs', column: 'completed_date', value: 'now' }
+                    },
+                    {
+                        type: 'executeWorkflow',
+                        condition: 'always',
+                        params: { triggerField: 'change_array' }
+                    }
+                ]
+            },
+            'taskTitle': {
+                table: 'tasks',
+                column: 'display_text',
+                validations: [
+                    { type: 'required' },
+                    { type: 'maxLength', value: 126 }
+                ],
+                encoding: 'uri',
+                preActions: [],
+                postActions: []
+            },
+            'taskStatus': {
+                table: 'tasks',
+                column: 'current_status',
+                validations: [{ type: 'required' }],
+                preActions: [],
+                postActions: [
+                    {
+                        type: 'notify',
+                        condition: { field: 'current_status', value: 'complete' },
+                        params: { message: 'Task completed!' }
+                    }
+                ]
+            },
+            'customerName': {
+                table: 'customers',
+                column: 'full_name',
+                validations: [
+                    { type: 'required' },
+                    { type: 'maxLength', value: 255 }
+                ],
+                encoding: 'uri',
+                preActions: [],
+                postActions: []
+            }
+        };
+
+        let currentFieldConfig = null;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateConfigSummary();
+            logActivity('Demo system initialized');
+        });
+
+        function loadFieldConfig() {
+            const fieldID = document.getElementById('fieldSelector').value;
+            if (!fieldID) {
+                alert('Please select a field first');
+                return;
+            }
+
+            currentFieldConfig = fieldID;
+            const config = fieldConfigs[fieldID];
+            
+            if (!config) {
+                alert('Configuration not found');
+                return;
+            }
+
+            displayFieldConfigEditor(fieldID, config);
+            logActivity(`Loaded configuration for ${fieldID}`);
+        }
+
+        function displayFieldConfigEditor(fieldID, config) {
+            const editor = document.getElementById('fieldConfigEditor');
+            
+            editor.innerHTML = `
+                <h6>Editing: ${fieldID}</h6>
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Table</label>
+                            <input type="text" class="form-control" id="configTable" value="${config.table}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Column</label>
+                            <input type="text" class="form-control" id="configColumn" value="${config.column}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Encoding</label>
+                            <select class="form-select" id="configEncoding">
+                                <option value="none" ${config.encoding === 'none' ? 'selected' : ''}>None</option>
+                                <option value="uri" ${config.encoding === 'uri' ? 'selected' : ''}>URI</option>
+                                <option value="html" ${config.encoding === 'html' ? 'selected' : ''}>HTML</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Validations</label>
+                            <div id="validationsList">
+                                ${config.validations.map((v, i) => `
+                                    <div class="input-group mb-1">
+                                        <select class="form-select">
+                                            <option value="required" ${v.type === 'required' ? 'selected' : ''}>Required</option>
+                                            <option value="maxLength" ${v.type === 'maxLength' ? 'selected' : ''}>Max Length</option>
+                                            <option value="email" ${v.type === 'email' ? 'selected' : ''}>Email</option>
+                                            <option value="date" ${v.type === 'date' ? 'selected' : ''}>Date</option>
+                                        </select>
+                                        <input type="text" class="form-control" value="${v.value || ''}" placeholder="Value (if needed)">
+                                        <button class="btn btn-outline-danger btn-sm" onclick="removeValidation(${i})">×</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <button class="btn btn-outline-primary btn-sm" onclick="addValidation()">Add Validation</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label">Post Actions (JSON)</label>
+                            <textarea class="form-control" id="configPostActions" rows="8">${JSON.stringify(config.postActions, null, 2)}</textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveFieldConfig() {
+            if (!currentFieldConfig) {
+                alert('No field selected for editing');
+                return;
+            }
+
+            const table = document.getElementById('configTable').value;
+            const column = document.getElementById('configColumn').value;
+            const encoding = document.getElementById('configEncoding').value;
+            const postActionsText = document.getElementById('configPostActions').value;
+
+            try {
+                const postActions = JSON.parse(postActionsText);
+                
+                fieldConfigs[currentFieldConfig] = {
+                    ...fieldConfigs[currentFieldConfig],
+                    table,
+                    column,
+                    encoding,
+                    postActions
+                };
+
+                alert('Configuration saved successfully');
+                updateConfigSummary();
+                logActivity(`Saved configuration for ${currentFieldConfig}`);
+            } catch (error) {
+                alert('Invalid JSON in post actions: ' + error.message);
+            }
+        }
+
+        function runTest() {
+            const fieldID = document.getElementById('testFieldID').value;
+            const newValue = document.getElementById('testNewValue').value;
+            const rowID = document.getElementById('testRowID').value;
+            const userID = document.getElementById('testUserID').value;
+
+            // Simulate test execution
+            const testResult = {
+                success: true,
+                fieldID,
+                newValue,
+                rowID,
+                userID,
+                validationResults: [
+                    { type: 'required', passed: newValue.length > 0 },
+                    { type: 'maxLength', passed: newValue.length <= 126 }
+                ],
+                actionsExecuted: [
+                    { type: 'updateField', status: 'success' },
+                    { type: 'notify', status: 'success' }
+                ],
+                executionTime: Math.random() * 100 + 50
+            };
+
+            displayTestResults(testResult);
+            logActivity(`Test executed for ${fieldID} with value "${newValue}"`);
+        }
+
+        function displayTestResults(result) {
+            const resultsDiv = document.getElementById('testResults');
+            const statusClass = result.success ? 'test-success' : 'test-error';
+            
+            resultsDiv.innerHTML = `
+                <div class="test-result ${statusClass}">
+                    <h6>Test Result: ${result.success ? 'Success' : 'Failed'}</h6>
+                    <p><strong>Field:</strong> ${result.fieldID}</p>
+                    <p><strong>Value:</strong> "${result.newValue}"</p>
+                    <p><strong>Execution Time:</strong> ${result.executionTime.toFixed(2)}ms</p>
+                    
+                    <h6 class="mt-3">Validation Results:</h6>
+                    <ul>
+                        ${result.validationResults.map(v => 
+                            `<li class="${v.passed ? 'text-success' : 'text-danger'}">${v.type}: ${v.passed ? 'Passed' : 'Failed'}</li>`
+                        ).join('')}
+                    </ul>
+                    
+                    <h6 class="mt-3">Actions Executed:</h6>
+                    <ul>
+                        ${result.actionsExecuted.map(a => 
+                            `<li class="text-success">${a.type}: ${a.status}</li>`
+                        ).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = `
+                <div class="alert alert-secondary text-center">
+                    Run a test to see results here
+                </div>
+            `;
+        }
+
+        function updateConfigSummary() {
+            const tbody = document.getElementById('configSummary');
+            tbody.innerHTML = Object.entries(fieldConfigs).map(([fieldID, config]) => `
+                <tr>
+                    <td><code>${fieldID}</code></td>
+                    <td>${config.table}</td>
+                    <td>${config.column}</td>
+                    <td><span class="badge bg-secondary">${config.validations.length}</span></td>
+                    <td><span class="badge bg-secondary">${config.preActions.length}</span></td>
+                    <td><span class="badge bg-secondary">${config.postActions.length}</span></td>
+                    <td><span class="badge bg-success">Active</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('configCount').textContent = Object.keys(fieldConfigs).length;
+        }
+
+        function logActivity(message) {
+            const log = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `<div class="mb-1"><small class="text-muted">${timestamp}</small> ${message}</div>`;
+            log.innerHTML = entry + log.innerHTML;
+            
+            // Keep only last 10 entries
+            const entries = log.children;
+            while (entries.length > 10) {
+                log.removeChild(entries[entries.length - 1]);
+            }
+        }
+
+        function validateJson() {
+            const jsonText = document.getElementById('ruleJsonEditor').value;
+            try {
+                JSON.parse(jsonText);
+                alert('JSON is valid!');
+            } catch (error) {
+                alert('Invalid JSON: ' + error.message);
+            }
+        }
+
+        function formatJson() {
+            const editor = document.getElementById('ruleJsonEditor');
+            try {
+                const parsed = JSON.parse(editor.value);
+                editor.value = JSON.stringify(parsed, null, 2);
+            } catch (error) {
+                alert('Cannot format invalid JSON');
+            }
+        }
+
+        function previewRule() {
+            const jsonText = document.getElementById('ruleJsonEditor').value;
+            try {
+                const parsed = JSON.parse(jsonText);
+                document.getElementById('rulePreview').textContent = JSON.stringify(parsed, null, 2);
+            } catch (error) {
+                document.getElementById('rulePreview').textContent = 'Invalid JSON: ' + error.message;
+            }
+        }
+
+        function exportAllConfigs() {
+            const dataStr = JSON.stringify(fieldConfigs, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'field-configs-export.json';
+            link.click();
+            logActivity('Exported all configurations');
+        }
+
+        // Add more helper functions as needed...
+        function addValidation() {
+            // Implementation for adding validation rules
+        }
+
+        function removeValidation(index) {
+            // Implementation for removing validation rules
+        }
+
+        function createNewField() {
+            const fieldID = prompt('Enter new field ID:');
+            if (fieldID && !fieldConfigs[fieldID]) {
+                fieldConfigs[fieldID] = {
+                    table: 'table_name',
+                    column: 'column_name',
+                    validations: [],
+                    encoding: 'none',
+                    preActions: [],
+                    postActions: []
+                };
+                
+                // Add to selector
+                const selector = document.getElementById('fieldSelector');
+                const option = document.createElement('option');
+                option.value = fieldID;
+                option.textContent = fieldID;
+                selector.appendChild(option);
+                selector.value = fieldID;
+                
+                loadFieldConfig();
+                updateConfigSummary();
+                logActivity(`Created new field configuration: ${fieldID}`);
+            }
+        }
+    </script>
+</body>
+</html>
