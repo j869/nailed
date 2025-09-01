@@ -1,0 +1,203 @@
+<%- include('partials/header') %>
+<div class="container mt-4">
+  <div style="margin-top: 80px;"> <!-- Account for fixed header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h2><i class="fas fa-file-excel"></i> Customer Excel Import</h2>
+        <p class="text-muted mb-0">Import customer data from Excel files (.xlsx, .xls, or .xlsm). Maximum file size: 10MB, Maximum records: 1,000.</p>
+      </div>
+      <div>
+        <a href="/admin/customers/import/reverts" class="btn btn-outline-secondary me-2">
+          <i class="fas fa-undo"></i> View Revert Scripts
+        </a>
+        <a href="/admin/customers" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Back to Customers
+        </a>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">📁 Select Excel File</h5>
+      </div>
+      <div class="card-body">
+        <form id="importForm" action="/admin/customers/import" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="customerFile" class="form-label">Choose Excel File</label>
+            <input type="file" class="form-control" id="customerFile" name="customerFile" 
+                   accept=".xlsx,.xls,.xlsm" required>
+            <div class="form-text">
+              Supported formats: .xlsx (Excel 2007+), .xls (Excel 97-2003), .xlsm (Excel macro-enabled)<br>
+              Required sheets: "Current" and/or "Completed"
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <h6>⚙️ Import Settings</h6>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="startWorkflows" name="startWorkflows" checked>
+              <label class="form-check-label" for="startWorkflows">
+                <strong>Create workflows automatically</strong>
+                <div class="form-text">
+                  • Customers from "Current" sheet → <strong>Active Permits</strong> workflow<br>
+                  • Customers from "Completed" sheet → <strong>Archive - Completed Permits</strong> workflow
+                </div>
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" id="updateDuplicates" name="duplicateAction" value="update" checked>
+              <label class="form-check-label" for="updateDuplicates">
+                Update existing customers (if duplicates found)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" id="skipDuplicates" name="duplicateAction" value="skip">
+              <label class="form-check-label" for="skipDuplicates">
+                Skip existing customers (if duplicates found)
+              </label>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" id="importBtn">
+            <i class="fas fa-upload"></i> Import Customers
+          </button>
+          <a href="/2/customers" class="btn btn-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Results Section -->
+    <div id="importResult" class="mt-4"></div>
+    
+    <!-- Column Mapping Info -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h6 class="mb-0">📋 Expected Column Mapping</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Current Sheet Columns:</h6>
+            <ul class="list-unstyled small">
+              <li><strong>Customer Name</strong> → full_name (Required)</li>
+              <li><strong>Phone #</strong> → primary_phone (Required)</li>
+              <li><strong>Address</strong> → home_address</li>
+              <li><strong>Job No</strong> → job_no</li>
+              <li><strong>Site Location</strong> → site_location</li>
+              <li><strong>Building Type</strong> → building_type</li>
+              <li><strong>Size</strong> → slab_size</li>
+              <li><strong>Council (planning)</strong> → council_responsible</li>
+              <li><strong>Current Status</strong> → current_status</li>
+              <li><strong>Order Date</strong> → date_ordered</li>
+              <li><strong>BP App date</strong> → date_bp_applied</li>
+              <li><strong>Quoted Estimate</strong> → quoted_estimate</li>
+              <li><strong>Waiting on:</strong> → next_action_description</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6>Completed Sheet Columns:</h6>
+            <ul class="list-unstyled small">
+              <li><strong>Customer Name</strong> → full_name (Required)</li>
+              <li><strong>Phone #</strong> → primary_phone (Required)</li>
+              <li><strong>Site Location</strong> → site_location</li>
+              <li><strong>Job No</strong> → job_no</li>
+              <li><strong>Building Type</strong> → building_type</li>
+              <li><strong>Size</strong> → slab_size</li>
+              <li><strong>Type of permit req</strong> → permit_type</li>
+              <li><strong>Order Date</strong> → date_ordered</li>
+              <li><strong>BP App date</strong> → date_bp_applied</li>
+              <li><strong>Date Building Permit Issued</strong> → date_bp_issued</li>
+              <li><strong>Quoted Estimate</strong> → quoted_estimate</li>
+              <li><strong>Fees paid out</strong> → fees_paid_out</li>
+              <li><strong>Job Earnings</strong> → job_earnings</li>
+              <li><em>Status auto-set to "Complete"</em></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('importForm').onsubmit = async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const data = new FormData(form);
+  const resultDiv = document.getElementById('importResult');
+  const importBtn = document.getElementById('importBtn');
+  
+  // Show loading state
+  importBtn.disabled = true;
+  importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+  resultDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Processing Excel file...</div>';
+  
+  try {
+    const res = await fetch(form.action, {
+      method: 'POST',
+      body: data
+    });
+    
+    const json = await res.json();
+    
+    if (json.error) {
+      resultDiv.innerHTML = `<div class="alert alert-danger">
+        <h6><i class="fas fa-exclamation-triangle"></i> Import Failed</h6>
+        ${json.error}
+      </div>`;
+    } else {
+      let html = `<div class="alert alert-success">
+        <h6><i class="fas fa-check-circle"></i> Import Completed</h6>
+        <div class="row">
+          <div class="col-md-6">
+            <strong>Successfully imported: ${json.imported} customers</strong><br>
+            <strong>Updated customers: ${json.updated || 0}</strong><br>
+            ${json.buildsCreated ? `<strong>Builds created: ${json.buildsCreated}</strong><br>` : ''}
+            ${json.workflowsStarted ? `<strong>Workflows started: ${json.workflowsStarted}</strong>` : ''}
+          </div>
+          <div class="col-md-6">
+            ${json.revertFile ? `<div class="text-end">
+              <small class="text-muted">Revert script created:</small><br>
+              <a href="${json.revertPath}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-undo"></i> View Revert Script
+              </a>
+            </div>` : ''}
+          </div>
+        </div>
+      </div>`;
+      
+      if (json.errors && json.errors.length > 0) {
+        html += `<div class="alert alert-warning">
+          <h6><i class="fas fa-exclamation-triangle"></i> Errors Encountered (${json.errors.length})</h6>
+          <ul class="mb-0">`;
+        json.errors.forEach(error => {
+          html += `<li>${error}</li>`;
+        });
+        html += '</ul></div>';
+      }
+      
+      if (json.imported > 0 || json.updated > 0) {
+        html += `<div class="mt-3">
+          <a href="/2/customers" class="btn btn-primary me-2">View Customers</a>
+          ${json.revertFile ? `<a href="/admin/customers/import/reverts" class="btn btn-outline-secondary">
+            <i class="fas fa-undo"></i> Manage Reverts
+          </a>` : ''}
+        </div>`;
+      }
+      
+      resultDiv.innerHTML = html;
+    }
+  } catch (err) {
+    resultDiv.innerHTML = `<div class="alert alert-danger">
+      <h6><i class="fas fa-exclamation-triangle"></i> Upload Failed</h6>
+      ${err.message}
+    </div>`;
+  } finally {
+    // Reset button
+    importBtn.disabled = false;
+    importBtn.innerHTML = '<i class="fas fa-upload"></i> Import Customers';
+  }
+};
+</script>
+
+<%- include('partials/footer') %>
