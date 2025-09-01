@@ -109,6 +109,16 @@ app.get("/demo/rules", (req, res) => {
   res.render("admin/rule-engine-demo");
 });
 
+// STAGE 2: Rule Analysis Report Interface
+app.get("/admin/rule-analysis", (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  
+  console.log(`ra1     USER(${req.user.id}) accessing rule analysis report`);
+  res.render("admin/rule-analysis-report");
+});
+
 // DEMO: Rule Engine API Endpoint for testing
 app.post("/demo/rules/test", async (req, res) => {
   if (!req.isAuthenticated()) {
@@ -199,6 +209,533 @@ app.get("/demo/rules/configs", (req, res) => {
   };
 
   res.json(demoConfigs);
+});
+
+// STAGE 2: Rule Template API Endpoints
+// Import the RuleTemplateManager
+import('./utils/ruleTemplateManager.js').then(({ RuleTemplateManager }) => {
+  const ruleTemplateManager = new RuleTemplateManager(db);
+
+  // Get system status with real database data
+  app.get("/api/rule-templates/system-status", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.getSystemStatus();
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting system status:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get all rule templates
+  app.get("/api/rule-templates", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.getAllRuleTemplates();
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting rule templates:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get rule template by ID
+  app.get("/api/rule-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.getRuleTemplateById(req.params.id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error getting rule template:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Create new rule template
+  app.post("/api/rule-templates", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.createRuleTemplate(req.body, req.user.id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error creating rule template:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Update rule template
+  app.put("/api/rule-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.updateRuleTemplate(req.params.id, req.body, req.user.id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error updating rule template:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Delete rule template
+  app.delete("/api/rule-templates/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const result = await ruleTemplateManager.deleteRuleTemplate(req.params.id, req.user.id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error deleting rule template:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Search rule templates
+  app.get("/api/rule-templates/search/:term", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { term } = req.params;
+      const { category } = req.query;
+      const result = await ruleTemplateManager.searchRuleTemplates(term, category);
+      res.json(result);
+    } catch (error) {
+      console.error('Error searching rule templates:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Increment rule template usage count
+  app.post("/api/rule-templates/:id/increment-usage", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const usageCount = await ruleTemplateManager.incrementUsageCount(req.params.id);
+      res.json({ success: true, usage_count: usageCount });
+    } catch (error) {
+      console.error('Error incrementing usage count:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // STAGE 2: Rule Analysis API Endpoints
+  // Jobs change array analysis
+  app.get("/api/analysis/jobs-change-arrays", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const query = `
+        SELECT j.id, j.job_template_id, j.current_status, j.change_array, j.updated_at,
+               jt.display_text as template_name, jt.product_id
+        FROM jobs j
+        LEFT JOIN job_templates jt ON j.job_template_id = jt.id
+        WHERE j.change_array IS NOT NULL
+        ORDER BY j.updated_at DESC
+      `;
+      
+      const result = await db.query(query);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching jobs change arrays:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Templates change array analysis
+  app.get("/api/analysis/templates-change-arrays", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const query = `
+        SELECT jt.id, jt.display_text, jt.product_id, jt.job_change_array, 
+               jt.flow_change_array, jt.user_id, jt.role_id,
+               COUNT(j.id) as related_jobs_count
+        FROM job_templates jt
+        LEFT JOIN jobs j ON j.job_template_id = jt.id
+        GROUP BY jt.id, jt.display_text, jt.product_id, jt.job_change_array, 
+                 jt.flow_change_array, jt.user_id, jt.role_id
+        ORDER BY jt.id
+      `;
+      
+      const result = await db.query(query);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching templates change arrays:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Flow change array analysis (placeholder - depends on flow table structure)
+  app.get("/api/analysis/flows-change-arrays", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      // Check if flow table exists and has change_array column
+      const checkTableQuery = `
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'job_process_flow' 
+        AND column_name = 'change_array'
+      `;
+      
+      const tableCheck = await db.query(checkTableQuery);
+      
+      if (tableCheck.rows.length === 0) {
+        // If no flow change_array column exists, return empty data
+        res.json({ success: true, data: [] });
+        return;
+      }
+
+      const query = `
+        SELECT jpf.id, jpf.antecedent_id, jpf.decendant_id, jpf.change_array,
+               jt1.display_text as source_name, jt2.display_text as target_name,
+               0 as usage_count
+        FROM job_process_flow jpf
+        LEFT JOIN job_templates jt1 ON jpf.antecedent_id = jt1.id
+        LEFT JOIN job_templates jt2 ON jpf.decendant_id = jt2.id
+        WHERE jpf.change_array IS NOT NULL
+        ORDER BY jpf.id
+      `;
+      
+      const result = await db.query(query);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching flows change arrays:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Template relationship analysis
+  app.get("/api/analysis/template-relationships", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const query = `
+        SELECT jt.id, jt.display_text, jt.antecedent_array, jt.decendant_array,
+               jt.job_change_array, jt.flow_change_array,
+               COUNT(j.id) as job_count
+        FROM job_templates jt
+        LEFT JOIN jobs j ON j.job_template_id = jt.id
+        GROUP BY jt.id, jt.display_text, jt.antecedent_array, jt.decendant_array,
+                 jt.job_change_array, jt.flow_change_array
+        ORDER BY jt.id
+      `;
+      
+      const result = await db.query(query);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching template relationships:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Rule complexity analysis
+  app.get("/api/analysis/rule-complexity", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const analysis = await ruleTemplateManager.analyzeSystemRules();
+      
+      // Add complexity metrics to existing analysis
+      const complexityMetrics = {
+        avgComplexityScore: 0,
+        highComplexityRules: 0,
+        totalRulesAnalyzed: 0,
+        complexityDistribution: {
+          simple: 0,    // 1-2 components
+          moderate: 0,  // 3-5 components  
+          complex: 0,   // 6+ components
+        }
+      };
+
+      // Analyze job change arrays
+      const jobsQuery = await db.query(`
+        SELECT change_array FROM jobs 
+        WHERE change_array IS NOT NULL 
+        AND change_array != '{}' 
+        AND change_array != '[]'
+      `);
+
+      let totalComplexity = 0;
+      let ruleCount = 0;
+
+      jobsQuery.rows.forEach(row => {
+        try {
+          const rules = JSON.parse(row.change_array);
+          const complexity = calculateRuleComplexity(rules);
+          totalComplexity += complexity;
+          ruleCount++;
+          
+          if (complexity >= 6) {
+            complexityMetrics.complexityDistribution.complex++;
+            complexityMetrics.highComplexityRules++;
+          } else if (complexity >= 3) {
+            complexityMetrics.complexityDistribution.moderate++;
+          } else {
+            complexityMetrics.complexityDistribution.simple++;
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      });
+
+      complexityMetrics.avgComplexityScore = ruleCount > 0 ? totalComplexity / ruleCount : 0;
+      complexityMetrics.totalRulesAnalyzed = ruleCount;
+
+      res.json({ 
+        success: true, 
+        data: {
+          ...analysis,
+          complexity: complexityMetrics
+        }
+      });
+    } catch (error) {
+      console.error('Error analyzing rule complexity:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  function calculateRuleComplexity(rules) {
+    if (!rules || typeof rules !== 'object') return 0;
+    
+    let complexity = 0;
+    
+    // Count different types of rules and their components
+    if (rules.conditions) {
+      complexity += Array.isArray(rules.conditions) ? rules.conditions.length : 1;
+    }
+    if (rules.actions) {
+      complexity += Array.isArray(rules.actions) ? rules.actions.length : 1;
+    }
+    if (rules.validations) {
+      complexity += Array.isArray(rules.validations) ? rules.validations.length : 1;
+    }
+    if (rules.workflows) {
+      complexity += Array.isArray(rules.workflows) ? rules.workflows.length : 1;
+    }
+    if (rules.triggers) {
+      complexity += Array.isArray(rules.triggers) ? rules.triggers.length : 1;
+    }
+    
+    return complexity;
+  }
+
+  // Rule Pattern Replacement API Endpoint
+  app.post("/api/analysis/replace-pattern", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { patternType, newRuleFormat } = req.body;
+      
+      if (!patternType || !newRuleFormat) {
+        return res.status(400).json({ success: false, error: "Missing patternType or newRuleFormat" });
+      }
+
+      // Validate JSON format
+      let parsedNewRule;
+      try {
+        parsedNewRule = JSON.parse(newRuleFormat);
+      } catch (e) {
+        return res.status(400).json({ success: false, error: "Invalid JSON format in newRuleFormat" });
+      }
+
+      let replacedCount = 0;
+
+      // Get all jobs with change_array
+      const jobsQuery = await db.query(`
+        SELECT id, change_array FROM jobs 
+        WHERE change_array IS NOT NULL 
+        AND change_array != '{}' 
+        AND change_array != '[]'
+      `);
+
+      // Process each job's rules
+      for (const job of jobsQuery.rows) {
+        try {
+          const rules = JSON.parse(job.change_array);
+          const { updated, count } = replacePatternInRules(rules, patternType, parsedNewRule);
+          
+          if (count > 0) {
+            // Update the job with the new rules
+            await db.query(
+              'UPDATE jobs SET change_array = $1 WHERE id = $2',
+              [JSON.stringify(updated), job.id]
+            );
+            replacedCount += count;
+          }
+        } catch (e) {
+          console.error(`Error processing job ${job.id}:`, e);
+        }
+      }
+
+      // Get all templates with job_change_array
+      const templatesQuery = await db.query(`
+        SELECT id, job_change_array, flow_change_array FROM job_templates 
+        WHERE job_change_array IS NOT NULL OR flow_change_array IS NOT NULL
+      `);
+
+      // Process each template's rules
+      for (const template of templatesQuery.rows) {
+        try {
+          let jobUpdated = false;
+          let flowUpdated = false;
+          let jobRules = null;
+          let flowRules = null;
+          let jobCount = 0;
+          let flowCount = 0;
+
+          // Process job_change_array
+          if (template.job_change_array && template.job_change_array !== '{}') {
+            jobRules = JSON.parse(template.job_change_array);
+            const result = replacePatternInRules(jobRules, patternType, parsedNewRule);
+            if (result.count > 0) {
+              jobRules = result.updated;
+              jobUpdated = true;
+              jobCount = result.count;
+            }
+          }
+
+          // Process flow_change_array
+          if (template.flow_change_array && template.flow_change_array !== '{}') {
+            flowRules = JSON.parse(template.flow_change_array);
+            const result = replacePatternInRules(flowRules, patternType, parsedNewRule);
+            if (result.count > 0) {
+              flowRules = result.updated;
+              flowUpdated = true;
+              flowCount = result.count;
+            }
+          }
+
+          // Update template if any changes were made
+          if (jobUpdated || flowUpdated) {
+            const updateQuery = `
+              UPDATE job_templates SET 
+                job_change_array = $1,
+                flow_change_array = $2
+              WHERE id = $3
+            `;
+            
+            await db.query(updateQuery, [
+              jobUpdated ? JSON.stringify(jobRules) : template.job_change_array,
+              flowUpdated ? JSON.stringify(flowRules) : template.flow_change_array,
+              template.id
+            ]);
+            
+            replacedCount += jobCount + flowCount;
+          }
+        } catch (e) {
+          console.error(`Error processing template ${template.id}:`, e);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        replacedCount,
+        message: `Successfully replaced ${replacedCount} instances of ${patternType} pattern`
+      });
+
+    } catch (error) {
+      console.error('Error replacing pattern:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Helper function to replace patterns in rules
+  function replacePatternInRules(rules, targetPattern, newRule) {
+    let count = 0;
+    
+    function processRule(rule) {
+      if (!rule || typeof rule !== 'object') return rule;
+      
+      if (Array.isArray(rule)) {
+        return rule.map(item => {
+          // Check if this individual item (complete rule) matches the target pattern
+          if (identifyPattern(item) === targetPattern) {
+            count++;
+            return { ...newRule };
+          }
+          // Don't recurse into the item - only check complete rules
+          return item;
+        });
+      }
+      
+      // Check if this complete rule matches the target pattern
+      if (identifyPattern(rule) === targetPattern) {
+        count++;
+        return { ...newRule };
+      }
+      
+      // For non-array objects, don't recurse - only check the complete rule
+      return rule;
+    }
+    
+    const updated = processRule(rules);
+    return { updated, count };
+  }
+
+  // Helper function to identify pattern (same as frontend)
+  function identifyPattern(rules) {
+    if (!rules || typeof rules !== 'object') return 'unknown';
+    
+    // Pattern: Standard Task Transition
+    if (rules.antecedent && rules.decendant && Array.isArray(rules.decendant)) {
+      const hasStatusTransition = rules.decendant.some(d => 
+        d.status && d.status.includes('@') && d.status.includes('pending')
+      );
+      const hasTargetSetting = rules.decendant.some(d => 
+        d.target && d.target.includes('@') && d.target.includes('today_')
+      );
+      
+      if (rules.antecedent === 'complete' && hasStatusTransition && hasTargetSetting) {
+        return 'standard-task-transition';
+      }
+    }
+    
+    // Other patterns...
+    if (rules.status || rules.current_status) return 'status-update';
+    if (rules.target_date || rules.completed_date || rules.target) return 'date-assignment';
+    if (rules.workflow || rules.trigger || rules.workflows) return 'workflow-trigger';
+    if (rules.validations || rules.validate) return 'validation-rule';
+    
+    return 'custom-rule';
+  }
+
+  console.log('Stage 2: Rule Template API endpoints initialized');
+  console.log('Stage 2: Rule Analysis API endpoints initialized');
+}).catch(error => {
+  console.error('Failed to initialize RuleTemplateManager:', error);
 });
 
 // MVP: Customer Import Page (GET)

@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Pattern Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .json-viewer {
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pattern-row {
+            cursor: pointer;
+        }
+        .pattern-row:hover {
+            background-color: #f8f9fa;
+        }
+        .replacement-modal .json-editor {
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-1">
+                            <i class="fas fa-puzzle-piece text-primary"></i>
+                            Rule Pattern Analysis
+                        </h1>
+                        <p class="text-muted mb-0">Identify and manage rule patterns across your system</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary" onclick="refreshPatternAnalysis()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        <button class="btn btn-primary" onclick="exportPatternReport()">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pattern Analysis Content -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Rule Pattern Distribution</h5>
+                        <span class="badge bg-info" id="totalPatternsCount">0 patterns</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Pattern Type</th>
+                                        <th>Description</th>
+                                        <th>Count</th>
+                                        <th>Avg Complexity</th>
+                                        <th>Percentage</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patternsAnalysisTable">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading pattern analysis...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Pattern Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-primary" id="standardTransitionCount">-</h4>
+                                    <small class="text-muted">Standard Task Transitions</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-success" id="customRuleCount">-</h4>
+                                    <small class="text-muted">Custom Rules</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-warning" id="workflowTriggerCount">-</h4>
+                                    <small class="text-muted">Workflow Triggers</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <h4 class="text-info" id="validationRuleCount">-</h4>
+                                    <small class="text-muted">Validation Rules</small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="text-center">
+                            <h5 class="text-muted">Most Common Pattern</h5>
+                            <h4 class="text-dark" id="mostCommonPattern">-</h4>
+                            <small id="mostCommonPatternCount" class="text-muted">- occurrences</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="mb-0">Pattern Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="patternDetailContent">
+                            <p class="text-muted text-center">
+                                <i class="fas fa-info-circle"></i><br>
+                                Select a pattern from the table to view detailed examples and analysis.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rule Replacement Modal -->
+        <div class="modal fade" id="ruleReplacementModal" tabindex="-1" aria-labelledby="ruleReplacementModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="ruleReplacementModalLabel">Replace Rule Pattern</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Current Pattern Examples</h6>
+                                <div id="currentPatternExamples" class="json-viewer">
+                                    <!-- Current pattern examples will be shown here -->
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>New Rule Format</h6>
+                                <textarea 
+                                    id="newRuleFormat" 
+                                    class="form-control replacement-modal json-editor" 
+                                    placeholder="Enter the new rule format in JSON..."
+                                    rows="10"></textarea>
+                                <small class="text-muted">
+                                    Use placeholders like {ID} for dynamic values that should be preserved.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Warning:</strong> This will replace <span id="replacementCount">0</span> instances of this pattern type across all jobs and templates. This action cannot be undone.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" onclick="confirmReplacement()">
+                            <i class="fas fa-exchange-alt"></i> Replace All
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Global variables
+        let analysisData = {};
+        let patternData = {};
+        let currentReplacementPattern = null;
+
+        // Initialize the report
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalysisData();
+        });
+
+        // Load analysis data from the server
+        async function loadAnalysisData() {
+            try {
+                showLoadingIndicator();
+                
+                // Load jobs analysis
+                const jobsResponse = await fetch('/api/analysis/jobs-change-arrays');
+                const jobsData = await jobsResponse.json();
+                
+                // Load templates analysis
+                const templatesResponse = await fetch('/api/analysis/templates-change-arrays');
+                const templatesData = await templatesResponse.json();
+                
+                analysisData = {
+                    jobs: jobsData.success ? jobsData.data : [],
+                    templates: templatesData.success ? templatesData.data : []
+                };
+                
+                populatePatternAnalysis();
+                
+            } catch (error) {
+                console.error('Error loading analysis data:', error);
+                showErrorMessage('Failed to load analysis data. Please check your connection and try again.');
+            }
+        }
+
+        function showLoadingIndicator() {
+            const table = document.getElementById('patternsAnalysisTable');
+            table.innerHTML = '<tr><td colspan="6" class="text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+        }
+
+        function identifyRulePattern(rules) {
+            if (!rules || typeof rules !== 'object') return 'unknown';
+            
+            // Check for array format rules
+            if (Array.isArray(rules)) {
+                for (const rule of rules) {
+                    const pattern = identifyRulePattern(rule);
+                    if (pattern !== 'unknown') return pattern;
+                }
+                return 'unknown';
+            }
+            
+            // Pattern: Standard Task Transition
+            // Structure: { antecedent: "complete", decendant: [{ status: "pending@<id>" }, { target: "today_1@<id>" }] }
+            if (rules.antecedent && rules.decendant && Array.isArray(rules.decendant)) {
+                const hasStatusTransition = rules.decendant.some(d => 
+                    d.status && d.status.includes('@') && d.status.includes('pending')
+                );
+                const hasTargetSetting = rules.decendant.some(d => 
+                    d.target && d.target.includes('@') && d.target.includes('today_')
+                );
+                
+                if (rules.antecedent === 'complete' && hasStatusTransition && hasTargetSetting) {
+                    return 'standard-task-transition';
+                }
+            }
+            
+            // Pattern: Status Update
+            if (rules.status || rules.current_status) {
+                return 'status-update';
+            }
+            
+            // Pattern: Date Assignment  
+            if (rules.target_date || rules.completed_date || rules.target) {
+                return 'date-assignment';
+            }
+            
+            // Pattern: Workflow Trigger
+            if (rules.workflow || rules.trigger || rules.workflows) {
+                return 'workflow-trigger';
+            }
+            
+            // Pattern: Validation Rule
+            if (rules.validations || rules.validate) {
+                return 'validation-rule';
+            }
+            
+            return 'custom-rule';
+        }
+
+        function extractRulePatterns(rules) {
+            const patterns = {};
+            
+            function analyzeRule(rule, path = '') {
+                if (!rule || typeof rule !== 'object') return;
+                
+                if (Array.isArray(rule)) {
+                    // Only analyze each complete rule in the array, don't recurse
+                    rule.forEach((item, index) => {
+                        const pattern = identifyRulePattern(item);
+                        
+                        if (!patterns[pattern]) {
+                            patterns[pattern] = {
+                                count: 0,
+                                examples: [],
+                                complexity: 0
+                            };
+                        }
+                        
+                        patterns[pattern].count++;
+                        patterns[pattern].complexity += calculateRuleComplexity(item);
+                        
+                        // Store example (limit to 3 examples per pattern)
+                        if (patterns[pattern].examples.length < 3) {
+                            patterns[pattern].examples.push({
+                                rule: JSON.stringify(item, null, 2),
+                                path: `${path}[${index}]`
+                            });
+                        }
+                    });
+                } else {
+                    // Analyze this complete rule
+                    const pattern = identifyRulePattern(rule);
+                    
+                    if (!patterns[pattern]) {
+                        patterns[pattern] = {
+                            count: 0,
+                            examples: [],
+                            complexity: 0
+                        };
+                    }
+                    
+                    patterns[pattern].count++;
+                    patterns[pattern].complexity += calculateRuleComplexity(rule);
+                    
+                    // Store example (limit to 3 examples per pattern)
+                    if (patterns[pattern].examples.length < 3) {
+                        patterns[pattern].examples.push({
+                            rule: JSON.stringify(rule, null, 2),
+                            path: path
+                        });
+                    }
+                }
+            }
+            
+            analyzeRule(rules);
+            return patterns;
+        }
+
+        function calculateRuleComplexity(rules) {
+            if (!rules || typeof rules !== 'object') return 0;
+            
+            let complexity = 0;
+            
+            // Count different types of rules
+            if (rules.conditions) complexity += Array.isArray(rules.conditions) ? rules.conditions.length : 1;
+            if (rules.actions) complexity += Array.isArray(rules.actions) ? rules.actions.length : 1;
+            if (rules.validations) complexity += Array.isArray(rules.validations) ? rules.validations.length : 1;
+            if (rules.workflows) complexity += Array.isArray(rules.workflows) ? rules.workflows.length : 1;
+            
+            return complexity;
+        }
+
+        function populatePatternAnalysis() {
+            const table = document.getElementById('patternsAnalysisTable');
+            
+            if (!analysisData.jobs && !analysisData.templates) {
+                table.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No rule data available</td></tr>';
+                return;
+            }
+            
+            // Collect all rules from jobs and templates
+            const allRules = [];
+            
+            // Analyze job rules
+            if (analysisData.jobs) {
+                analysisData.jobs.forEach(job => {
+                    if (job.change_array && job.change_array !== '{}' && job.change_array !== '[]') {
+                        try {
+                            const rules = JSON.parse(job.change_array);
+                            allRules.push({ source: 'job', id: job.id, rules });
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                });
+            }
+            
+            // Analyze template rules
+            if (analysisData.templates) {
+                analysisData.templates.forEach(template => {
+                    if (template.job_change_array && template.job_change_array !== '{}') {
+                        try {
+                            const rules = JSON.parse(template.job_change_array);
+                            allRules.push({ source: 'template-job', id: template.id, rules });
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                    if (template.flow_change_array && template.flow_change_array !== '{}') {
+                        try {
+                            const rules = JSON.parse(template.flow_change_array);
+                            allRules.push({ source: 'template-flow', id: template.id, rules });
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                });
+            }
+            
+            // Extract patterns from all rules
+            const globalPatterns = {};
+            let totalRules = 0;
+            
+            allRules.forEach(ruleSet => {
+                const patterns = extractRulePatterns(ruleSet.rules);
+                Object.keys(patterns).forEach(patternType => {
+                    if (!globalPatterns[patternType]) {
+                        globalPatterns[patternType] = {
+                            count: 0,
+                            totalComplexity: 0,
+                            examples: [],
+                            sources: []
+                        };
+                    }
+                    globalPatterns[patternType].count += patterns[patternType].count;
+                    globalPatterns[patternType].totalComplexity += patterns[patternType].complexity;
+                    
+                    // Add examples (limit to 3 total)
+                    patterns[patternType].examples.forEach(example => {
+                        if (globalPatterns[patternType].examples.length < 3) {
+                            globalPatterns[patternType].examples.push({
+                                ...example,
+                                source: ruleSet.source,
+                                sourceId: ruleSet.id
+                            });
+                        }
+                    });
+                    
+                    totalRules += patterns[patternType].count;
+                });
+            });
+            
+            // Store pattern data globally
+            patternData = globalPatterns;
+            
+            // Define pattern descriptions
+            const patternDescriptions = {
+                'standard-task-transition': 'Rules that transition tasks from complete to pending with target dates',
+                'status-update': 'Rules that update job or task status',
+                'date-assignment': 'Rules that set target or completion dates',
+                'workflow-trigger': 'Rules that trigger workflows or notifications',
+                'validation-rule': 'Rules that validate data or conditions',
+                'custom-rule': 'Custom business logic rules',
+                'unknown': 'Unclassified or complex rule patterns'
+            };
+            
+            // Sort patterns by count
+            const sortedPatterns = Object.entries(globalPatterns)
+                .sort(([,a], [,b]) => b.count - a.count);
+            
+            // Create table rows
+            const rows = sortedPatterns.map(([patternType, data]) => {
+                const avgComplexity = data.count > 0 ? (data.totalComplexity / data.count).toFixed(1) : '0';
+                const percentage = totalRules > 0 ? ((data.count / totalRules) * 100).toFixed(1) : '0';
+                
+                let badgeClass = 'bg-secondary';
+                if (patternType === 'standard-task-transition') badgeClass = 'bg-primary';
+                else if (patternType === 'custom-rule') badgeClass = 'bg-success';
+                else if (patternType === 'workflow-trigger') badgeClass = 'bg-warning';
+                else if (patternType === 'validation-rule') badgeClass = 'bg-info';
+                
+                return `
+                    <tr class="pattern-row" onclick="showPatternDetail('${patternType}')">
+                        <td>
+                            <span class="badge ${badgeClass}">${patternType.replace('-', ' ').toUpperCase()}</span>
+                        </td>
+                        <td>${patternDescriptions[patternType] || 'Unknown pattern type'}</td>
+                        <td><strong>${data.count}</strong></td>
+                        <td>${avgComplexity}</td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar ${badgeClass.replace('bg-', 'bg-')}" 
+                                     style="width: ${percentage}%">
+                                    ${percentage}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); showPatternDetail('${patternType}')" title="View Examples">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="event.stopPropagation(); showReplaceDialog('${patternType}')" title="Replace All">
+                                <i class="fas fa-exchange-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            table.innerHTML = rows;
+            
+            // Update summary cards
+            document.getElementById('standardTransitionCount').textContent = 
+                globalPatterns['standard-task-transition']?.count || 0;
+            document.getElementById('customRuleCount').textContent = 
+                globalPatterns['custom-rule']?.count || 0;
+            document.getElementById('workflowTriggerCount').textContent = 
+                globalPatterns['workflow-trigger']?.count || 0;
+            document.getElementById('validationRuleCount').textContent = 
+                globalPatterns['validation-rule']?.count || 0;
+            document.getElementById('totalPatternsCount').textContent = 
+                `${Object.keys(globalPatterns).length} patterns`;
+                
+            // Most common pattern
+            if (sortedPatterns.length > 0) {
+                const [mostCommon, mostCommonData] = sortedPatterns[0];
+                document.getElementById('mostCommonPattern').textContent = 
+                    mostCommon.replace('-', ' ').toUpperCase();
+                document.getElementById('mostCommonPatternCount').textContent = 
+                    `${mostCommonData.count} occurrences`;
+            }
+        }
+
+        function showPatternDetail(patternType) {
+            if (!patternData || !patternData[patternType]) {
+                alert('Pattern data not available');
+                return;
+            }
+            
+            const pattern = patternData[patternType];
+            const content = document.getElementById('patternDetailContent');
+            
+            let html = `
+                <h6 class="text-primary">${patternType.replace('-', ' ').toUpperCase()}</h6>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>Count:</strong> ${pattern.count}
+                    </div>
+                    <div class="col-6">
+                        <strong>Avg Complexity:</strong> ${(pattern.totalComplexity / pattern.count).toFixed(1)}
+                    </div>
+                </div>
+                <hr>
+                <h6>Examples:</h6>
+            `;
+            
+            if (pattern.examples.length === 0) {
+                html += '<p class="text-muted">No examples available</p>';
+            } else {
+                pattern.examples.forEach((example, index) => {
+                    html += `
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Example ${index + 1}</strong>
+                                <small class="text-muted">${example.source} ID: ${example.sourceId}</small>
+                            </div>
+                            <div class="json-viewer" style="max-height: 150px;">
+${example.rule}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            content.innerHTML = html;
+        }
+
+        function showReplaceDialog(patternType) {
+            if (!patternData || !patternData[patternType]) {
+                alert('Pattern data not available');
+                return;
+            }
+            
+            currentReplacementPattern = patternType;
+            const pattern = patternData[patternType];
+            
+            // Set modal title
+            document.getElementById('ruleReplacementModalLabel').textContent = 
+                `Replace ${patternType.replace('-', ' ').toUpperCase()} Pattern`;
+            
+            // Show current pattern examples
+            let examplesHtml = '';
+            pattern.examples.forEach((example, index) => {
+                examplesHtml += `Example ${index + 1}:\n${example.rule}\n\n`;
+            });
+            document.getElementById('currentPatternExamples').textContent = examplesHtml;
+            
+            // Set replacement count
+            document.getElementById('replacementCount').textContent = pattern.count;
+            
+            // Clear new rule format
+            document.getElementById('newRuleFormat').value = '';
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('ruleReplacementModal'));
+            modal.show();
+        }
+
+        function previewReplacement() {
+            // Removed - no longer needed
+        }
+
+        function executeReplacement() {
+            // Removed - no longer needed  
+        }
+
+        async function confirmReplacement() {
+            const newRuleFormat = document.getElementById('newRuleFormat').value.trim();
+            
+            if (!newRuleFormat || !currentReplacementPattern) {
+                alert('Missing replacement data');
+                return;
+            }
+            
+            try {
+                JSON.parse(newRuleFormat); // Validate JSON
+            } catch (e) {
+                alert('Invalid JSON format in new rule. Please check your syntax.');
+                return;
+            }
+            
+            // Confirm with user
+            const patternCount = patternData[currentReplacementPattern].count;
+            if (!confirm(`Are you sure you want to replace ${patternCount} instances of ${currentReplacementPattern.replace('-', ' ').toUpperCase()} pattern? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const confirmBtn = document.querySelector('#ruleReplacementModal .btn-danger');
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Replacing...';
+                confirmBtn.disabled = true;
+                
+                // This would be an API call to replace all instances
+                const response = await fetch('/api/analysis/replace-pattern', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        patternType: currentReplacementPattern,
+                        newRuleFormat: newRuleFormat
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Restore button
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+                
+                if (result.success) {
+                    alert(`Successfully replaced ${result.replacedCount} instances of ${currentReplacementPattern.replace('-', ' ').toUpperCase()} pattern.`);
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('ruleReplacementModal'));
+                    modal.hide();
+                    
+                    // Refresh the analysis
+                    loadAnalysisData();
+                } else {
+                    alert('Replacement failed: ' + result.error);
+                }
+                
+            } catch (error) {
+                // Restore button state
+                const confirmBtn = document.querySelector('#ruleReplacementModal .btn-danger');
+                confirmBtn.innerHTML = '<i class="fas fa-exchange-alt"></i> Replace All';
+                confirmBtn.disabled = false;
+                
+                console.error('Replacement error:', error);
+                alert('Replacement failed due to a network error');
+            }
+        }
+
+        function refreshPatternAnalysis() {
+            loadAnalysisData();
+        }
+
+        function exportPatternReport() {
+            // This would generate and download a report
+            alert('Export functionality would generate a detailed pattern analysis report');
+        }
+
+        function showErrorMessage(message) {
+            alert(message);
+        }
+    </script>
+</body>
+</html>
