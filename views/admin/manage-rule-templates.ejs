@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rule Templates</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .template-row:hover {
+            background-color: #f8f9fa;
+        }
+        .json-viewer {
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    
+    <div class="container-fluid py-4 mt-5 pt-3">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="h3 mb-1">
+                            <i class="fas fa-th-list text-primary"></i>
+                            Manage Rule Templates
+                        </h1>
+                        <p class="text-muted mb-0">Create, edit and manage rule templates for your workflow system</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="/admin/rule-analysis" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Analysis
+                        </a>
+                        <button class="btn btn-primary" onclick="createTemplate()">
+                            <i class="fas fa-plus"></i> New Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Template Filters -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Rule Templates</h5>
+                            <div class="d-flex gap-2">
+                                <select id="categoryFilter" class="form-select form-select-sm" style="width: 140px;">
+                                    <option value="">All Categories</option>
+                                    <option value="status_change">Status Change</option>
+                                    <option value="workflow">Workflow</option>
+                                    <option value="validation">Validation</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                                <select id="statusFilter" class="form-select form-select-sm" style="width: 120px;">
+                                    <option value="">All Status</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                                <div class="input-group input-group-sm" style="width: 200px;">
+                                    <input type="text" id="searchInput" class="form-control" placeholder="Search templates...">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Usage</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="templateTableBody">
+                                    <!-- Templates will be loaded here -->
+                                    <tr>
+                                        <td colspan="6" class="text-center py-3">
+                                            <i class="fas fa-spinner fa-spin me-2"></i> Loading templates...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Template Details</h5>
+                    </div>
+                    <div class="card-body" id="templateDetailsPanel">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-file-alt fa-3x mb-3"></i>
+                            <p>Select a template to view details</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Template Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <h2 id="totalTemplatesCount">0</h2>
+                                <small class="text-muted">Total Templates</small>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <h2 id="activeTemplatesCount">0</h2>
+                                <small class="text-muted">Active Templates</small>
+                            </div>
+                            <div class="col-6">
+                                <h2 id="avgUsageCount">0</h2>
+                                <small class="text-muted">Avg. Usage</small>
+                            </div>
+                            <div class="col-6">
+                                <h2 id="categoriesCount">0</h2>
+                                <small class="text-muted">Categories</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Edit Modal -->
+    <div class="modal fade" id="templateEditModal" tabindex="-1" aria-labelledby="templateEditModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="templateEditModalLabel">Edit Template</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="templateForm">
+                        <div class="mb-3">
+                            <label for="templateName" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="templateName" required>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="templateCategory" class="form-label">Category</label>
+                                <select class="form-select" id="templateCategory" required>
+                                    <option value="">Select Category</option>
+                                    <option value="status_change">Status Change</option>
+                                    <option value="workflow">Workflow</option>
+                                    <option value="validation">Validation</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label d-block">Status</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="templateStatus" checked>
+                                    <label class="form-check-label" for="templateStatus">Active</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="templateDescription" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateRule" class="form-label">Rule Configuration (JSON)</label>
+                            <textarea class="form-control font-monospace" id="templateRule" rows="10" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveTemplate()">Save Template</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let templates = [];
+        let selectedTemplateId = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTemplates();
+            
+            // Set up event listeners for filters
+            document.getElementById('categoryFilter').addEventListener('change', filterTemplates);
+            document.getElementById('statusFilter').addEventListener('change', filterTemplates);
+            document.getElementById('searchInput').addEventListener('input', filterTemplates);
+        });
+
+        // Load all templates from the API
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/rule-templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    templates = data.templates || [];
+                    updateTemplateTable();
+                    updateStatistics();
+                } else {
+                    showError('Failed to load templates: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error loading templates:', error);
+                showError('Failed to load templates: ' + error.message);
+            }
+        }
+
+        // Update the template table with current data
+        function updateTemplateTable(filteredTemplates = null) {
+            const tbody = document.getElementById('templateTableBody');
+            const templatesToShow = filteredTemplates || templates;
+            
+            if (templatesToShow.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-3 text-muted">
+                            No templates found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = templatesToShow.map(template => {
+                const statusBadge = template.is_active 
+                    ? '<span class="badge bg-success">Active</span>' 
+                    : '<span class="badge bg-secondary">Inactive</span>';
+                    
+                const categoryBadge = getCategoryBadge(template.category);
+                const lastUpdated = new Date(template.updated_at).toLocaleDateString();
+                
+                return `
+                    <tr class="template-row" onclick="selectTemplate(${template.id})">
+                        <td>${template.name}</td>
+                        <td>${categoryBadge}</td>
+                        <td>${statusBadge}</td>
+                        <td>${template.usage_count || 0}</td>
+                        <td>${lastUpdated}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${template.id}); event.stopPropagation();">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTemplate(${template.id}); event.stopPropagation();">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter templates based on user selections
+        function filterTemplates() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = templates;
+            
+            // Apply category filter
+            if (categoryFilter) {
+                filtered = filtered.filter(t => t.category === categoryFilter);
+            }
+            
+            // Apply status filter
+            if (statusFilter) {
+                const isActive = statusFilter === 'active';
+                filtered = filtered.filter(t => t.is_active === isActive);
+            }
+            
+            // Apply search filter
+            if (searchText) {
+                filtered = filtered.filter(t => 
+                    t.name.toLowerCase().includes(searchText) ||
+                    (t.description && t.description.toLowerCase().includes(searchText))
+                );
+            }
+            
+            updateTemplateTable(filtered);
+        }
+
+        // Get badge HTML for a category
+        function getCategoryBadge(category) {
+            const badges = {
+                'status_change': '<span class="badge bg-primary">Status Change</span>',
+                'workflow': '<span class="badge bg-warning text-dark">Workflow</span>',
+                'validation': '<span class="badge bg-info text-dark">Validation</span>',
+                'custom': '<span class="badge bg-success">Custom</span>'
+            };
+            return badges[category] || '<span class="badge bg-secondary">Unknown</span>';
+        }
+
+        // Select a template to display details
+        function selectTemplate(id) {
+            selectedTemplateId = id;
+            const template = templates.find(t => t.id === id);
+            
+            if (!template) return;
+            
+            // Highlight selected row
+            document.querySelectorAll('.template-row').forEach(row => {
+                row.classList.remove('table-primary');
+            });
+            
+            const selectedRow = document.querySelector(`.template-row[onclick="selectTemplate(${id})"]`);
+            if (selectedRow) {
+                selectedRow.classList.add('table-primary');
+            }
+            
+            // Update details panel
+            const detailsPanel = document.getElementById('templateDetailsPanel');
+            
+            let ruleJson = 'No rule configuration';
+            try {
+                if (template.rule_template) {
+                    const rule = JSON.parse(template.rule_template);
+                    ruleJson = JSON.stringify(rule, null, 2);
+                }
+            } catch (e) {
+                ruleJson = 'Invalid JSON';
+            }
+            
+            detailsPanel.innerHTML = `
+                <h5 class="text-primary">${template.name}</h5>
+                <p class="text-muted">${template.description || 'No description provided'}</p>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>Category:</strong><br>
+                        ${getCategoryBadge(template.category)}
+                    </div>
+                    <div class="col-6">
+                        <strong>Status:</strong><br>
+                        ${template.is_active ? 
+                            '<span class="badge bg-success">Active</span>' : 
+                            '<span class="badge bg-secondary">Inactive</span>'}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <strong>Usage Count:</strong><br>
+                        ${template.usage_count || 0}
+                    </div>
+                    <div class="col-6">
+                        <strong>Last Updated:</strong><br>
+                        ${new Date(template.updated_at).toLocaleDateString()}
+                    </div>
+                </div>
+                
+                <h6>Rule Configuration:</h6>
+                <pre class="json-viewer">${ruleJson}</pre>
+                
+                <div class="mt-3 d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${template.id})">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="duplicateTemplate(${template.id})">
+                        <i class="fas fa-copy"></i> Duplicate
+                    </button>
+                </div>
+            `;
+        }
+
+        // Update template statistics
+        function updateStatistics() {
+            const total = templates.length;
+            const active = templates.filter(t => t.is_active).length;
+            const totalUsage = templates.reduce((sum, t) => sum + (t.usage_count || 0), 0);
+            const avgUsage = total > 0 ? Math.round(totalUsage / total) : 0;
+            const categories = new Set(templates.map(t => t.category)).size;
+            
+            document.getElementById('totalTemplatesCount').textContent = total;
+            document.getElementById('activeTemplatesCount').textContent = active;
+            document.getElementById('avgUsageCount').textContent = avgUsage;
+            document.getElementById('categoriesCount').textContent = categories;
+        }
+
+        // Create a new template
+        function createTemplate() {
+            selectedTemplateId = null;
+            document.getElementById('templateEditModalLabel').textContent = 'Create New Template';
+            
+            // Reset form
+            document.getElementById('templateName').value = '';
+            document.getElementById('templateCategory').value = '';
+            document.getElementById('templateStatus').checked = true;
+            document.getElementById('templateDescription').value = '';
+            document.getElementById('templateRule').value = JSON.stringify({
+                "trigger": "status_change",
+                "conditions": [],
+                "actions": []
+            }, null, 2);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('templateEditModal'));
+            modal.show();
+        }
+
+        // Edit an existing template
+        function editTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (!template) return;
+            
+            selectedTemplateId = id;
+            document.getElementById('templateEditModalLabel').textContent = 'Edit Template';
+            
+            // Populate form
+            document.getElementById('templateName').value = template.name;
+            document.getElementById('templateCategory').value = template.category;
+            document.getElementById('templateStatus').checked = template.is_active;
+            document.getElementById('templateDescription').value = template.description || '';
+            
+            try {
+                let ruleConfig = template.rule_template || '{}';
+                if (typeof ruleConfig === 'string') {
+                    // Try to parse and re-stringify for formatting
+                    const parsed = JSON.parse(ruleConfig);
+                    ruleConfig = JSON.stringify(parsed, null, 2);
+                } else {
+                    ruleConfig = JSON.stringify(ruleConfig, null, 2);
+                }
+                document.getElementById('templateRule').value = ruleConfig;
+            } catch (e) {
+                document.getElementById('templateRule').value = template.rule_template || '{}';
+            }
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('templateEditModal'));
+            modal.show();
+        }
+
+        // Save template (create or update)
+        async function saveTemplate() {
+            // Validate form
+            const name = document.getElementById('templateName').value.trim();
+            const category = document.getElementById('templateCategory').value;
+            const isActive = document.getElementById('templateStatus').checked;
+            const description = document.getElementById('templateDescription').value.trim();
+            const ruleConfig = document.getElementById('templateRule').value.trim();
+            
+            if (!name || !category || !ruleConfig) {
+                showError('Please fill in all required fields');
+                return;
+            }
+            
+            // Validate JSON
+            try {
+                JSON.parse(ruleConfig);
+            } catch (e) {
+                showError('Invalid JSON in rule configuration. Please check your syntax.');
+                return;
+            }
+            
+            const templateData = {
+                name,
+                category,
+                is_active: isActive,
+                description,
+                rule_template: ruleConfig
+            };
+            
+            try {
+                let url = '/api/rule-templates';
+                let method = 'POST';
+                
+                if (selectedTemplateId) {
+                    url += `/${selectedTemplateId}`;
+                    method = 'PUT';
+                }
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(templateData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('templateEditModal')).hide();
+                    
+                    // Reload templates
+                    loadTemplates();
+                    
+                    // Show success message
+                    showSuccess(selectedTemplateId ? 'Template updated successfully' : 'Template created successfully');
+                } else {
+                    showError(result.message || 'Failed to save template');
+                }
+            } catch (error) {
+                console.error('Error saving template:', error);
+                showError('Failed to save template: ' + error.message);
+            }
+        }
+
+        // Delete a template
+        async function deleteTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (!template) return;
+            
+            if (!confirm(`Are you sure you want to delete the template "${template.name}"?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rule-templates/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // If deleted template was selected, clear details
+                    if (selectedTemplateId === id) {
+                        selectedTemplateId = null;
+                        document.getElementById('templateDetailsPanel').innerHTML = `
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-file-alt fa-3x mb-3"></i>
+                                <p>Select a template to view details</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Reload templates
+                    loadTemplates();
+                    
+                    // Show success message
+                    showSuccess('Template deleted successfully');
+                } else {
+                    showError(result.message || 'Failed to delete template');
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                showError('Failed to delete template: ' + error.message);
+            }
+        }
+
+        // Duplicate a template
+        async function duplicateTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (!template) return;
+            
+            try {
+                const newTemplate = {
+                    name: `${template.name} (Copy)`,
+                    category: template.category,
+                    description: template.description,
+                    rule_template: template.rule_template,
+                    is_active: false // Set inactive by default
+                };
+                
+                const response = await fetch('/api/rule-templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newTemplate)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Reload templates
+                    loadTemplates();
+                    
+                    // Show success message
+                    showSuccess('Template duplicated successfully');
+                } else {
+                    showError(result.message || 'Failed to duplicate template');
+                }
+            } catch (error) {
+                console.error('Error duplicating template:', error);
+                showError('Failed to duplicate template: ' + error.message);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            alert(`Error: ${message}`);
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            alert(`Success: ${message}`);
+        }
+    </script>
+</body>
+</html>

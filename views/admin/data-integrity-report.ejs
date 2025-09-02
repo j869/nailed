@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Data Integrity Report</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-good { color: #28a745; }
+        .status-warning { color: #ffc107; }
+        .status-error { color: #dc3545; }
+        .metric-card {
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .metric-card.warning {
+            border-left-color: #ffc107;
+        }
+        .metric-card.error {
+            border-left-color: #dc3545;
+        }
+        .metric-card.good {
+            border-left-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="fas fa-database"></i> Data Integrity Report</h2>
+                <p class="text-muted">System health check for database consistency and orphaned records</p>
+                
+                <div id="loading" class="text-center my-5">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Analyzing database integrity...</p>
+                </div>
+                
+                <div id="report-content" style="display: none;">
+                    <!-- Orphaned Records Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="mb-3"><i class="fas fa-unlink"></i> Orphaned Records</h4>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-customers-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Customers with Invalid Status</h6>
+                                    <h3 class="mb-0" id="orphaned-customers">-</h3>
+                                    <small class="text-muted">Customers referencing non-existent products</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-builds-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Orphaned Builds</h6>
+                                    <h3 class="mb-0" id="orphaned-builds">-</h3>
+                                    <small class="text-muted">Builds without valid customer references</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-jobs-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Orphaned Jobs</h6>
+                                    <h3 class="mb-0" id="orphaned-jobs">-</h3>
+                                    <small class="text-muted">Jobs without valid build references</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-flow-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Orphaned Process Flow</h6>
+                                    <h3 class="mb-0" id="orphaned-flow">-</h3>
+                                    <small class="text-muted">Process flows with invalid job references</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-reminders-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Orphaned Reminders</h6>
+                                    <h3 class="mb-0" id="orphaned-reminders">-</h3>
+                                    <small class="text-muted">Reminders not referenced by any jobs</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="orphaned-templates-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Orphaned Job Templates</h6>
+                                    <h3 class="mb-0" id="orphaned-templates">-</h3>
+                                    <small class="text-muted">Templates with invalid product references</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Quality Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h4 class="mb-3"><i class="fas fa-check-circle"></i> Data Quality</h4>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="missing-job-no-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Missing Job Numbers</h6>
+                                    <h3 class="mb-0" id="missing-job-no">-</h3>
+                                    <small class="text-muted">Customers without job_no but data in contact_other</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="missing-next-action-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Missing Next Action</h6>
+                                    <h3 class="mb-0" id="missing-next-action">-</h3>
+                                    <small class="text-muted">Customers with pending jobs but no next action</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card metric-card" id="total-customers-card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Customers</h6>
+                                    <h3 class="mb-0" id="total-customers">-</h3>
+                                    <small class="text-muted">Active customer records</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-info-circle"></i> Data Integrity Status</h5>
+                                <div id="overall-status">Analyzing...</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-primary" onclick="refreshReport()">
+                                    <i class="fas fa-refresh"></i> Refresh Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function loadDataIntegrityReport() {
+            try {
+                const response = await fetch('/admin/data-integrity-api');
+                const data = await response.json();
+                
+                // Update orphaned records
+                updateMetric('orphaned-customers', data.orphanedCustomers);
+                updateMetric('orphaned-builds', data.orphanedBuilds);
+                updateMetric('orphaned-jobs', data.orphanedJobs);
+                updateMetric('orphaned-flow', data.orphanedFlow);
+                updateMetric('orphaned-reminders', data.orphanedReminders);
+                updateMetric('orphaned-templates', data.orphanedTemplates);
+                
+                // Update data quality
+                updateMetric('missing-job-no', data.missingJobNo);
+                updateMetric('missing-next-action', data.missingNextAction);
+                updateMetric('total-customers', data.totalCustomers, 'good');
+                
+                // Update overall status
+                const totalIssues = data.orphanedCustomers + data.orphanedBuilds + data.orphanedJobs + 
+                                  data.orphanedFlow + data.orphanedReminders + data.orphanedTemplates + 
+                                  data.missingJobNo + data.missingNextAction;
+                
+                const statusEl = document.getElementById('overall-status');
+                if (totalIssues === 0) {
+                    statusEl.innerHTML = '<span class="status-good"><i class="fas fa-check"></i> All data integrity checks passed!</span>';
+                } else {
+                    statusEl.innerHTML = `<span class="status-warning"><i class="fas fa-exclamation-triangle"></i> ${totalIssues} issues detected requiring attention</span>`;
+                }
+                
+                // Show report
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('report-content').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading data integrity report:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<div class="alert alert-danger">Error loading report. Please try again.</div>';
+            }
+        }
+        
+        function updateMetric(elementId, value, status = null) {
+            const element = document.getElementById(elementId);
+            const card = document.getElementById(elementId + '-card');
+            
+            if (!element || !card) {
+                console.error('Element not found:', elementId);
+                return;
+            }
+            
+            element.textContent = value;
+            
+            // Auto-determine status if not provided
+            if (!status) {
+                status = value > 0 ? 'error' : 'good';
+            }
+            
+            // Update card styling
+            card.className = `card metric-card ${status}`;
+        }
+        
+        function refreshReport() {
+            console.log('Refreshing data integrity report...');
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('report-content').style.display = 'none';
+            loadDataIntegrityReport();
+        }
+        
+        // Load report on page load
+        document.addEventListener('DOMContentLoaded', loadDataIntegrityReport);
+    </script>
+</body>
+</html>
