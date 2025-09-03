@@ -132,6 +132,89 @@ function getMelbourneTime(format = 'iso') {
 
 //#endregion
 
+// Workflow Validator Admin Interface (No Auth - API Style)
+app.get("/admin/workflow-validator", async (req, res) => {
+  console.log("wv1      Starting workflow validator admin page");
+  
+  try {
+    // Get summary statistics
+    const summaryResult = await pool.query(`
+      SELECT 
+        problem_type,
+        severity,
+        COUNT(*) as count
+      FROM data_problems 
+      WHERE problem_type IN ('json_error', 'missing_steps', 'broken_chains', 'template_issues', 'tier_violations')
+      GROUP BY problem_type, severity
+      ORDER BY problem_type, severity
+    `);
+
+    // Get detailed problems by type
+    const problemsResult = await pool.query(`
+      SELECT 
+        dp.*,
+        j.display_text as job_name,
+        c.full_name as customer_name
+      FROM data_problems dp
+      LEFT JOIN jobs j ON dp.table_name = 'jobs' AND dp.record_id = j.id
+      LEFT JOIN builds b ON j.build_id = b.id
+      LEFT JOIN customers c ON b.customer_id = c.id
+      WHERE dp.problem_type IN ('json_error', 'missing_steps', 'broken_chains', 'template_issues', 'tier_violations')
+      ORDER BY dp.severity DESC, dp.problem_type, dp.detected_date DESC
+    `);
+
+    // Group problems by type
+    const problemsByType = {
+      json_error: [],
+      missing_steps: [],
+      broken_chains: [],
+      template_issues: [],
+      tier_violations: []
+    };
+
+    problemsResult.rows.forEach(problem => {
+      if (problemsByType[problem.problem_type]) {
+        problemsByType[problem.problem_type].push(problem);
+      }
+    });
+
+    // Calculate summary statistics
+    const summary = {
+      totalProblems: problemsResult.rows.length,
+      highSeverity: problemsResult.rows.filter(p => p.severity === 'high').length,
+      mediumSeverity: problemsResult.rows.filter(p => p.severity === 'medium').length,
+      lowSeverity: problemsResult.rows.filter(p => p.severity === 'low').length,
+      uniqueJobs: new Set(problemsResult.rows.map(p => p.record_id)).size,
+      byType: {}
+    };
+
+    summaryResult.rows.forEach(row => {
+      if (!summary.byType[row.problem_type]) {
+        summary.byType[row.problem_type] = {};
+      }
+      summary.byType[row.problem_type][row.severity] = parseInt(row.count);
+    });
+
+    console.log("wv9      Workflow validator data loaded", { 
+      totalProblems: summary.totalProblems, 
+      uniqueJobs: summary.uniqueJobs 
+    });
+
+    res.render("admin/workflow-validator", {
+      user: { id: 'test' },
+      problems: problemsByType,
+      summary: summary,
+      lastUpdate: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("wv8      Workflow validator error", { error: error.message });
+    res.status(500).send("Error loading workflow validator: " + error.message);
+  }
+});
+
+//#endregion
+
 // Multer Setup for File Uploads (storing in memory)
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -1442,7 +1525,7 @@ app.get("/addjob", async (req, res) => {
 
         let parentJobID;
         let parentChangeArray = '';
-        let antecedentJobID;
+               let antecedentJobID;
         console.log("a831     Copying template to build and creating jobs ");
         for (const t of template.rows) {
           console.log("a832       working with template(", t.id, ") on tier ["+t.tier+"] ...");
@@ -1805,352 +1888,93 @@ export async function createDecendantsForJob(jobID, pool, thisJobOnly = false ) 
 
 
 
+// Workflow Validator Admin Interface API
+app.get("/api/workflow-problems", async (req, res) => {
+  console.log("wv1      Starting workflow validator API", { ip: req.ip });
+
+  try {
+    // Get summary statistics
+    const summaryResult = await pool.query(`
+      SELECT 
+        problem_type,
+        severity,
+        COUNT(*) as count
+      FROM data_problems 
+      WHERE problem_type IN ('json_error', 'missing_steps', 'broken_chains', 'template_issues', 'tier_violations')
+      GROUP BY problem_type, severity
+      ORDER BY problem_type, severity
+    `);
+
+    // Get detailed problems by type
+    const problemsResult = await pool.query(`
+      SELECT 
+        dp.*,
+        j.display_text as job_name,
+        c.full_name as customer_name
+      FROM data_problems dp
+      LEFT JOIN jobs j ON dp.table_name = 'jobs' AND dp.record_id = j.id
+      LEFT JOIN builds b ON j.build_id = b.id
+      LEFT JOIN customers c ON b.customer_id = c.id
+      WHERE dp.problem_type IN ('json_error', 'missing_steps', 'broken_chains', 'template_issues', 'tier_violations')
+      ORDER BY dp.severity DESC, dp.problem_type, dp.detected_date DESC
+    `);
+
+    // Group problems by type
+    const problemsByType = {
+      json_error: [],
+      missing_steps: [],
+      broken_chains: [],
+      template_issues: [],
+      tier_violations: []
+    };
+
+    problemsResult.rows.forEach(problem => {
+      if (problemsByType[problem.problem_type]) {
+        problemsByType[problem.problem_type].push(problem);
+      }
+    });
+
+    // Calculate summary statistics
+    const summary = {
+      totalProblems: problemsResult.rows.length,
+      highSeverity: problemsResult.rows.filter(p => p.severity === 'high').length,
+      mediumSeverity: problemsResult.rows.filter(p => p.severity === 'medium').length,
+      lowSeverity: problemsResult.rows.filter(p => p.severity === 'low').length,
+      uniqueJobs: new Set(problemsResult.rows.map(p => p.record_id)).size,
+      byType: {}
+    };
+
+    summaryResult.rows.forEach(row => {
+      if (!summary.byType[row.problem_type]) {
+        summary.byType[row.problem_type] = {};
+      }
+      summary.byType[row.problem_type][row.severity] = parseInt(row.count);
+    });
+
+    console.log("wv9      Workflow validator data loaded", { 
+      totalProblems: summary.totalProblems, 
+      uniqueJobs: summary.uniqueJobs 
+    });
+
+    res.json({
+      success: true,
+      problems: problemsByType,
+      summary: summary,
+      lastUpdate: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error("wv8      Workflow validator error", { error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`rd9     STARTED running on port ${port}`);
 });
-
-
-
-//#region not in use
-
-// GET - Read operation
-app.get('/api/resource', readHandler);
-
-// POST - Create operation
-app.post('/api/resource', createHandler);
-
-// PUT - Update operation
-app.put('/api/resource/:id', updateHandler);
-
-// DELETE - Delete operation
-app.delete('/api/resource/:id', deleteHandler);
-
-// Example handler function for reading data
-function readHandler(req, res) {
-  // Implement logic to retrieve data from the database
-  // Return response with retrieved data
-  res.json({ message: 'Reading data from the database' });
-}
-
-// Example handler function for creating data
-function createHandler(req, res) {
-  const { table } = req.params; // Assuming you specify the table in the URL parameters
-  
-  // Implement logic to create data in the specified table
-  // Access request body for data to be created (req.body)
-  // Execute the appropriate SQL query based on the specified table
-
-  // Example: Using PostgreSQL client library (e.g., pg)
-  pool.query(`INSERT INTO ${table} (column1, column2) VALUES ($1, $2)`, [value1, value2], (err, result) => {
-      if (err) {
-          // Handle error
-          return res.status(500).json({ error: 'Failed to create data' });
-      }
-      res.json({ message: 'Data created successfully' });
-  });
-}
-
-// Example handler function for updating data
-function updateHandler(req, res) {
-  // Implement logic to update data in the database
-  // Access request parameters for identifying data to be updated (req.params)
-  res.json({ message: 'Updating data in the database' });
-}
-
-// Example handler function for deleting data
-function deleteHandler(req, res) {
-  // Implement logic to delete data from the database
-  // Access request parameters for identifying data to be deleted (req.params)
-  res.json({ message: 'Deleting data from the database' });
-}
-
-//#endregion
-
-//#region Job Templates CRUD
-
-// GET - Get all job templates (API)
-app.get("/job-templates", async (req, res) => {
-  try {
-    const { product_id } = req.query;
-    
-    // Get all products for the dropdown
-    const productsResult = await pool.query("SELECT id, display_text FROM products ORDER BY id");
-    
-    // Build the job templates query with optional product_id filter
-    let jobTemplatesQuery = "SELECT * FROM job_templates";
-    let queryParams = [];
-    
-    if (product_id && product_id !== '') {
-      jobTemplatesQuery += " WHERE product_id = $1";
-      queryParams.push(product_id);
-    }
-    
-    jobTemplatesQuery += " ORDER BY sort_order, id";
-    
-    const jobTemplatesResult = await pool.query(jobTemplatesQuery, queryParams);
-    
-    res.json({ 
-      jobTemplates: jobTemplatesResult.rows,
-      products: productsResult.rows,
-      selectedProductId: product_id || ''
-    });
-  } catch (error) {
-    console.error("Error fetching job templates:", error);
-    res.status(500).json({ 
-      error: "Error loading job templates"
-    });
-  }
-});
-
-// GET - Get single job template (API)
-app.get("/api/job-templates/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query("SELECT * FROM job_templates WHERE id = $1", [id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Job template not found" });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error fetching job template:", error);
-    res.status(500).json({ error: "Error fetching job template" });
-  }
-});
-
-// POST - Create new job template (API)
-app.post("/api/job-templates", async (req, res) => {
-  try {
-    const {
-      user_id,
-      role_id,
-      product_id,
-      display_text,
-      free_text,
-      antecedent_array,
-      decendant_array,
-      job_change_array,
-      flow_change_array,
-      reminder_id,
-      change_log,
-      sort_order,
-      tier
-    } = req.body;
-
-    console.log("Creating new job template with data:", req.body);
-
-    // Validate required fields
-    if (!display_text) {
-      return res.status(400).json({ error: "Display text is required" });
-    }
-
-    // Get the next available ID since auto-increment is disabled
-    const maxIdResult = await pool.query("SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM job_templates");
-    const nextId = maxIdResult.rows[0].next_id;
-
-    const result = await pool.query(`
-      INSERT INTO job_templates (
-        id, user_id, role_id, product_id, display_text, free_text, 
-        antecedent_array, decendant_array, job_change_array, flow_change_array,
-        reminder_id, change_log, sort_order, tier
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
-      RETURNING *`,
-      [
-        nextId,
-        user_id || null,
-        role_id || null,
-        product_id || null,
-        display_text,
-        free_text || null,
-        antecedent_array || null,
-        decendant_array || null,
-        job_change_array || null,
-        flow_change_array || null,
-        reminder_id || null,
-        change_log || null,
-        sort_order || null,
-        tier || 500
-      ]
-    );
-
-    console.log("Job template created successfully:", result.rows[0]);
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error("Error creating job template:", error);
-    res.status(500).json({ error: "Error creating job template", details: error.message });
-  }
-});
-
-// PUT - Update job template (API)
-app.put("/api/job-templates/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      user_id,
-      role_id,
-      product_id,
-      display_text,
-      free_text,
-      antecedent_array,
-      decendant_array,
-      reminder_id,
-      change_log,
-      sort_order,
-      tier
-    } = req.body;
-
-    // Validate required fields
-    if (!display_text) {
-      return res.status(400).json({ error: "Display text is required" });
-    }
-
-    const result = await pool.query(`
-      UPDATE job_templates SET
-        user_id = $1,
-        role_id = $2,
-        product_id = $3,
-        display_text = $4,
-        free_text = $5,
-        antecedent_array = $6,
-        decendant_array = $7,
-        reminder_id = $8,
-        change_log = $9,
-        sort_order = $10,
-        tier = $11
-      WHERE id = $12
-      RETURNING *`,
-      [
-        user_id || null,
-        role_id || null,
-        product_id || null,
-        display_text,
-        free_text || null,
-        antecedent_array || null,
-        decendant_array || null,
-        reminder_id || null,
-        change_log || null,
-        sort_order || null,
-        tier || 500,
-        id
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Job template not found" });
-    }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error updating job template:", error);
-    res.status(500).json({ error: "Error updating job template" });
-  }
-});
-
-// DELETE - Delete job template (API)
-app.delete("/api/job-templates/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    // Check if template is being used by any jobs
-    const jobsUsingTemplate = await pool.query(
-      "SELECT COUNT(*) as count FROM jobs WHERE job_template_id = $1", 
-      [id]
-    );
-    
-    if (parseInt(jobsUsingTemplate.rows[0].count) > 0) {
-      return res.status(400).json({ 
-        error: "Cannot delete job template as it is being used by existing jobs" 
-      });
-    }
-
-    const result = await pool.query("DELETE FROM job_templates WHERE id = $1 RETURNING *", [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Job template not found" });
-    }
-
-    res.json({ message: "Job template deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting job template:", error);
-    res.status(500).json({ error: "Error deleting job template" });
-  }
-});
-
-// GET - Get single product (API)
-app.get("/api/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query("SELECT * FROM products WHERE id = $1", [id]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-    
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error fetching product:", error);
-    res.status(500).json({ error: "Error fetching product" });
-  }
-});
-
-// PUT - Update product (API)
-app.put("/api/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { display_text, user_id = 1 } = req.body;
-
-    // Validate required fields
-    if (!display_text || display_text.trim() === '') {
-      return res.status(400).json({ error: "Display text is required" });
-    }
-
-    // Get current product data for change log
-    const currentResult = await pool.query("SELECT display_text, change_log FROM products WHERE id = $1", [id]);
-    if (currentResult.rows.length === 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    const currentProduct = currentResult.rows[0];
-    const oldDisplayText = currentProduct.display_text;
-    
-    // Create change log entry
-    const currentDate = new Date().toLocaleDateString('en-GB', { 
-      day: '2-digit', 
-      month: 'short', 
-      year: '2-digit' 
-    }).replace(/ /g, '-');
-    const changeEntry = `${currentDate} U${user_id}: name "${oldDisplayText}" → "${display_text}"`;
-    
-    // Append to existing change log or create new one
-    const existingChangeLog = currentProduct.change_log || '';
-    const newChangeLog = existingChangeLog ? 
-      `${existingChangeLog}; ${changeEntry}` : 
-      changeEntry;
-
-    // Update the product
-    const result = await pool.query(`
-      UPDATE products SET
-        display_text = $1,
-        change_log = $2
-      WHERE id = $3
-      RETURNING *`,
-      [display_text.trim(), newChangeLog, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    console.log(`Product ${id} updated: "${oldDisplayText}" → "${display_text}" by user ${user_id}`);
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error("Error updating product:", error);
-    res.status(500).json({ error: "Error updating product", details: error.message });
-  }
-});
-
-//#endregion
 
 
 

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Workflow Validator - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .problem-card { margin-bottom: 15px; }
+        .severity-high { border-left: 4px solid #dc3545; }
+        .severity-medium { border-left: 4px solid #ffc107; }
+        .severity-low { border-left: 4px solid #198754; }
+        .nav-tabs { margin-bottom: 20px; }
+        .problem-description { font-family: monospace; background-color: #f8f9fa; padding: 8px; border-radius: 4px; }
+        .badge-high { background-color: #dc3545; }
+        .badge-medium { background-color: #ffc107; color: #000; }
+        .badge-low { background-color: #198754; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Workflow Validator</h1>
+                </div>
+
+                <!-- Summary Dashboard -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3 class="text-danger"><%= summary.totalProblems %></h3>
+                                <p class="card-text">Total Problems</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3 class="text-warning"><%= summary.uniqueJobs %></h3>
+                                <p class="card-text">Affected Jobs</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3 class="text-danger"><%= summary.highSeverity %></h3>
+                                <p class="card-text">High Severity</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h3 class="text-warning"><%= summary.mediumSeverity %></h3>
+                                <p class="card-text">Medium Severity</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs" id="validatorTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                            Overview
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json-errors" type="button" role="tab">
+                            JSON Errors 
+                            <span class="badge badge-high"><%= problems.json_error.length %></span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing-steps" type="button" role="tab">
+                            Missing Steps
+                            <span class="badge badge-medium"><%= problems.missing_steps.length %></span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="template-tab" data-bs-toggle="tab" data-bs-target="#template-issues" type="button" role="tab">
+                            Template Issues
+                            <span class="badge badge-high"><%= problems.template_issues.length %></span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tier-tab" data-bs-toggle="tab" data-bs-target="#tier-violations" type="button" role="tab">
+                            Tier Violations
+                            <span class="badge badge-medium"><%= problems.tier_violations.length %></span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="validatorTabContent">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4>Problem Types Summary</h4>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Problem Type</th>
+                                            <th>High</th>
+                                            <th>Medium</th>
+                                            <th>Low</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% const problemTypes = ['json_error', 'missing_steps', 'broken_chains', 'template_issues', 'tier_violations']; %>
+                                        <% problemTypes.forEach(type => { %>
+                                        <tr>
+                                            <td><%= type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %></td>
+                                            <td><span class="badge badge-high"><%= (summary.byType[type] && summary.byType[type].high) || 0 %></span></td>
+                                            <td><span class="badge badge-medium"><%= (summary.byType[type] && summary.byType[type].medium) || 0 %></span></td>
+                                            <td><span class="badge badge-low"><%= (summary.byType[type] && summary.byType[type].low) || 0 %></span></td>
+                                            <td><%= problems[type].length %></td>
+                                        </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h4>Quick Actions</h4>
+                                <div class="list-group">
+                                    <a href="/test-validator" class="list-group-item list-group-item-action" target="_blank">
+                                        <strong>Run New Validation</strong><br>
+                                        <small>Execute workflow validator and refresh data</small>
+                                    </a>
+                                    <div class="list-group-item">
+                                        <strong>Next Steps</strong><br>
+                                        <small>1. Review high severity issues first<br>
+                                        2. Fix JSON errors and template issues<br>
+                                        3. Address tier violations in bulk</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- JSON Errors Tab -->
+                    <div class="tab-pane fade" id="json-errors" role="tabpanel">
+                        <h3>JSON Structure Errors</h3>
+                        <% if (problems.json_error.length === 0) { %>
+                            <div class="alert alert-success">No JSON errors found!</div>
+                        <% } else { %>
+                            <% problems.json_error.forEach(problem => { %>
+                            <div class="card problem-card severity-<%= problem.severity %>">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6><%= problem.customer_name || 'Unknown Customer' %> - <%= problem.job_name || 'Unknown Job' %></h6>
+                                            <div class="problem-description"><%= problem.problem_description %></div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <span class="badge badge-<%= problem.severity %>"><%= problem.severity.toUpperCase() %></span><br>
+                                            <small class="text-muted">Job ID: <%= problem.record_id %></small><br>
+                                            <small class="text-muted"><%= new Date(problem.detected_date).toLocaleDateString() %></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+
+                    <!-- Missing Steps Tab -->
+                    <div class="tab-pane fade" id="missing-steps" role="tabpanel">
+                        <h3>Missing Workflow Steps</h3>
+                        <% if (problems.missing_steps.length === 0) { %>
+                            <div class="alert alert-success">No missing steps found!</div>
+                        <% } else { %>
+                            <% problems.missing_steps.slice(0, 50).forEach(problem => { %>
+                            <div class="card problem-card severity-<%= problem.severity %>">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6><%= problem.customer_name || 'Unknown Customer' %> - <%= problem.job_name || 'Unknown Job' %></h6>
+                                            <div class="problem-description"><%= problem.problem_description %></div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <span class="badge badge-<%= problem.severity %>"><%= problem.severity.toUpperCase() %></span><br>
+                                            <small class="text-muted">Job ID: <%= problem.record_id %></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                            <% if (problems.missing_steps.length > 50) { %>
+                                <div class="alert alert-info">Showing first 50 of <%= problems.missing_steps.length %> missing steps issues.</div>
+                            <% } %>
+                        <% } %>
+                    </div>
+
+                    <!-- Template Issues Tab -->
+                    <div class="tab-pane fade" id="template-issues" role="tabpanel">
+                        <h3>Template Linkage Issues</h3>
+                        <% if (problems.template_issues.length === 0) { %>
+                            <div class="alert alert-success">No template issues found!</div>
+                        <% } else { %>
+                            <% problems.template_issues.forEach(problem => { %>
+                            <div class="card problem-card severity-<%= problem.severity %>">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6><%= problem.customer_name || 'Unknown Customer' %> - <%= problem.job_name || 'Unknown Job' %></h6>
+                                            <div class="problem-description"><%= problem.problem_description %></div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <span class="badge badge-<%= problem.severity %>"><%= problem.severity.toUpperCase() %></span><br>
+                                            <small class="text-muted">Job ID: <%= problem.record_id %></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+
+                    <!-- Tier Violations Tab -->
+                    <div class="tab-pane fade" id="tier-violations" role="tabpanel">
+                        <h3>Tier Inheritance Violations</h3>
+                        <% if (problems.tier_violations.length === 0) { %>
+                            <div class="alert alert-success">No tier violations found!</div>
+                        <% } else { %>
+                            <% problems.tier_violations.slice(0, 20).forEach(problem => { %>
+                            <div class="card problem-card severity-<%= problem.severity %>">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-8">
+                                            <h6><%= problem.customer_name || 'Unknown Customer' %> - <%= problem.job_name || 'Unknown Job' %></h6>
+                                            <div class="problem-description"><%= problem.problem_description %></div>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <span class="badge badge-<%= problem.severity %>"><%= problem.severity.toUpperCase() %></span><br>
+                                            <small class="text-muted">Job ID: <%= problem.record_id %></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                            <% if (problems.tier_violations.length > 20) { %>
+                                <div class="alert alert-info">Showing first 20 of <%= problems.tier_violations.length %> tier violations.</div>
+                            <% } %>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Update Report Button -->
+                <div class="d-flex justify-content-end mb-4">
+                    <button class="btn btn-primary" onclick="updateValidatorReport()">Update Report</button>
+                </div>
+
+                <script>
+                    function updateValidatorReport() {
+                        fetch('/admin/update-validator-report', {
+                            method: 'POST'
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                alert('Validator report updated successfully!');
+                                location.reload();
+                            } else {
+                                alert('Failed to update the validator report.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating validator report:', error);
+                            alert('An error occurred while updating the report.');
+                        });
+                    }
+                </script>
+
+                <small class="text-muted">Last Updated: <%= new Date(lastUpdate).toLocaleString() %></small>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -159,8 +159,49 @@ app.get("/admin/rule-builder", (req, res) => {
     return res.redirect("/login");
   }
   
-  console.log(`ruleBuilder   USER(${req.user.id}) accessing production rule builder`);
+  console.log(`wv1      USER(${req.user.id}) accessing production rule builder`);
   res.render("admin/rule-builder");
+});
+
+// Workflow Validator Admin Interface
+app.get("/admin/workflow-validator", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  
+  console.log("wv1      Starting workflow validator admin page", { userId: req.user.id });
+  
+  try {
+    // Call the API endpoint on the backend server
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch('http://localhost:4000/api/workflow-problems');
+    
+    if (!response.ok) {
+      throw new Error(`API call failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+
+    console.log("wv9      Workflow validator data loaded from API", { 
+      totalProblems: data.summary.totalProblems, 
+      uniqueJobs: data.summary.uniqueJobs 
+    });
+
+    res.render("admin/workflow-validator", {
+      user: req.user,
+      problems: data.problems,
+      summary: data.summary,
+      lastUpdate: data.lastUpdate
+    });
+
+  } catch (error) {
+    console.error("wv8      Workflow validator error", { error: error.message });
+    res.status(500).send("Error loading workflow validator");
+  }
 });
 
 // Rule Test API Endpoint - integrates with existing workflow rule engine

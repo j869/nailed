@@ -37,18 +37,23 @@ export class RuleEngine {
    * @returns {Object} Result object
    */
   async processUpdate(updateRequest, context) {
+    console.log("re1      Starting rule engine processing", { fieldID: updateRequest.fieldID, rowID: updateRequest.rowID });
     try {
       const { fieldID, newValue, rowID, table } = updateRequest;
       
       // Get field configuration
+      console.log("re201    Getting field configuration", { fieldID });
       const fieldConfig = await this.getFieldConfiguration(fieldID);
       if (!fieldConfig) {
+        console.log("re308    Unknown field configuration", { fieldID });
         throw new Error(`Unknown field: ${fieldID}`);
       }
 
       // Validate the input
+      console.log("re202    Validating input", { fieldID, newValue });
       const validationResult = await this.validateInput(newValue, fieldConfig.validations || []);
       if (!validationResult.isValid) {
+        console.log("re308    Validation failed", { fieldID, errors: validationResult.errors });
         return {
           success: false,
           error: `Validation failed: ${validationResult.errors.join(', ')}`
@@ -56,18 +61,23 @@ export class RuleEngine {
       }
 
       // Execute pre-update actions
+      console.log("re203    Executing pre-update actions", { actionsCount: fieldConfig.preActions?.length || 0 });
       await this.executeActions(fieldConfig.preActions || [], { ...context, fieldID, newValue, rowID });
 
       // Perform the main update
+      console.log("re204    Performing main update", { fieldID, table: fieldConfig.table, column: fieldConfig.column });
       const updateResult = await this.executeMainUpdate(fieldConfig, newValue, rowID, context);
       
       if (!updateResult.success) {
+        console.log("re308    Main update failed", { fieldID, error: updateResult.error });
         return updateResult;
       }
 
       // Execute post-update actions
+      console.log("re205    Executing post-update actions", { actionsCount: fieldConfig.postActions?.length || 0 });
       await this.executeActions(fieldConfig.postActions || [], { ...context, fieldID, newValue, rowID });
 
+      console.log("re9      Rule engine processing completed successfully", { fieldID, rowID });
       return {
         success: true,
         message: 'Update completed successfully',
@@ -75,7 +85,7 @@ export class RuleEngine {
       };
 
     } catch (error) {
-      console.error('RuleEngine error:', error);
+      console.error("re8      Rule engine processing error", { error: error.message });
       return {
         success: false,
         error: error.message
@@ -229,16 +239,21 @@ export class RuleEngine {
    * Execute a list of actions
    */
   async executeActions(actions, context) {
+    console.log("ea1      Starting action execution", { actionsCount: actions.length });
     for (const action of actions) {
       if (this.shouldExecuteAction(action, context)) {
+        console.log("ea201    Executing action", { actionType: action.type });
         const handler = this.actionHandlers.get(action.type);
         if (handler) {
           await handler(action.params, context);
         } else {
-          console.warn(`Unknown action type: ${action.type}`);
+          console.log("ea308    Unknown action type", { actionType: action.type });
         }
+      } else {
+        console.log("ea202    Skipping action due to condition", { actionType: action.type });
       }
     }
+    console.log("ea9      Action execution completed");
   }
 
   /**
@@ -259,21 +274,23 @@ export class RuleEngine {
 
   // Action Handlers
   async handleFieldUpdate(params, context) {
+    console.log("fu1      Starting field update", { table: params.table, column: params.column });
     const { table, column, value } = params;
     const { axios, API_URL, rowID } = context;
     
     let actualValue = value;
     if (value === 'current_user') {
       actualValue = context.user?.id || null;
+      console.log("fu201    Using current user ID", { userId: actualValue });
     }
 
     try {
       await axios.get(`${API_URL}/update`, {
         params: { table, column, value: actualValue, id: rowID }
       });
-      console.log(`Field update: ${table}.${column} = ${actualValue}`);
+      console.log("fu9      Field update completed", { table, column, value: actualValue });
     } catch (error) {
-      console.error(`Field update failed: ${error.message}`);
+      console.error("fu8      Field update failed", { table, column, error: error.message });
     }
   }
 
@@ -283,6 +300,7 @@ export class RuleEngine {
   }
 
   async handleDateUpdate(params, context) {
+    console.log("du1      Starting date update", { table: params.table, column: params.column });
     const { table, column, value } = params;
     const { axios, API_URL, rowID } = context;
     
@@ -290,34 +308,36 @@ export class RuleEngine {
     if (value === 'now') {
       const dateObj = new Date();
       dateValue = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      console.log("du201    Generated current date", { dateValue });
     }
 
     try {
       await axios.get(`${API_URL}/update`, {
         params: { table, column, value: dateValue, id: rowID }
       });
-      console.log(`Date update: ${table}.${column} = ${dateValue}`);
+      console.log("du9      Date update completed", { table, column, value: dateValue });
     } catch (error) {
-      console.error(`Date update failed: ${error.message}`);
+      console.error("du8      Date update failed", { table, column, error: error.message });
     }
   }
 
   async handleRelatedUpdate(params, context) {
     // Handle updates to related tables/records
-    console.log('Related update:', params);
+    console.log("ru1      Related update triggered", { params });
   }
 
   async handleNotification(params, context) {
-    console.log(`Notification: ${params.message}`);
+    console.log("no1      Notification triggered", { message: params.message });
     // In production, this would send actual notifications
   }
 
   async handleCreateWorksheet(params, context) {
-    console.log('Create worksheet:', params);
+    console.log("cw1      Create worksheet triggered", { params });
     // Implementation for creating worksheets
   }
 
   async handleExecuteWorkflow(params, context) {
+    console.log("ew1      Starting workflow execution", { triggerField: params.triggerField });
     const { triggerField } = params;
     const { db, rowID } = context;
     
@@ -325,11 +345,13 @@ export class RuleEngine {
       const result = await db.query(`SELECT ${triggerField} FROM jobs WHERE id = $1`, [rowID]);
       if (result.rows.length > 0 && result.rows[0][triggerField]) {
         const workflowData = result.rows[0][triggerField];
-        console.log(`Executing workflow for job ${rowID}:`, workflowData);
+        console.log("ew9      Workflow execution completed", { jobId: rowID, hasWorkflowData: !!workflowData });
         // Execute workflow logic here
+      } else {
+        console.log("ew201    No workflow data found", { jobId: rowID });
       }
     } catch (error) {
-      console.error(`Workflow execution failed: ${error.message}`);
+      console.error("ew8      Workflow execution failed", { jobId: rowID, error: error.message });
     }
   }
 }
