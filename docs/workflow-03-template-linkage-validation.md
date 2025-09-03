@@ -4,7 +4,7 @@
 
 **Context:** Tool Gap 3 - Stock Standard Rules Management with automatic template unlinking when workflows are modified.
 
-**Status:** Planning  
+**Status:** In Progress  
 **Date Started:** 3 September 2025  
 **Branch:** organise
 
@@ -48,60 +48,69 @@
 1. **`job_process_flow`** - No template linkage for workflow sequences
 2. **`rule_templates`** - No linkage to existing job/task templates (our new system)
 
+**Note:** Legacy Product 5 (Vic Permits) uses ID range 5100-5700+. New modular Products 51-55 will use separate ID ranges starting from 6000+ to avoid conflicts:
+- **New Workflow 51**: 6110-6235 (Pre Deposit - replaces 5110-5235)
+- **New Workflow 52**: 6240-6274 (Report & Consent - replaces 5240-5274)  
+- **New Workflow 53**: 6280-6313 (Planning Permit - replaces 5280-5313)
+- **New Workflow 54**: 6320-6365 (Building Permit - replaces 5320-5365)
+- **New Workflow 55**: 6370-6424 (Active Permit - replaces 5370-5424)
+
 ---
 
 ## Project Plan: Template Linkage & Validation System
 
-### Phase 1: Template Link Management ✅ Current Focus
+### Phase 2: Build the Missing Tools (Aligned with change_array_rule_templates_linkage.md)
 
-#### Tool 1A: Template Link Monitor
+#### Tool 1: Workflow Pattern Scanner
+- [ ] **Scan all existing workflows** - What patterns are actually being used?
+- [ ] **Find broken workflows** - Which jobs have incomplete or corrupted rules?
+- [ ] **Catalog workflow types** - What standard patterns exist?
+- [ ] **Identify custom workflows** - Which jobs have been modified from templates?
 - [ ] **Build template link tracker** - monitor when jobs/tasks diverge from templates
 - [ ] **Automatic unlinking system** - clear `job_template_id` when workflows are modified
 - [ ] **Template deviation detector** - identify when linked items no longer match templates
 - [ ] **Stock standard identifier** - flag jobs/tasks that still match their templates
 
-#### Tool 1B: Template Link Validator  
+#### Tool 2: Workflow Validator (MAIN JOB - Currently Focus)
+- [ ] **Check workflow completeness** - Do jobs have all required steps?
+- [ ] **Find workflow conflicts** - Are there contradictory rules?
+- [ ] **Validate workflow logic** - Do the sequences make sense?
+- [ ] **Generate validation reports** - Show all workflow problems found
 - [ ] **Cross-table validation** - ensure all template links are valid
 - [ ] **Orphan detector** - find jobs/tasks with invalid template references
 - [ ] **Template consistency checker** - verify template hierarchies are intact
-- [ ] **Link repair tools** - fix broken template relationships
-
-### Phase 2: Workflow Validation Engine
-
-#### Tool 2A: Workflow Integrity Validator
-- [ ] **Job workflow validator** - ensure jobs have complete, valid workflows
-- [ ] **Task sequence validator** - verify task dependencies and ordering
-- [ ] **Process flow validator** - check `job_process_flow` table integrity
-- [ ] **Template compliance checker** - validate jobs against their templates
-
-#### Tool 2B: Comprehensive Workflow Auditor
-- [ ] **Missing workflow detector** - find jobs without proper workflow definitions
 - [ ] **Circular dependency detector** - identify workflow loops
-- [ ] **Broken workflow reporter** - catalog all workflow integrity issues
-- [ ] **Workflow repair wizard** - guided fixing of workflow problems
 
-### Phase 3: Rule Engine Integration
+#### Tool 3: Stock Standard Rules Manager (PREREQUISITE)
+- [ ] **Auto-unlink custom workflows** - When users modify workflows, mark them as custom
+- [ ] **Find stock standard workflows** - Which jobs still match their templates?
+- [ ] **Bulk update standard rules** - Change all standard workflows at once
+- [ ] **Template compliance checker** - Verify jobs still match their templates
+- [ ] **Stock standard rule library** - catalog and manage standard workflow rules
+- [ ] **Custom rule tracker** - identify jobs/templates with custom modifications
+- [ ] **Rule versioning system** - track rule changes and template updates
 
-#### Tool 3A: Rule Template Linkage
+#### Tool 4: Job Templates Rule Updater (LOWEST PRIORITY)
+- [ ] **Bulk update job templates** - Change multiple templates at once
+- [ ] **Preview template changes** - Show what will be affected before updating
+- [ ] **Template validation** - Ensure template changes make sense
+- [ ] **Change tracking** - Log what was changed and when
 - [ ] **Link rule_templates to job_templates** - establish connections between new and old systems
 - [ ] **Rule template validator** - ensure rule templates can execute properly
 - [ ] **Legacy workflow converter** - convert old workflows to new rule format
 - [ ] **Hybrid validation system** - validate both old and new workflow formats
 
-#### Tool 3B: Stock Standard Rules Manager
-- [ ] **Stock standard rule library** - catalog and manage standard workflow rules
-- [ ] **Custom rule tracker** - identify jobs/templates with custom modifications
-- [ ] **Bulk rule updater** - mass update standard rules across the system
-- [ ] **Rule versioning system** - track rule changes and template updates
-
 ---
 
 ## Implementation Strategy
 
-### MVP Approach: Start with Critical Path
-1. **Template Link Monitor** (Tool 1A) - Most critical for maintaining data integrity
-2. **Workflow Integrity Validator** (Tool 2A) - Essential for identifying current problems
-3. **Stock Standard Rules Manager** (Tool 3B) - Your immediate business need
+### Implementation Strategy
+
+### MVP Approach: Start with Critical Path (Following change_array priorities)
+1. **Workflow Validator** (Tool 2) - MAIN JOB - Currently focus, build this ASAP
+2. **Stock Standard Rules Manager** (Tool 3) - PREREQUISITE - Schema split needed first  
+3. **Workflow Pattern Scanner** (Tool 1) - Foundation work to understand current patterns
+4. **Job Templates Rule Updater** (Tool 4) - LOWEST PRIORITY - Repurpose after Tool 2 working
 
 ### Tools We Can Leverage ✅
 - **Rule Engine Demo** - Visual rule builder and test runner
@@ -117,18 +126,60 @@
 
 ## Technical Requirements
 
-### Database Triggers Needed
-```sql
--- Auto-clear job_template_id when change_array is modified
-CREATE TRIGGER clear_job_template_link 
-BEFORE UPDATE ON jobs 
-WHEN NEW.change_array != OLD.change_array;
+### Schema Changes Needed
 
--- Auto-clear task_template_id when task logic changes  
-CREATE TRIGGER clear_task_template_link
-BEFORE UPDATE ON tasks
-WHEN task logic differs from template;
+#### System Comments Column (from change_array approach)
+```sql
+-- Add system_comments column to jobs table for workflow debugging
+ALTER TABLE jobs ADD COLUMN system_comments TEXT;
+-- Records assumed patterns, debug problems with engine, list problems for fix-it form
+
+-- Add system_comments column to job_templates table  
+ALTER TABLE job_templates ADD COLUMN system_comments TEXT;
+-- Track template modification history and validation issues
 ```
+
+#### Workflow Problems Table (dedicated tracking)
+```sql
+-- Create dedicated table for workflow problem tracking
+CREATE TABLE workflow_problems (
+    id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50) NOT NULL,
+    record_id INTEGER NOT NULL, 
+    problem_type VARCHAR(100) NOT NULL,
+    problem_description TEXT,
+    severity VARCHAR(20) DEFAULT 'medium',
+    detected_date TIMESTAMP DEFAULT NOW(),
+    resolved_date TIMESTAMP NULL,
+    resolved_by INTEGER NULL,
+    FOREIGN KEY (resolved_by) REFERENCES users(id)
+);
+```
+
+### Database Triggers (ONLY Most Necessary)
+
+```sql
+-- ESSENTIAL: Auto-clear job_template_id when change_array is modified
+-- This maintains data integrity for template linkage
+CREATE OR REPLACE FUNCTION clear_job_template_link() 
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.change_array IS DISTINCT FROM NEW.change_array THEN
+        NEW.job_template_id = NULL;
+        NEW.system_comments = COALESCE(NEW.system_comments || '; ', '') || 
+                             'Template link cleared - change_array modified ' || NOW();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER jobs_template_link_trigger
+    BEFORE UPDATE ON jobs
+    FOR EACH ROW
+    EXECUTE FUNCTION clear_job_template_link();
+```
+
+**Note:** No triggers on sysadmin tables. Only essential business data integrity triggers.
 
 ### Validation Queries Needed
 - Cross-reference all template links for validity

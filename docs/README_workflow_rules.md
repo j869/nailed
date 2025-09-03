@@ -1,7 +1,9 @@
-# Workflow System Documentation
+# Current Workflow System Documentation
+
+### We are migrating our workflow system to a new engine.  This is the documentation for the legacy workflows
 
 ## Overview
-The workflow system is designed to manage customer processes through structured job templates organized by products. Each workflow consists of interconnected job templates that create a process flow for different business scenarios.
+The OLD workflow system is designed to manage customer processes through structured job templates organized by products. Each workflow consists of interconnected job templates that create a process flow for different business scenarios.
 
 ## Core Workflow Trigger Logic
 
