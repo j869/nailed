@@ -178,6 +178,7 @@
                                   <%= ruleGroup.change_array %>
                                   <button class="btn btn-sm btn-outline-primary update-btn" 
                                           data-template-id=""
+                                          data-template-ids="<%= [...new Set(ruleGroup.template_ids.filter(id => id))].join(',') %>"
                                           data-change-array="<%= encodeURIComponent(ruleGroup.change_array) %>"
                                           data-job-ids="<%= ruleGroup.job_ids.join(',') %>">
                                     Update All
@@ -272,15 +273,34 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.update-btn').forEach(btn => {
     btn.addEventListener('click', function() {
       const templateId = this.dataset.templateId;
+      const templateIds = this.dataset.templateIds;
       const changeArray = decodeURIComponent(this.dataset.changeArray);
       const jobIds = this.dataset.jobIds;
       
+      // Determine which template IDs to use
+      let effectiveTemplateIds = templateId ? templateId : templateIds;
+      
       // Populate modal
-      document.getElementById('templateId').value = templateId;
+      document.getElementById('templateId').value = effectiveTemplateIds;
       document.getElementById('affectedJobs').value = jobIds;
       document.getElementById('currentChangeArray').value = changeArray;
       document.getElementById('newChangeArray').value = changeArray;
-      document.getElementById('updateCondition').textContent = `WHERE job_template_id = ${templateId} AND id IN (${jobIds})`;
+      
+      // Generate appropriate WHERE condition
+      let whereCondition;
+      if (templateId) {
+        // Single template update - use both template_id and job IDs for safety
+        whereCondition = `WHERE job_template_id = ${templateId} AND id IN (${jobIds})`;
+      } else if (templateIds) {
+        // Multiple template update - job IDs already filtered by template, so template condition is redundant
+        // Using job IDs only is more efficient and avoids duplicate template ID issues
+        whereCondition = `WHERE id IN (${jobIds})`;
+      } else {
+        // Fallback to job IDs only
+        whereCondition = `WHERE id IN (${jobIds})`;
+      }
+      
+      document.getElementById('updateCondition').textContent = whereCondition;
       
       // Show modal
       new bootstrap.Modal(document.getElementById('updateChangeArrayModal')).show();
@@ -289,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Handle update confirmation
   document.getElementById('confirmUpdate').addEventListener('click', function() {
-    const templateId = document.getElementById('templateId').value;
+    const templateIds = document.getElementById('templateId').value; // Can be single ID or comma-separated IDs
     const jobIds = document.getElementById('affectedJobs').value.split(',');
     const newChangeArray = document.getElementById('newChangeArray').value;
     
@@ -302,6 +322,17 @@ document.addEventListener('DOMContentLoaded', function() {
     this.disabled = true;
     this.textContent = 'Updating...';
     
+    // Debug logging
+    console.log('Update request:', {
+      templateIds: templateIds,
+      jobIdsCount: jobIds.length,
+      payloadSize: JSON.stringify({
+        templateIds: templateIds,
+        jobIds: jobIds,
+        newChangeArray: newChangeArray
+      }).length
+    });
+    
     // Send update request
     fetch('/wf-rule-report/update', {
       method: 'POST',
@@ -309,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        templateId: templateId || null,
+        templateIds: templateIds, // Changed from templateId to templateIds
         jobIds: jobIds,
         newChangeArray: newChangeArray
       })
@@ -321,10 +352,11 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Show result modal
       if (data.success) {
+        const templateDisplay = templateIds.includes(',') ? `Template IDs: ${templateIds}` : `Template ID: ${templateIds}`;
         document.getElementById('updateResultMessage').innerHTML = 
           `<div class="alert alert-success">
             <i class="bi bi-check-circle"></i>
-            Successfully updated <strong>${data.updatedCount}</strong> record(s) for Job Template ID ${templateId}.
+            Successfully updated <strong>${data.updatedCount}</strong> record(s) for ${templateDisplay}.
           </div>`;
       } else {
         document.getElementById('updateResultMessage').innerHTML = 
@@ -337,11 +369,23 @@ document.addEventListener('DOMContentLoaded', function() {
       new bootstrap.Modal(document.getElementById('updateResultModal')).show();
     })
     .catch(error => {
-      console.error('Error:', error);
+      console.error('Update request failed:', {
+        error: error,
+        templateIds: templateIds,
+        jobIdsCount: jobIds.length,
+        errorType: error.name,
+        errorMessage: error.message
+      });
+      
+      let errorMessage = 'Network error occurred while updating records.';
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        errorMessage += ' This may be due to request size limits.';
+      }
+      
       document.getElementById('updateResultMessage').innerHTML = 
         `<div class="alert alert-danger">
           <i class="bi bi-exclamation-triangle"></i>
-          Network error occurred while updating records.
+          ${errorMessage}
         </div>`;
       
       bootstrap.Modal.getInstance(document.getElementById('updateChangeArrayModal')).hide();

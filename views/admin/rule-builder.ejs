@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+==============================================
+CRITICAL ISSUES DOCUMENTED - DO NOT USE
+==============================================
+
+THIS EJS FILE HAS SEVERE PROBLEMS AND SHOULD NOT BE USED IN PRODUCTION:
+
+1. CRITICAL JAVASCRIPT PARSING ERROR:
+   - Unescaped template literal at line ~2071: console.log(`${type.toUpperCase()}: ${message}`);
+   - This breaks ENTIRE JavaScript execution preventing all functions from loading
+   - Functions appear missing but actually exist - they just can't be accessed
+
+2. DUPLICATE FUNCTION DEFINITIONS (MAJOR ISSUE):
+   - logActivity() defined twice: lines 490 and 1250
+   - addCondition() defined twice: lines 509 and 1270  
+   - addAction() defined twice: lines 652 and 1316
+   - addValidation() defined twice: lines 594 and 1359
+   - removeCondition() defined twice: lines 802 and 1489
+   - removeAction() defined twice: lines 812 and 1494
+   - removeValidation() defined twice: lines 807 and 1499
+   - displayTestResults() defined twice: lines 1141 and 1641
+   - clearTestResults() defined twice: lines 1193 and 1723
+   IMPACT: Only the last definition works, causing inconsistent behavior
+
+3. TEMPLATE LITERAL ESCAPING CHAOS:
+   - 48+ unescaped template literals mixing EJS ${} with JavaScript ${}
+   - Examples throughout file: ${type}, ${timestamp}, ${conditionCounter}, etc.
+   - Causes EJS processing conflicts and JavaScript syntax errors
+
+4. DOM MANIPULATION WITHOUT NULL CHECKS:
+   - 10+ occurrences of document.getElementById() without validation
+   - Risk of runtime errors if elements don't exist
+   - No defensive programming practices
+
+5. ARCHITECTURAL PROBLEMS:
+   - 2080 lines in single file - unmaintainable
+   - Mixed concerns: HTML generation, event handling, API calls
+   - No separation between static HTML and dynamic JavaScript
+   - Complex string escaping makes maintenance error-prone
+
+6. MISSING FUNCTION IMPLEMENTATIONS:
+   - testSharedRuleJson(), importJsonToBuilder(), validateSharedRuleJson(), copyRuleToClipboard()
+   - Functions exist but unreachable due to parsing errors
+
+7. INCONSISTENT ELEMENT ID REFERENCES:
+   - Some elements exist but aren't properly referenced in JavaScript
+   - Shared rule JSON textarea has inconsistent references
+
+8. FILE STRUCTURE ISSUES:
+   - Massive single script block with no organization
+   - Duplicate code blocks scattered throughout
+   - No logical separation of functionality
+
+STATUS: BROKEN - NEEDS COMPLETE REBUILD
+RECOMMENDATION: Create new clean EJS file with proper architecture
+==============================================
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Builder - Workflow Automation</title>
+    
+    <!-- External CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           CUSTOM STYLES FOR RULE BUILDER
+           ============================================ */
+        
+        /* Rule Editor Styling */
+        .rule-editor {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+        
+        /* JSON Display Formatting */
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+        }
+        
+        /* Test Result Styling */
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.375rem;
+        }
+        .test-success {
+            background-color: #d1e7dd;
+            border: 1px solid #badbcc;
+            color: #0f5132;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        
+        /* Interactive Elements */
+        .field-config-card {
+            transition: all 0.3s ease;
+        }
+        .field-config-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Visual Rule Builder Components */
+        .condition-item {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff !important;
+        }
+        
+        .validation-item {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107 !important;
+            transition: all 0.3s ease;
+        }
+
+        .validation-item:hover {
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+        }
+
+        .validation-item[data-type="dataIntegrity"] {
+            border-left-color: #dc3545 !important;
+            background-color: #f8d7da;
+        }
+
+        .validation-item[data-type="businessRule"] {
+            border-left-color: #fd7e14 !important;
+            background-color: #ffeaa7;
+        }
+
+        .validation-item[data-type="security"] {
+            border-left-color: #6f42c1 !important;
+            background-color: #e2d9f3;
+        }
+
+        .validation-item[data-type="workflow"] {
+            border-left-color: #20c997 !important;
+            background-color: #d1ecf1;
+        }
+        
+        .action-item {
+            background-color: #f0f8ff;
+            border-left: 4px solid #28a745 !important;
+            transition: all 0.3s ease;
+        }
+
+        .action-item:hover {
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .action-item[data-type="updateStatus"] {
+            border-left-color: #007bff !important;
+            background-color: #e7f1ff;
+        }
+
+        .action-item[data-type="notify"] {
+            border-left-color: #ffc107 !important;
+            background-color: #fff3cd;
+        }
+
+        .action-item[data-type="createWorkflow"] {
+            border-left-color: #6f42c1 !important;
+            background-color: #e2d9f3;
+        }
+
+        .action-item[data-type="updateDate"] {
+            border-left-color: #20c997 !important;
+            background-color: #d1ecf1;
+        }
+
+        .action-item[data-type="updateRelatedStatus"] {
+            border-left-color: #fd7e14 !important;
+            background-color: #ffeaa7;
+        }
+
+        .action-item[data-type="addLog"] {
+            border-left-color: #6c757d !important;
+            background-color: #f8f9fa;
+        }
+        
+        /* Rule item styling for conditions, actions, validations */
+        .rule-item {
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .rule-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .rule-item .remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .rule-item .remove-btn:hover {
+            opacity: 1;
+        }
+
+        /* Activity log styling */
+        .activity-log {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #333;
+        }
+
+        .activity-log .log-entry {
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-log .log-timestamp {
+            color: #888;
+        }
+
+        .activity-log .log-info {
+            color: #00ff00;
+        }
+
+        .activity-log .log-success {
+            color: #00ff88;
+        }
+
+        .activity-log .log-warning {
+            color: #ffaa00;
+        }
+
+        .activity-log .log-error {
+            color: #ff4444;
+        }
+
+        /* Enhanced button styles */
+        .btn-action-type {
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action-type:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Page layout */
+        .main-content {
+            padding-top: 2rem;
+        }
+
+        .section-divider {
+            border-top: 3px solid #e9ecef;
+            margin: 3rem 0 2rem 0;
+            position: relative;
+        }
+
+        .section-divider::before {
+            content: attr(data-title);
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 0 1rem;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    
+    <div class="container-fluid main-content">
+        <div class="row">
+            <div class="col-12">
+                <!-- Page Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2><i class="fas fa-cogs text-primary"></i> Rule Builder</h2>
+                        <p class="text-muted mb-0">Create and test workflow automation rules</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-secondary me-2" onclick="clearRuleBuilder()">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                        <button class="btn btn-success" onclick="saveRuleToDatabase()">
+                            <i class="fas fa-save"></i> Save Rule
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Activity Log -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-terminal"></i> Activity Log</h6>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="activity-log" id="activityLog"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Visual Rule Builder Section -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-hammer"></i> Visual Rule Builder</h5>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="loadRuleTemplate('workflow')">Load Workflow Template</button>
+                            <button class="btn btn-success btn-sm me-2" onclick="generateRuleFromBuilder()">Generate Rule</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="clearRuleBuilder()">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Rule Header -->
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Rule Name</label>
+                                <input type="text" class="form-control" id="rule-name" placeholder="e.g., Job Completion Workflow">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Trigger Event</label>
+                                <select class="form-select" id="rule-trigger">
+                                    <option value="">Select trigger...</option>
+                                    <option value="current_status:complete">Status: Complete</option>
+                                    <option value="current_status:pending">Status: Pending</option>
+                                    <option value="current_status:active">Status: Active</option>
+                                    <option value="field:changed">Field Changed</option>
+                                    <option value="tier:changed">Tier Changed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Description</label>
+                                <input type="text" class="form-control" id="rule-description" placeholder="Brief description of what this rule does">
+                            </div>
+                        </div>
+
+                        <!-- Conditions Section -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">Conditions <small class="text-muted">(Optional - rule runs if ALL conditions are met)</small></h6>
+                            <div id="conditions-container">
+                                <div class="d-flex align-items-center mb-2">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="addCondition()">
+                                        <i class="fas fa-plus"></i> Add Condition
+                                    </button>
+                                    <small class="text-muted ms-3">e.g., "Only run if tier > 500"</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Validation Section -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-shield-alt text-warning"></i> Validation Rules 
+                                <small class="text-muted">(Tests that must pass - blocks update if any fail)</small>
+                            </h6>
+                            <div id="validations-container">
+                                <div class="d-flex align-items-center mb-2">
+                                    <button class="btn btn-outline-warning btn-sm" onclick="addValidation()">
+                                        <i class="fas fa-plus"></i> Add Validation
+                                    </button>
+                                    <small class="text-muted ms-3">e.g., "Ensure customer has active subscription"</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Section -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">Actions <small class="text-muted">(What happens when the rule is triggered)</small></h6>
+                            <div id="actions-container">
+                                <div class="d-flex gap-2 mb-3 flex-wrap">
+                                    <button class="btn btn-outline-success btn-sm btn-action-type" onclick="addAction('updateStatus')">
+                                        <i class="fas fa-edit"></i> Update Status
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm btn-action-type" onclick="addAction('addLog')">
+                                        <i class="fas fa-file-alt"></i> Add Log Entry
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm btn-action-type" onclick="addAction('createWorkflow')">
+                                        <i class="fas fa-project-diagram"></i> Create Workflow
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm btn-action-type" onclick="addAction('notify')">
+                                        <i class="fas fa-bell"></i> Send Notification
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm btn-action-type" onclick="addAction('updateDate')">
+                                        <i class="fas fa-calendar"></i> Update Date
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm btn-action-type" onclick="addAction('updateRelatedStatus')">
+                                        <i class="fas fa-link"></i> Update Related Status
+                                    </button>
+                                </div>
+                                <div id="actions-list">
+                                    <!-- Actions will be added here dynamically -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Generated Rule Preview -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold mb-0">Rule JSON</h6>
+                                <div>
+                                    <button class="btn btn-outline-info btn-sm me-1" onclick="testSharedRuleJson()" title="Test This Rule">
+                                        <i class="fas fa-play"></i> Test Rule
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm me-1" onclick="importJsonToBuilder()" title="Import to Visual Builder">
+                                        <i class="fas fa-upload"></i> Import to Builder
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm" onclick="copyRuleToClipboard()" title="Copy to Clipboard">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea class="form-control rule-editor" id="sharedRuleJson" rows="15" placeholder="Generated rule JSON will appear here, or paste your own JSON to import..."
+                                style="font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; font-size: 12px;">Configure rule above to see generated JSON...</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section Divider -->
+                <div class="section-divider" data-title="TEST RUNNER"></div>
+                
+                <!-- Test Runner Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-flask"></i> Rule Test Runner</h5>
+                        <small class="text-muted">Test your rules with real data from your workflow system</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form id="testForm">
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold">Test Configuration</h6>
+                                        <p class="text-muted small">Configure test parameters for rule execution</p>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="testTriggerField" class="form-label">Trigger Field</label>
+                                                <select class="form-select" id="testTriggerField">
+                                                    <option value="current_status">Job Status</option>
+                                                    <option value="task_status">Task Status</option>
+                                                    <option value="approval_status">Approval Status</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="testTriggerValue" class="form-label">New Value</label>
+                                                <input type="text" class="form-control" id="testTriggerValue" value="complete" placeholder="Enter trigger value">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="testRowID" class="form-label">Record ID</label>
+                                                <input type="number" class="form-control" id="testRowID" value="123" placeholder="Enter record ID">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="testUserID" class="form-label">User ID</label>
+                                                <input type="number" class="form-control" id="testUserID" value="1" placeholder="Enter user ID">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-primary" onclick="testSharedRuleJson()">
+                                            <i class="fas fa-play"></i> Execute Rule Test
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="validateSharedRuleJson()">
+                                            <i class="fas fa-check-circle"></i> Validate JSON
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearTestResults()">Clear Results</button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="fw-bold mb-3">Test Results</h6>
+                                <div id="testResultsContainer" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="text-center text-muted p-4">
+                                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                        <p>Enter a rule JSON and click "Execute Rule Test" to see results</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JS Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    
+    <script>
+        // Global counters for generating unique IDs
+        let conditionCounter = 0;
+        let actionCounter = 0;
+        let validationCounter = 0;
+
+        // Activity logging function
+        function logActivity(message, type = 'info') {
+            const log = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeClass = `log-\\\${type}`;
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-timestamp">[\\\${timestamp}]</span> <span class="\\\${typeClass}">\\\${message}</span>`;
+            
+            log.appendChild(logEntry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            logActivity('Rule Builder initialized', 'success');
+        });
+
+        // Add condition to the builder
+        function addCondition() {
+            conditionCounter++;
+            const container = document.getElementById('conditions-container');
+            
+            const conditionHtml = `
+                <div class="rule-item condition-item" id="condition-\\\${conditionCounter}">
+                    <button class="remove-btn" onclick="removeCondition(\\\${conditionCounter})" title="Remove condition">×</button>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Job Context</label>
+                            <select class="form-select condition-job-context" onchange="updateConditionFields(this, \\\${conditionCounter})">
+                                <option value="current">Current Job</option>
+                                <option value="next">Next Job</option>
+                                <option value="specific">Specific Job</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Field</label>
+                            <select class="form-select condition-field">
+                                <option value="tier">Customer Tier</option>
+                                <option value="status">Status</option>
+                                <option value="priority">Priority</option>
+                                <option value="assigned_user">Assigned User</option>
+                                <option value="date_due">Due Date</option>
+                                <option value="date_completed">Completed Date</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Operator</label>
+                            <select class="form-select condition-operator">
+                                <option value="equals">Equals</option>
+                                <option value="not_equals">Not Equals</option>
+                                <option value="greater_than">Greater Than</option>
+                                <option value="less_than">Less Than</option>
+                                <option value="contains">Contains</option>
+                                <option value="exists">Exists</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Value</label>
+                            <input type="text" class="form-control condition-value" placeholder="Enter value">
+                        </div>
+                    </div>
+                    
+                    <!-- Job selector (hidden by default for current job) -->
+                    <div class="condition-job-selector mt-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Job Selection</label>
+                                <select class="form-select condition-job-selection">
+                                    <option value="by_id">By Job ID</option>
+                                    <option value="by_template">By Template</option>
+                                    <option value="by_relationship">By Relationship</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Value</label>
+                                <input type="text" class="form-control condition-job-value" placeholder="Enter job identifier">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', conditionHtml);
+            logActivity(`Added condition \\\${conditionCounter}`, 'info');
+        }
+
+        // Update condition fields based on job context
+        function updateConditionFields(selectElement, conditionId) {
+            const jobContext = selectElement.value;
+            const conditionDiv = selectElement.closest('.condition-item');
+            const jobSelector = conditionDiv.querySelector('.condition-job-selector');
+            
+            if (jobContext === 'current') {
+                jobSelector.style.display = 'none';
+            } else if (jobContext === 'next') {
+                jobSelector.style.display = 'none';
+            } else if (jobContext === 'specific') {
+                jobSelector.style.display = 'block';
+            }
+        }
+
+        // Add validation to the builder
+        function addValidation() {
+            validationCounter++;
+            const container = document.getElementById('validations-container');
+            
+            const validationHtml = `
+                <div class="rule-item validation-item" id="validation-\\\${validationCounter}" data-type="businessRule">
+                    <button class="remove-btn" onclick="removeValidation(\\\${validationCounter})" title="Remove validation">×</button>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Validation Type</label>
+                            <select class="form-select validation-type" onchange="updateValidationType(this, \\\${validationCounter})">
+                                <option value="businessRule">Business Rule</option>
+                                <option value="dataIntegrity">Data Integrity</option>
+                                <option value="security">Security Check</option>
+                                <option value="workflow">Workflow State</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Field to Check</label>
+                            <select class="form-select validation-field">
+                                <option value="customer_id">Customer ID</option>
+                                <option value="tier">Customer Tier</option>
+                                <option value="status">Status</option>
+                                <option value="user_permissions">User Permissions</option>
+                                <option value="workflow_state">Workflow State</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Check Type</label>
+                            <select class="form-select validation-check">
+                                <option value="customer_active">Customer Active</option>
+                                <option value="tier_valid">Valid Tier</option>
+                                <option value="status_allowed">Status Allowed</option>
+                                <option value="has_permission">Has Permission</option>
+                                <option value="workflow_allows">Workflow Allows</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Error Message</label>
+                            <input type="text" class="form-control validation-message" placeholder="Error message">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', validationHtml);
+            logActivity(`Added validation \\\${validationCounter}`, 'info');
+        }
+
+        // Update validation type styling
+        function updateValidationType(selectElement, validationId) {
+            const validationType = selectElement.value;
+            const validationDiv = selectElement.closest('.validation-item');
+            validationDiv.setAttribute('data-type', validationType);
+        }
+
+        // Add action to the builder
+        function addAction(actionType = 'updateStatus') {
+            actionCounter++;
+            const container = document.getElementById('actions-list');
+            
+            let actionSpecificFields = '';
+            
+            switch (actionType) {
+                case 'updateStatus':
+                    actionSpecificFields = `
+                        <div class="col-md-4">
+                            <label class="form-label">New Status</label>
+                            <select class="form-select action-value">
+                                <option value="active">Active</option>
+                                <option value="complete">Complete</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'updateRelatedStatus':
+                    actionSpecificFields = `
+                        <div class="col-md-3">
+                            <label class="form-label">Target</label>
+                            <select class="form-select action-target">
+                                <option value="next_job">Next Job</option>
+                                <option value="previous_job">Previous Job</option>
+                                <option value="related_jobs">Related Jobs</option>
+                                <option value="parent_job">Parent Job</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">New Status</label>
+                            <select class="form-select action-value">
+                                <option value="active">Active</option>
+                                <option value="complete">Complete</option>
+                                <option value="pending">Pending</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'updateDate':
+                    actionSpecificFields = `
+                        <div class="col-md-3">
+                            <label class="form-label">Date Field</label>
+                            <select class="form-select action-field">
+                                <option value="date_due">Due Date</option>
+                                <option value="date_completed">Completed Date</option>
+                                <option value="date_started">Started Date</option>
+                                <option value="target_date">Target Date</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date Value</label>
+                            <select class="form-select action-value">
+                                <option value="now">Current Date/Time</option>
+                                <option value="business_days_1">+1 Business Day</option>
+                                <option value="business_days_3">+3 Business Days</option>
+                                <option value="business_days_7">+7 Business Days</option>
+                                <option value="custom">Custom Expression</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'notify':
+                    actionSpecificFields = `
+                        <div class="col-md-3">
+                            <label class="form-label">Notification Type</label>
+                            <select class="form-select action-notification-type">
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="push">Push Notification</option>
+                                <option value="system">System Alert</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Recipient</label>
+                            <select class="form-select action-recipient">
+                                <option value="assigned_user">Assigned User</option>
+                                <option value="customer">Customer</option>
+                                <option value="admin">Administrator</option>
+                                <option value="team">Team</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'createWorkflow':
+                    actionSpecificFields = `
+                        <div class="col-md-4">
+                            <label class="form-label">Template ID</label>
+                            <input type="number" class="form-control action-template-id" placeholder="Workflow template ID">
+                        </div>
+                    `;
+                    break;
+                case 'addLog':
+                    actionSpecificFields = `
+                        <div class="col-md-4">
+                            <label class="form-label">Log Message</label>
+                            <input type="text" class="form-control action-log-message" placeholder="Log message">
+                        </div>
+                    `;
+                    break;
+            }
+            
+            const actionHtml = `
+                <div class="rule-item action-item" id="action-\\\${actionCounter}" data-type="\\\${actionType}">
+                    <button class="remove-btn" onclick="removeAction(\\\${actionCounter})" title="Remove action">×</button>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Action Type</label>
+                            <select class="form-select action-type" onchange="updateActionType(this, \\\${actionCounter})">
+                                <option value="updateStatus" \\\${actionType === 'updateStatus' ? 'selected' : ''}>Update Status</option>
+                                <option value="updateRelatedStatus" \\\${actionType === 'updateRelatedStatus' ? 'selected' : ''}>Update Related Status</option>
+                                <option value="updateDate" \\\${actionType === 'updateDate' ? 'selected' : ''}>Update Date</option>
+                                <option value="notify" \\\${actionType === 'notify' ? 'selected' : ''}>Send Notification</option>
+                                <option value="createWorkflow" \\\${actionType === 'createWorkflow' ? 'selected' : ''}>Create Workflow</option>
+                                <option value="addLog" \\\${actionType === 'addLog' ? 'selected' : ''}>Add Log Entry</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Description</label>
+                            <input type="text" class="form-control action-description" placeholder="Brief description of this action">
+                        </div>
+                        \\\${actionSpecificFields}
+                    </div>
+                    
+                    <div class="action-specific-fields mt-3" id="action-specific-\\\${actionCounter}">
+                        <!-- Additional fields based on action type -->
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', actionHtml);
+            logActivity(`Added \\\${actionType} action \\\${actionCounter}`, 'info');
+        }
+
+        // Update action type and show relevant fields
+        function updateActionType(selectElement, actionId) {
+            const newActionType = selectElement.value;
+            const actionDiv = selectElement.closest('.action-item');
+            actionDiv.setAttribute('data-type', newActionType);
+            
+            // You would update the action-specific fields here
+            // For brevity, I'm keeping this simple
+            logActivity(`Changed action \\\${actionId} to \\\${newActionType}`, 'info');
+        }
+
+        // Remove functions
+        function removeCondition(id) {
+            document.getElementById(`condition-\\\${id}`).remove();
+            logActivity(`Removed condition \\\${id}`, 'warning');
+        }
+
+        function removeValidation(id) {
+            document.getElementById(`validation-\\\${id}`).remove();
+            logActivity(`Removed validation \\\${id}`, 'warning');
+        }
+
+        function removeAction(id) {
+            document.getElementById(`action-\\\${id}`).remove();
+            logActivity(`Removed action \\\${id}`, 'warning');
+        }
+
+        // Generate rule from builder
+        function generateRuleFromBuilder() {
+            const ruleName = document.getElementById('rule-name').value;
+            const ruleTrigger = document.getElementById('rule-trigger').value;
+            const ruleDescription = document.getElementById('rule-description').value;
+            
+            if (!ruleName || !ruleTrigger) {
+                alert('Please provide a rule name and trigger event');
+                return;
+            }
+            
+            // Build conditions array
+            const conditions = [];
+            document.querySelectorAll('.condition-item').forEach(item => {
+                const jobContext = item.querySelector('.condition-job-context').value;
+                const field = item.querySelector('.condition-field').value;
+                const operator = item.querySelector('.condition-operator').value;
+                const value = item.querySelector('.condition-value').value;
+                
+                conditions.push({
+                    jobContext: jobContext,
+                    field: field,
+                    operator: operator,
+                    value: value
+                });
+            });
+            
+            // Build validations array
+            const validations = [];
+            document.querySelectorAll('.validation-item').forEach(item => {
+                const type = item.querySelector('.validation-type').value;
+                const field = item.querySelector('.validation-field').value;
+                const check = item.querySelector('.validation-check').value;
+                const message = item.querySelector('.validation-message').value;
+                
+                validations.push({
+                    type: type,
+                    field: field,
+                    check: check,
+                    message: message
+                });
+            });
+            
+            // Build actions array
+            const actions = [];
+            document.querySelectorAll('.action-item').forEach(item => {
+                const type = item.querySelector('.action-type').value;
+                const description = item.querySelector('.action-description').value;
+                
+                const action = {
+                    type: type,
+                    description: description
+                };
+                
+                // Add type-specific fields
+                switch (type) {
+                    case 'updateStatus':
+                        action.value = item.querySelector('.action-value')?.value;
+                        break;
+                    case 'updateRelatedStatus':
+                        action.target = item.querySelector('.action-target')?.value;
+                        action.value = item.querySelector('.action-value')?.value;
+                        break;
+                    case 'updateDate':
+                        action.field = item.querySelector('.action-field')?.value;
+                        action.value = item.querySelector('.action-value')?.value;
+                        break;
+                    case 'notify':
+                        action.notificationType = item.querySelector('.action-notification-type')?.value;
+                        action.recipient = item.querySelector('.action-recipient')?.value;
+                        break;
+                    case 'createWorkflow':
+                        action.templateId = item.querySelector('.action-template-id')?.value;
+                        break;
+                    case 'addLog':
+                        action.message = item.querySelector('.action-log-message')?.value;
+                        break;
+                }
+                
+                actions.push(action);
+            });
+            
+            // Build final rule object
+            const rule = {
+                on: ruleTrigger,
+                name: ruleName,
+                description: ruleDescription,
+                conditions: conditions,
+                validations: validations,
+                actions: actions,
+                active: true,
+                created: new Date().toISOString()
+            };
+            
+            // Display generated rule
+            const preview = document.getElementById('generated-rule-preview');
+            preview.textContent = JSON.stringify(rule, null, 2);
+            
+            // Apply syntax highlighting if Prism is available
+            if (window.Prism) {
+                preview.innerHTML = Prism.highlight(preview.textContent, Prism.languages.json, 'json');
+            }
+            
+            logActivity(`Generated rule: \\\${ruleName}`, 'success');
+        }
+
+        // Copy generated rule to test runner
+        function copyGeneratedRuleToTestRunner() {
+            const generatedRule = document.getElementById('generated-rule-preview').textContent;
+            if (generatedRule && !generatedRule.includes('Configure rule above')) {
+                document.getElementById('testRuleJson').value = generatedRule;
+                logActivity('Copied rule to test runner', 'success');
+                
+                // Scroll to test runner
+                document.querySelector('.section-divider').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+            } else {
+                alert('Please generate a rule first');
+            }
+        }
+
+        // Copy to clipboard
+        function copyGeneratedRuleToClipboard() {
+            const generatedRule = document.getElementById('generated-rule-preview').textContent;
+            if (generatedRule && !generatedRule.includes('Configure rule above')) {
+                navigator.clipboard.writeText(generatedRule).then(() => {
+                    logActivity('Copied rule to clipboard', 'success');
+                    alert('Rule copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+            } else {
+                alert('Please generate a rule first');
+            }
+        }
+
+        // Clear rule builder
+        function clearRuleBuilder() {
+            if (confirm('Clear all rule components? This cannot be undone.')) {
+                document.getElementById('rule-name').value = '';
+                document.getElementById('rule-trigger').value = '';
+                document.getElementById('rule-description').value = '';
+                
+                // Clear all conditions
+                document.querySelectorAll('.condition-item').forEach(item => item.remove());
+                
+                // Clear all validations
+                document.querySelectorAll('.validation-item').forEach(item => item.remove());
+                
+                // Clear all actions
+                document.querySelectorAll('.action-item').forEach(item => item.remove());
+                
+                // Clear generated rule
+                document.getElementById('generated-rule-preview').textContent = 'Configure rule above to see generated JSON...';
+                
+                // Reset counters
+                conditionCounter = 0;
+                actionCounter = 0;
+                validationCounter = 0;
+                
+                logActivity('Rule builder cleared', 'warning');
+            }
+        }
+
+        // Import rule functionality
+        function showImportRuleModal() {
+            const modal = new bootstrap.Modal(document.getElementById('importRuleModal'));
+            modal.show();
+        }
+
+        function importRuleToBuilder() {
+            const jsonText = document.getElementById('importRuleJsonTextarea').value;
+            
+            try {
+                const rule = JSON.parse(jsonText);
+                
+                // Clear existing builder
+                clearRuleBuilder();
+                
+                // Import basic rule properties
+                document.getElementById('rule-name').value = rule.name || '';
+                document.getElementById('rule-trigger').value = rule.on || '';
+                document.getElementById('rule-description').value = rule.description || '';
+                
+                // Import conditions
+                if (rule.conditions && rule.conditions.length > 0) {
+                    rule.conditions.forEach(condition => {
+                        addCondition();
+                        const conditionItem = document.querySelector('.condition-item:last-child');
+                        conditionItem.querySelector('.condition-job-context').value = condition.jobContext || 'current';
+                        conditionItem.querySelector('.condition-field').value = condition.field || '';
+                        conditionItem.querySelector('.condition-operator').value = condition.operator || '';
+                        conditionItem.querySelector('.condition-value').value = condition.value || '';
+                    });
+                }
+                
+                // Import validations
+                if (rule.validations && rule.validations.length > 0) {
+                    rule.validations.forEach(validation => {
+                        addValidation();
+                        const validationItem = document.querySelector('.validation-item:last-child');
+                        validationItem.querySelector('.validation-type').value = validation.type || '';
+                        validationItem.querySelector('.validation-field').value = validation.field || '';
+                        validationItem.querySelector('.validation-check').value = validation.check || '';
+                        validationItem.querySelector('.validation-message').value = validation.message || '';
+                    });
+                }
+                
+                // Import actions
+                if (rule.actions && rule.actions.length > 0) {
+                    rule.actions.forEach(action => {
+                        addAction(action.type);
+                        const actionItem = document.querySelector('.action-item:last-child');
+                        actionItem.querySelector('.action-description').value = action.description || '';
+                        
+                        // Set type-specific values
+                        if (action.value && actionItem.querySelector('.action-value')) {
+                            actionItem.querySelector('.action-value').value = action.value;
+                        }
+                        if (action.target && actionItem.querySelector('.action-target')) {
+                            actionItem.querySelector('.action-target').value = action.target;
+                        }
+                        if (action.field && actionItem.querySelector('.action-field')) {
+                            actionItem.querySelector('.action-field').value = action.field;
+                        }
+                    });
+                }
+                
+                // Generate rule to show preview
+                generateRuleFromBuilder();
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('importRuleModal'));
+                modal.hide();
+                
+                logActivity(`Imported rule: \\\${rule.name}`, 'success');
+                
+            } catch (error) {
+                alert('Failed to import rule: ' + error.message);
+                logActivity(`Import failed: \\\${error.message}`, 'error');
+            }
+        }
+
+        // Load rule template
+        function loadRuleTemplate(templateType) {
+            let template = {};
+            
+            if (templateType === 'workflow') {
+                template = {
+                    name: "Job Completion Workflow",
+                    on: "current_status:complete",
+                    description: "Activate next job and update dates when current job completes",
+                    conditions: [],
+                    validations: [
+                        {
+                            type: "businessRule",
+                            field: "customer_id", 
+                            check: "customer_active",
+                            message: "Customer must be active"
+                        }
+                    ],
+                    actions: [
+                        {
+                            type: "updateRelatedStatus",
+                            description: "Activate next job in workflow",
+                            target: "next_job",
+                            value: "active"
+                        },
+                        {
+                            type: "updateDate",
+                            description: "Set target date for next job", 
+                            field: "target_date",
+                            value: "business_days_3"
+                        }
+                    ]
+                };
+            }
+            
+            // Import the template
+            document.getElementById('importRuleJsonTextarea').value = JSON.stringify(template, null, 2);
+            importRuleToBuilder();
+            
+            logActivity(`Loaded \\\${templateType} template`, 'info');
+        }
+
+        // Test runner functions
+        function runRuleTest() {
+            const ruleJson = document.getElementById('testRuleJson').value;
+            const triggerField = document.getElementById('testTriggerField').value;
+            const triggerValue = document.getElementById('testTriggerValue').value;
+            const rowID = document.getElementById('testRowID').value;
+            const userID = document.getElementById('testUserID').value;
+            
+            if (!ruleJson.trim()) {
+                alert('Please enter rule JSON to test');
+                return;
+            }
+            
+            logActivity('Starting rule test...', 'info');
+            
+            // Send test request to server
+            fetch('/api/rule-test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    rule: JSON.parse(ruleJson),
+                    scenario: 'status_change',
+                    jobId: rowID
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                displayTestResults(result);
+                logActivity('Rule test completed', 'success');
+            })
+            .catch(error => {
+                logActivity(`Test failed: \\\${error.message}`, 'error');
+                alert('Test failed: ' + error.message);
+            });
+        }
+
+        function displayTestResults(result) {
+            const container = document.getElementById('testResultsContainer');
+            
+            let html = `
+                <div class="test-result \${result.success ? 'test-success' : 'test-error'}">
+                    <h6><i class="fas fa-\${result.success ? 'check-circle' : 'exclamation-triangle'}"></i> Test Results</h6>
+                    <p><strong>Status:</strong> \${result.passed ? 'PASSED' : 'FAILED'}</p>
+                    <p><strong>Execution Time:</strong> \${result.executionTime}ms</p>
+                </div>
+            `;
+            
+            if (result.logs && result.logs.length > 0) {
+                html += '<div class="mt-3"><h6>Execution Log:</h6><div class="small">';
+                result.logs.forEach(log => {
+                    html += `<div class="mb-1">\\\${log}</div>`;
+                });
+                html += '</div></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function validateRuleJson() {
+            const ruleJson = document.getElementById('testRuleJson').value;
+            
+            try {
+                JSON.parse(ruleJson);
+                alert('✅ JSON is valid!');
+                logActivity('JSON validation passed', 'success');
+            } catch (error) {
+                alert('❌ Invalid JSON: ' + error.message);
+                logActivity(`JSON validation failed: \\\${error.message}`, 'error');
+            }
+        }
+
+        function copyRuleToVisualBuilder() {
+            const ruleJson = document.getElementById('testRuleJson').value;
+            
+            if (!ruleJson.trim()) {
+                alert('No rule JSON to copy');
+                return;
+            }
+            
+            document.getElementById('importRuleJsonTextarea').value = ruleJson;
+            importRuleToBuilder();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            logActivity('Copied rule to visual builder', 'success');
+        }
+
+        function clearTestResults() {
+            document.getElementById('testResultsContainer').innerHTML = `
+                <div class="text-center text-muted p-4">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                    <p>Enter a rule JSON and click "Execute Rule Test" to see results</p>
+                </div>
+            `;
+            logActivity('Test results cleared', 'info');
+        }
+
+        // Save rule to database
+        function saveRuleToDatabase() {
+            const generatedRule = document.getElementById('generated-rule-preview').textContent;
+            
+            if (!generatedRule || generatedRule.includes('Configure rule above')) {
+                alert('Please generate a rule first');
+                return;
+            }
+            
+            try {
+                const rule = JSON.parse(generatedRule);
+                
+                fetch('/api/rules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(rule)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('✅ Rule saved successfully!');
+                        logActivity(`Rule saved: \\\${rule.name}`, 'success');
+                    } else {
+                        throw new Error(result.error || 'Failed to save rule');
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Failed to save rule: ' + error.message);
+                    logActivity(`Save failed: \\\${error.message}`, 'error');
+                });
+                
+            } catch (error) {
+                alert('❌ Invalid rule JSON: ' + error.message);
+                logActivity(`Save failed: \\\${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+        // Global counters for unique IDs
+        let conditionCounter = 0;
+        let actionCounter = 0;
+        let validationCounter = 0;
+        
+        // Activity logging
+        function logActivity(message, type = 'info') {
+            const log = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'warning': '⚠️',
+                'error': '❌'
+            }[type] || 'ℹ️';
+            
+            log.innerHTML += `<div class="mb-1">[\\\${timestamp}] \\\${icon} \\\${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            logActivity('Rule Builder initialized', 'success');
+        });
+        
+        // Add condition component
+        function addCondition() {
+            conditionCounter++;
+            const conditionsArea = document.getElementById('conditionsArea');
+            
+            if (conditionsArea.querySelector('.text-muted')) {
+                conditionsArea.innerHTML = '';
+            }
+            
+            const conditionHtml = `
+                <div class="condition-item" id="condition-\${conditionCounter}">
+                    <button class="btn-remove" onclick="removeCondition(\${conditionCounter})">&times;</button>
+                    
+                    <div class="field-group">
+                        <label>Field</label>
+                        <select class="form-control condition-field">
+                            <option value="status">Status</option>
+                            <option value="tier">Tier</option>
+                            <option value="priority">Priority</option>
+                            <option value="date_due">Due Date</option>
+                            <option value="assigned_user">Assigned User</option>
+                        </select>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Operator</label>
+                        <select class="form-control condition-operator">
+                            <option value="equals">Equals</option>
+                            <option value="not_equals">Not Equals</option>
+                            <option value="contains">Contains</option>
+                            <option value="greater_than">Greater Than</option>
+                            <option value="less_than">Less Than</option>
+                        </select>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Value</label>
+                        <input type="text" class="form-control condition-value" placeholder="Enter value">
+                    </div>
+                </div>
+            `;
+            
+            conditionsArea.insertAdjacentHTML('beforeend', conditionHtml);
+            logActivity(`Added condition ${conditionCounter}`, 'info');
+        }
+        
+        // Add action component
+        function addAction() {
+            actionCounter++;
+            const actionsArea = document.getElementById('actionsArea');
+            
+            if (actionsArea.querySelector('.text-muted')) {
+                actionsArea.innerHTML = '';
+            }
+            
+            const actionHtml = `
+                <div class="action-item" id="action-${actionCounter}">
+                    <button class="btn-remove" onclick="removeAction(${actionCounter})">&times;</button>
+                    
+                    <div class="field-group">
+                        <label>Action Type</label>
+                        <select class="form-control action-type" onchange="updateActionFields(${actionCounter})">
+                            <option value="updateStatus">Update Status</option>
+                            <option value="updateField">Update Field</option>
+                            <option value="updateDate">Update Date</option>
+                            <option value="notify">Send Notification</option>
+                            <option value="createWorksheet">Create Worksheet</option>
+                            <option value="executeWorkflow">Execute Workflow</option>
+                        </select>
+                    </div>
+                    
+                    <div class="action-fields" id="action-fields-${actionCounter}">
+                        <div class="field-group">
+                            <label>New Status</label>
+                            <select class="form-control action-value">
+                                <option value="complete">Complete</option>
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            actionsArea.insertAdjacentHTML('beforeend', actionHtml);
+            logActivity(`Added action ${actionCounter}`, 'info');
+        }
+        
+        // Add validation component
+        function addValidation() {
+            validationCounter++;
+            const validationsArea = document.getElementById('validationsArea');
+            
+            if (validationsArea.querySelector('.text-muted')) {
+                validationsArea.innerHTML = '';
+            }
+            
+            const validationHtml = `
+                <div class="validation-item" id="validation-${validationCounter}">
+                    <button class="btn-remove" onclick="removeValidation(${validationCounter})">&times;</button>
+                    
+                    <div class="field-group">
+                        <label>Validation Type</label>
+                        <select class="form-control validation-type">
+                            <option value="required">Required Field</option>
+                            <option value="businessRule">Business Rule</option>
+                            <option value="dataIntegrity">Data Integrity</option>
+                            <option value="workflow">Workflow Validation</option>
+                        </select>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Field to Validate</label>
+                        <select class="form-control validation-field">
+                            <option value="customer_id">Customer ID</option>
+                            <option value="tier">Tier</option>
+                            <option value="status">Status</option>
+                            <option value="date_due">Due Date</option>
+                        </select>
+                    </div>
+                    
+                    <div class="field-group">
+                        <label>Error Message</label>
+                        <input type="text" class="form-control validation-message" placeholder="Error message to display">
+                    </div>
+                </div>
+            `;
+            
+            validationsArea.insertAdjacentHTML('beforeend', validationHtml);
+            logActivity(`Added validation ${validationCounter}`, 'info');
+        }
+        
+        // Update action fields based on action type
+        function updateActionFields(actionId) {
+            const actionType = document.querySelector(`#action-${actionId} .action-type`).value;
+            const fieldsContainer = document.getElementById(`action-fields-${actionId}`);
+            
+            let fieldsHtml = '';
+            
+            switch (actionType) {
+                case 'updateStatus':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>New Status</label>
+                            <select class="form-control action-value">
+                                <option value="complete">Complete</option>
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    `;
+                    break;
+                case 'updateField':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>Field Name</label>
+                            <input type="text" class="form-control action-field" placeholder="Field to update">
+                        </div>
+                        <div class="field-group">
+                            <label>New Value</label>
+                            <input type="text" class="form-control action-value" placeholder="New value">
+                        </div>
+                    `;
+                    break;
+                case 'updateDate':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>Date Field</label>
+                            <select class="form-control action-field">
+                                <option value="date_due">Due Date</option>
+                                <option value="date_completed">Completed Date</option>
+                                <option value="date_started">Started Date</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>Date Value</label>
+                            <input type="text" class="form-control action-value" placeholder="Date or expression (e.g., +7 days)">
+                        </div>
+                    `;
+                    break;
+                case 'notify':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>Notification Type</label>
+                            <select class="form-control action-value">
+                                <option value="email">Email</option>
+                                <option value="sms">SMS</option>
+                                <option value="system">System Notification</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label>Message</label>
+                            <input type="text" class="form-control action-message" placeholder="Notification message">
+                        </div>
+                    `;
+                    break;
+                case 'createWorksheet':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>Template ID</label>
+                            <input type="number" class="form-control action-value" placeholder="Worksheet template ID">
+                        </div>
+                    `;
+                    break;
+                case 'executeWorkflow':
+                    fieldsHtml = `
+                        <div class="field-group">
+                            <label>Workflow Name</label>
+                            <input type="text" class="form-control action-value" placeholder="Workflow to execute">
+                        </div>
+                    `;
+                    break;
+            }
+            
+            fieldsContainer.innerHTML = fieldsHtml;
+        }
+        
+        // Remove components
+        function removeCondition(id) {
+            document.getElementById(`condition-${id}`).remove();
+            logActivity(`Removed condition ${id}`, 'info');
+        }
+        
+        function removeAction(id) {
+            document.getElementById(`action-${id}`).remove();
+            logActivity(`Removed action ${id}`, 'info');
+        }
+        
+        function removeValidation(id) {
+            document.getElementById(`validation-${id}`).remove();
+            logActivity(`Removed validation ${id}`, 'info');
+        }
+        
+        // Generate rule JSON
+        function generateRule() {
+            const ruleName = document.getElementById('ruleName').value;
+            const ruleDescription = document.getElementById('ruleDescription').value;
+            const triggerField = document.getElementById('triggerField').value;
+            
+            if (!ruleName || !triggerField) {
+                alert('Please provide a rule name and trigger field');
+                return;
+            }
+            
+            // Build conditions
+            const conditions = [];
+            document.querySelectorAll('.condition-item').forEach(item => {
+                conditions.push({
+                    field: item.querySelector('.condition-field').value,
+                    operator: item.querySelector('.condition-operator').value,
+                    value: item.querySelector('.condition-value').value
+                });
+            });
+            
+            // Build actions
+            const actions = [];
+            document.querySelectorAll('.action-item').forEach(item => {
+                const actionType = item.querySelector('.action-type').value;
+                const action = { type: actionType };
+                
+                if (actionType === 'updateField') {
+                    action.field = item.querySelector('.action-field').value;
+                    action.value = item.querySelector('.action-value').value;
+                } else if (actionType === 'updateDate') {
+                    action.field = item.querySelector('.action-field').value;
+                    action.value = item.querySelector('.action-value').value;
+                } else if (actionType === 'notify') {
+                    action.notificationType = item.querySelector('.action-value').value;
+                    action.message = item.querySelector('.action-message')?.value || '';
+                } else {
+                    action.value = item.querySelector('.action-value').value;
+                }
+                
+                actions.push(action);
+            });
+            
+            // Build validations
+            const validations = [];
+            document.querySelectorAll('.validation-item').forEach(item => {
+                validations.push({
+                    type: item.querySelector('.validation-type').value,
+                    field: item.querySelector('.validation-field').value,
+                    message: item.querySelector('.validation-message').value
+                });
+            });
+            
+            const rule = {
+                name: ruleName,
+                description: ruleDescription,
+                trigger: {
+                    field: triggerField,
+                    type: 'onChange'
+                },
+                conditions: conditions,
+                actions: actions,
+                validations: validations,
+                active: true,
+                created: new Date().toISOString()
+            };
+            
+            document.getElementById('generatedRule').textContent = JSON.stringify(rule, null, 2);
+            logActivity(`Generated rule: ${ruleName}`, 'success');
+        }
+        
+        // Copy generated rule to test runner
+        function copyToTestRunner() {
+            const generatedRule = document.getElementById('generatedRule').textContent;
+            if (generatedRule && !generatedRule.includes('Configure your rule')) {
+                document.getElementById('testRuleJson').value = generatedRule;
+                logActivity('Copied rule to test runner', 'success');
+                
+                // Scroll to test runner
+                document.querySelector('.test-runner-container').scrollIntoView({ 
+                    behavior: 'smooth' 
+                });
+            } else {
+                alert('Please generate a rule first');
+            }
+        }
+        
+        // Run test
+        async function runTest() {
+            const ruleJson = document.getElementById('testRuleJson').value;
+            const jobId = document.getElementById('testJobId').value;
+            const scenario = document.getElementById('testScenario').value;
+            
+            if (!ruleJson) {
+                alert('Please provide rule JSON to test');
+                return;
+            }
+            
+            logActivity('Starting rule test...', 'info');
+            
+            try {
+                const rule = JSON.parse(ruleJson);
+                
+                const response = await fetch('/api/rule-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rule: rule,
+                        jobId: jobId,
+                        scenario: scenario
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayTestResults(result);
+                    logActivity('Test completed successfully', 'success');
+                } else {
+                    throw new Error(result.error || 'Test failed');
+                }
+                
+            } catch (error) {
+                const errorMsg = `Test failed: ${error.message}`;
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h6>Test Error</h6>
+                        <p>${errorMsg}</p>
+                    </div>
+                `;
+                logActivity(errorMsg, 'error');
+            }
+        }
+        
+        // Display test results
+        function displayTestResults(result) {
+            const resultsContainer = document.getElementById('testResults');
+            
+            let html = `
+                <div class="alert alert-${result.passed ? 'success' : 'warning'}">
+                    <h6><i class="fas fa-${result.passed ? 'check' : 'exclamation-triangle'}"></i> Test Results</h6>
+                    <p><strong>Status:</strong> ${result.passed ? 'PASSED' : 'FAILED'}</p>
+                    <p><strong>Execution Time:</strong> ${result.executionTime}ms</p>
+                </div>
+            `;
+            
+            if (result.conditionsEvaluated) {
+                html += `
+                    <div class="mb-3">
+                        <h6>Conditions Evaluated:</h6>
+                        <ul class="list-unstyled">
+                `;
+                result.conditionsEvaluated.forEach(condition => {
+                    html += `
+                        <li class="mb-1">
+                            <span class="badge bg-${condition.passed ? 'success' : 'danger'} me-2">
+                                ${condition.passed ? '✓' : '✗'}
+                            </span>
+                            ${condition.field} ${condition.operator} ${condition.value}
+                        </li>
+                    `;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (result.actionsExecuted && result.actionsExecuted.length > 0) {
+                html += `
+                    <div class="mb-3">
+                        <h6>Actions Executed:</h6>
+                        <ul class="list-unstyled">
+                `;
+                result.actionsExecuted.forEach(action => {
+                    html += `
+                        <li class="mb-1">
+                            <span class="badge bg-info me-2">${action.type}</span>
+                            ${action.description || action.type}
+                        </li>
+                    `;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (result.validationResults && result.validationResults.length > 0) {
+                html += `
+                    <div class="mb-3">
+                        <h6>Validation Results:</h6>
+                        <ul class="list-unstyled">
+                `;
+                result.validationResults.forEach(validation => {
+                    html += `
+                        <li class="mb-1">
+                            <span class="badge bg-${validation.passed ? 'success' : 'warning'} me-2">
+                                ${validation.passed ? '✓' : '⚠'}
+                            </span>
+                            ${validation.field}: ${validation.message || 'OK'}
+                        </li>
+                    `;
+                });
+                html += '</ul></div>';
+            }
+            
+            if (result.logs && result.logs.length > 0) {
+                html += `
+                    <div>
+                        <h6>Execution Log:</h6>
+                        <div class="small">
+                `;
+                result.logs.forEach(log => {
+                    html += `<div class="mb-1">${log}</div>`;
+                });
+                html += '</div></div>';
+            }
+            
+            resultsContainer.innerHTML = html;
+        }
+        
+        // Clear test results
+        function clearTestResults() {
+            document.getElementById('testResults').innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                    <p>Configure your test above and click "Run Test" to see results</p>
+                </div>
+            `;
+            logActivity('Test results cleared', 'info');
+        }
+        
+        // Clear all rules
+        function clearAllRules() {
+            if (confirm('Are you sure you want to clear all rules? This cannot be undone.')) {
+                document.getElementById('conditionsArea').innerHTML = `
+                    <i class="fas fa-filter fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Click "Add Condition" to add conditions</p>
+                `;
+                document.getElementById('actionsArea').innerHTML = `
+                    <i class="fas fa-play fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Click "Add Action" to add actions</p>
+                `;
+                document.getElementById('validationsArea').innerHTML = `
+                    <i class="fas fa-check-circle fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">Click "Add Validation" to add validations</p>
+                `;
+                document.getElementById('generatedRule').textContent = 'Configure your rule above and click "Generate Rule JSON" to see the output';
+                document.getElementById('ruleName').value = '';
+                document.getElementById('ruleDescription').value = '';
+                document.getElementById('triggerField').value = '';
+                
+                conditionCounter = 0;
+                actionCounter = 0;
+                validationCounter = 0;
+                
+                logActivity('All rules cleared', 'warning');
+            }
+        }
+        
+        // Save rule
+        async function saveRule() {
+            const generatedRule = document.getElementById('generatedRule').textContent;
+            
+            if (!generatedRule || generatedRule.includes('Configure your rule')) {
+                alert('Please generate a rule first');
+                return;
+            }
+            
+            try {
+                const rule = JSON.parse(generatedRule);
+                
+                const response = await fetch('/api/rules', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(rule)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    logActivity(`Rule saved: ${rule.name}`, 'success');
+                    alert('Rule saved successfully!');
+                } else {
+                    throw new Error(result.error || 'Failed to save rule');
+                }
+                
+            } catch (error) {
+                logActivity(`Failed to save rule: ${error.message}`, 'error');
+                alert('Failed to save rule: ' + error.message);
+            }
+        }
+        
+        // Global function declarations to ensure they're available
+        window.testSharedRuleJson = testSharedRuleJson;
+        window.importJsonToBuilder = importJsonToBuilder;
+        
+        // Functions for shared JSON area workflow
+        function testSharedRuleJson() {
+            logActivity('Starting rule test...', 'info');
+            console.log('testSharedRuleJson: Starting test');
+            
+            try {
+                const sharedJsonInput = document.getElementById('sharedRuleJson');
+                const ruleJson = sharedJsonInput.value.trim();
+                
+                if (!ruleJson) {
+                    logActivity('Test failed: No JSON provided', 'error');
+                    showAlert('Please enter rule JSON before testing.', 'warning');
+                    return;
+                }
+
+                // Validate JSON format
+                let ruleData;
+                try {
+                    ruleData = JSON.parse(ruleJson);
+                } catch (parseError) {
+                    showAlert('Invalid JSON format: ' + parseError.message, 'error');
+                    return;
+                }
+
+                const testDataTextarea = document.getElementById('testTriggerField');
+                const triggerField = testDataTextarea.value;
+                const triggerValue = document.getElementById('testTriggerValue').value;
+                const rowID = document.getElementById('testRowID').value;
+                const userID = document.getElementById('testUserID').value;
+                
+                // Create test data object from form fields
+                const testData = JSON.stringify({
+                    [triggerField]: triggerValue,
+                    id: rowID,
+                    user_id: userID
+                });
+                
+                if (!testData) {
+                    showAlert('Please configure test data before running the test.', 'warning');
+                    return;
+                }
+
+                let testRecord;
+                try {
+                    testRecord = JSON.parse(testData);
+                } catch (parseError) {
+                    showAlert('Invalid test data JSON format: ' + parseError.message, 'error');
+                    return;
+                }
+
+                // Show loading state
+                const testButton = event.target;
+                const originalText = testButton.innerHTML;
+                testButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+                testButton.disabled = true;
+
+                // Send test request
+                fetch('/api/rule-test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        rule: ruleData,
+                        testData: testRecord
+                    })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    // Reset button state
+                    testButton.innerHTML = originalText;
+                    testButton.disabled = false;
+
+                    // Display results
+                    const resultsDiv = document.getElementById('testResultsContainer');
+                    if (result.success) {
+                        resultsDiv.innerHTML = `
+                            <div class="alert alert-success">
+                                <h6><i class="fas fa-check-circle"></i> Test Completed Successfully</h6>
+                                <pre>${JSON.stringify(result.result, null, 2)}</pre>
+                            </div>
+                        `;
+                        logActivity('Rule test completed successfully');
+                    } else {
+                        resultsDiv.innerHTML = `
+                            <div class="alert alert-danger">
+                                <h6><i class="fas fa-exclamation-circle"></i> Test Failed</h6>
+                                <p>${result.error}</p>
+                            </div>
+                        `;
+                        logActivity('Rule test failed: ' + result.error);
+                    }
+                })
+                .catch(error => {
+                    // Reset button state
+                    testButton.innerHTML = originalText;
+                    testButton.disabled = false;
+                    
+                    console.error('Test error:', error);
+                    document.getElementById('testResultsContainer').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-exclamation-circle"></i> Test Error</h6>
+                            <p>Failed to test rule: ${error.message}</p>
+                        </div>
+                    `;
+                    logActivity('Rule test error: ' + error.message);
+                });
+
+            } catch (error) {
+                console.error('Test function error:', error);
+                logActivity(`Test failed: ${error.message}`, 'error');
+                showAlert('Test error: ' + error.message, 'error');
+            }
+        }
+
+        function importJsonToBuilder() {
+            logActivity('Starting JSON import to visual builder...', 'info');
+            console.log('importJsonToBuilder: Starting import');
+            
+            try {
+                const sharedJsonInput = document.getElementById('sharedRuleJson');
+                const jsonText = sharedJsonInput.value.trim();
+                
+                if (!jsonText) {
+                    logActivity('Import failed: No JSON content provided', 'error');
+                    showAlert('Please enter rule JSON before importing.', 'warning');
+                    return;
+                }
+
+                const ruleData = JSON.parse(jsonText);
+                
+                if (!ruleData.conditions || !ruleData.actions) {
+                    logActivity('Import failed: Invalid rule JSON format - missing conditions or actions', 'error');
+                    showAlert('Invalid rule JSON format. Must contain conditions and actions.', 'error');
+                    return;
+                }
+
+                // Clear existing rule
+                // clearRuleBuilder(); // commented out to avoid confirm dialog
+                
+                // Clear form fields
+                document.getElementById('rule-name').value = '';
+                document.getElementById('rule-trigger').value = '';
+                document.getElementById('rule-description').value = '';
+                
+                // Set rule name and status
+                if (ruleData.name) {
+                    document.getElementById('rule-name').value = ruleData.name;
+                }
+                if (ruleData.status) {
+                    document.getElementById('rule-trigger').value = ruleData.status;
+                }
+                
+                // Import conditions
+                if (ruleData.conditions) {
+                    ruleData.conditions.forEach(condition => {
+                        addCondition();
+                        const conditionDiv = document.querySelector(`.condition-item[data-condition-id="${conditionCounter}"]`);
+                        if (conditionDiv) {
+                            conditionDiv.querySelector('.condition-field').value = condition.field || '';
+                            conditionDiv.querySelector('.condition-operator').value = condition.operator || '';
+                            conditionDiv.querySelector('.condition-value').value = condition.value || '';
+                        }
+                    });
+                }
+                
+                // Import actions
+                if (ruleData.actions) {
+                    ruleData.actions.forEach(action => {
+                        addAction();
+                        const actionDiv = document.querySelector(`.action-item[data-action-id="${actionCounter}"]`);
+                        if (actionDiv) {
+                            const typeSelect = actionDiv.querySelector('.action-type');
+                            typeSelect.value = action.type || '';
+                            updateActionFields(actionCounter);
+                            
+                            // Set action-specific fields
+                            const valueInput = actionDiv.querySelector('.action-value');
+                            if (valueInput) {
+                                valueInput.value = action.value || '';
+                            }
+                            
+                            const fieldInput = actionDiv.querySelector('.action-field');
+                            if (fieldInput) {
+                                fieldInput.value = action.field || '';
+                            }
+                            
+                            const statusSelect = actionDiv.querySelector('.action-status');
+                            if (statusSelect) {
+                                statusSelect.value = action.status || '';
+                            }
+                        }
+                    });
+                }
+                
+                // Import validations
+                if (ruleData.validations) {
+                    ruleData.validations.forEach(validation => {
+                        addValidation();
+                        const validationDiv = document.querySelector(`.validation-item[data-validation-id="${validationCounter}"]`);
+                        if (validationDiv) {
+                            validationDiv.querySelector('.validation-field').value = validation.field || '';
+                            validationDiv.querySelector('.validation-type').value = validation.type || '';
+                            validationDiv.querySelector('.validation-value').value = validation.value || '';
+                        }
+                    });
+                }
+                
+                logActivity('Rule imported from JSON successfully');
+                showAlert('Rule imported successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Import error:', error);
+                logActivity(`Import failed: ${error.message}`, 'error');
+                showAlert('Invalid JSON format: ' + error.message, 'error');
+            }
+        }
+
+        function validateSharedRuleJson() {
+            try {
+                const sharedJsonInput = document.getElementById('sharedRuleJson');
+                const jsonText = sharedJsonInput.value.trim();
+                
+                if (!jsonText) {
+                    showAlert('No JSON content to validate', 'warning');
+                    return;
+                }
+
+                const ruleData = JSON.parse(jsonText);
+                
+                // Basic validation
+                if (!ruleData.conditions || !Array.isArray(ruleData.conditions)) {
+                    showAlert('Rule must have conditions array', 'error');
+                    return;
+                }
+                
+                if (!ruleData.actions || !Array.isArray(ruleData.actions)) {
+                    showAlert('Rule must have actions array', 'error');
+                    return;
+                }
+                
+                showAlert('Valid rule JSON!', 'success');
+                logActivity('JSON validation passed');
+                
+            } catch (error) {
+                showAlert('Invalid JSON format: ' + error.message, 'error');
+                logActivity('JSON validation failed: ' + error.message);
+            }
+        }
+
+        function copyRuleToClipboard() {
+            const sharedJsonInput = document.getElementById('sharedRuleJson');
+            const jsonText = sharedJsonInput.value.trim();
+            
+            if (!jsonText) {
+                showAlert('No rule JSON to copy', 'warning');
+                return;
+            }
+            
+            navigator.clipboard.writeText(jsonText).then(function() {
+                showAlert('Rule JSON copied to clipboard!', 'success');
+                logActivity('Rule JSON copied to clipboard');
+            }).catch(function(err) {
+                console.error('Failed to copy to clipboard:', err);
+                showAlert('Failed to copy to clipboard', 'error');
+            });
+        }
+
+        // Helper function to show alerts
+        function showAlert(message, type = 'info') {
+            // For now, just use console.log and a simple notification
+            console.log(`${type.toUpperCase()}: ${message}`);
+            
+            // You could implement a toast notification system here
+            // For simplicity, we'll just log for now
+            logActivity(message, type);
+        }
+    </script>
+</body>
+</html>

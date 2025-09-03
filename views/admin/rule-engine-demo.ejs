@@ -1,17 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rule Engine Demo - Data Integrity Admin</title>
+<%- include('../partials/header') %>
+
+    <!-- External CSS Dependencies -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
+        /* ============================================
+           CUSTOM STYLES FOR RULE ENGINE DEMO
+           ============================================ */
+        
+        /* Rule Editor Styling */
         .rule-editor {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 12px;
         }
+        
+        /* JSON Display Formatting */
         .json-display {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -21,6 +26,8 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 12px;
         }
+        
+        /* Test Result Styling */
         .test-result {
             margin-top: 1rem;
             padding: 1rem;
@@ -36,9 +43,13 @@
             border: 1px solid #f5c2c7;
             color: #842029;
         }
+        
+        /* Navigation Styling */
         .nav-pills .nav-link.active {
             background-color: #0d6efd;
         }
+        
+        /* Interactive Elements */
         .field-config-card {
             transition: all 0.3s ease;
         }
@@ -46,6 +57,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
+        /* Visual Rule Builder Components */
         .condition-item {
             background-color: #f8f9fa;
             border-left: 4px solid #007bff !important;
@@ -81,45 +93,36 @@
             background-color: #d1ecf1;
         }
         
+        /* Action Item Styling - Different colors for different action types */
         .action-item {
             background-color: #fff;
             border-left: 4px solid #28a745 !important;
             transition: all 0.3s ease;
         }
-        
         .action-item:hover {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        /* Workflow Job Styling */
         .workflow-job {
             background-color: #f8f9fa;
             border-left: 3px solid #ffc107 !important;
         }
         
-        .action-item[data-type="updateStatus"] {
-            border-left-color: #28a745 !important;
-        }
+        /* Color-coded action types for visual distinction */
+        .action-item[data-type="updateStatus"] { border-left-color: #28a745 !important; }
+        .action-item[data-type="updateRelatedStatus"] { border-left-color: #20c997 !important; }
+        .action-item[data-type="addLog"] { border-left-color: #17a2b8 !important; }
+        .action-item[data-type="createWorkflow"] { border-left-color: #ffc107 !important; }
+        .action-item[data-type="notify"] { border-left-color: #007bff !important; }
+        .action-item[data-type="updateDate"] { border-left-color: #6c757d !important; }
         
-        .action-item[data-type="addLog"] {
-            border-left-color: #17a2b8 !important;
-        }
-        
-        .action-item[data-type="createWorkflow"] {
-            border-left-color: #ffc107 !important;
-        }
-        
-        .action-item[data-type="notify"] {
-            border-left-color: #007bff !important;
-        }
-        
-        .action-item[data-type="updateDate"] {
-            border-left-color: #6c757d !important;
-        }
-        
+        /* Button Group Spacing */
         .btn-group-action {
             gap: 0.5rem;
         }
         
+        /* Rule Builder Section Container */
         .rule-builder-section {
             border-radius: 0.5rem;
             border: 1px solid #dee2e6;
@@ -128,6 +131,9 @@
     </style>
 </head>
 <body>
+    <!-- ============================================
+         MAIN APPLICATION CONTAINER
+         ============================================ -->
     <div class="container-fluid mt-4">
         <div class="row">
             <div class="col-12">
@@ -136,6 +142,9 @@
                     <small class="text-muted fs-6">Stage 1: Prototype & Testing</small>
                 </h1>
                 
+                <!-- ============================================
+                     DEMO MODE ALERT
+                     ============================================ -->
                 <div class="alert alert-info" role="alert">
                     <h5 class="alert-heading">Demo Mode Active</h5>
                     <p>This is a standalone demo of the new rule engine system. No production data will be modified.</p>
@@ -145,6 +154,9 @@
             </div>
         </div>
 
+        <!-- ============================================
+             MAIN NAVIGATION TABS
+             ============================================ -->
         <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="field-config-tab" data-bs-toggle="pill" data-bs-target="#field-config" type="button" role="tab">Field Configurations</button>
@@ -163,16 +175,27 @@
             </li>
         </ul>
 
+        <!-- ============================================
+             TAB CONTENT CONTAINER
+             ============================================ -->
         <div class="tab-content" id="adminTabContent">
-            <!-- Field Configurations Tab -->
+            
+            <!-- ============================================
+                 FIELD CONFIGURATIONS TAB
+                 ============================================
+                 Manages field-level configuration for database
+                 columns including validations and actions
+                 ============================================ -->
             <div class="tab-pane fade show active" id="field-config" role="tabpanel">
                 <div class="row">
+                    <!-- Field Selection and Controls -->
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
                                 <h5>Field Configurations</h5>
                             </div>
                             <div class="card-body">
+                                <!-- Field Selector Dropdown -->
                                 <select class="form-select mb-3" id="fieldSelector">
                                     <option value="">Select a field...</option>
                                     <option value="jobTitle">Job Title</option>
@@ -182,6 +205,7 @@
                                     <option value="customerName">Customer Name</option>
                                 </select>
                                 
+                                <!-- Action Buttons -->
                                 <button class="btn btn-primary btn-sm me-2" onclick="loadFieldConfig()">Load Config</button>
                                 <button class="btn btn-success btn-sm me-2" onclick="saveFieldConfig()">Save Config</button>
                                 <button class="btn btn-outline-secondary btn-sm" onclick="createNewField()">New Field</button>
@@ -885,7 +909,28 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="importRuleJsonTextarea" class="form-label">Paste Rule JSON</label>
-                        <textarea class="form-control" id="importRuleJsonTextarea" rows="12" placeholder="Paste your rule JSON here..."></textarea>
+                        <textarea class="form-control" id="importRuleJsonTextarea" rows="12" placeholder="Paste your rule JSON here...">{
+  "on": "current_status:complete",
+  "name": "Job Completion Workflow",
+  "description": "Activate next job and update dates when current job completes",
+  "conditions": [],
+  "validations": [],
+  "actions": [
+    {
+      "type": "updateDate",
+      "description": "Update date field",
+      "field": "target_date",
+      "value": "today_plus_1",
+      "target": "next_job"
+    },
+    {
+      "type": "updateRelatedStatus",
+      "description": "Update status",
+      "target": "next_job",
+      "value": "pending"
+    }
+  ]
+}</textarea>
                         <div class="form-text">Copy rule JSON from the Test Runner or any other source to load it into the visual builder.</div>
                     </div>
                     <div class="mb-3">
@@ -908,12 +953,31 @@
         </div>
     </div>
 
+    <!-- External JavaScript Dependencies -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     
     <script>
-        // Demo field configurations
+        /* ============================================
+           RULE ENGINE DEMO APPLICATION
+           ============================================
+           
+           This application provides a comprehensive demo environment for:
+           1. Field Configuration Management
+           2. Rule Creation and Editing
+           3. Visual Rule Building
+           4. Rule Testing and Validation
+           5. System Status Monitoring
+           
+           ============================================ */
+
+        /* ============================================
+           DEMO DATA CONFIGURATIONS
+           ============================================ */
+        
+        // Demo field configurations - represents database field settings
+        // with validation rules and post-action triggers
         const fieldConfigs = {
             'jobTitle': {
                 table: 'jobs',
@@ -1010,6 +1074,14 @@
             }
         });
 
+        /* ============================================
+           FIELD CONFIGURATION MANAGEMENT FUNCTIONS
+           ============================================ */
+
+        /**
+         * Load field configuration for editing
+         * Retrieves the selected field's configuration and displays it in the editor
+         */
         function loadFieldConfig() {
             const fieldID = document.getElementById('fieldSelector').value;
             if (!fieldID) {
@@ -1029,6 +1101,12 @@
             logActivity(`Loaded configuration for ${fieldID}`);
         }
 
+        /**
+         * Display the field configuration editor with current settings
+         * Renders a dynamic form with all field configuration options
+         * @param {string} fieldID - The field identifier
+         * @param {object} config - The field configuration object
+         */
         function displayFieldConfigEditor(fieldID, config) {
             const editor = document.getElementById('fieldConfigEditor');
             
@@ -1037,6 +1115,7 @@
                 <hr>
                 
                 <div class="row">
+                    <!-- Basic Field Settings -->
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Table</label>
@@ -1058,6 +1137,7 @@
                         </div>
                     </div>
                     
+                    <!-- Validation Rules -->
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Validations</label>
@@ -1174,10 +1254,21 @@
             }
         }
 
+        /* ============================================
+           RULE EXECUTION SIMULATION ENGINE
+           ============================================ */
+
+        /**
+         * Simulate rule execution for testing purposes
+         * This function mimics the actual rule engine behavior for demo purposes
+         * @param {object} rule - The rule configuration object
+         * @param {object} context - The execution context (trigger, user, record)
+         * @returns {object} Execution result with success status and details
+         */
         function simulateRuleExecution(rule, context) {
             const startTime = performance.now();
             
-            // Check if trigger matches
+            // Step 1: Check if trigger matches the rule's trigger condition
             const triggerMatch = rule.on === `${context.triggerField}:${context.triggerValue}` || 
                                  rule.on === context.triggerField;
             
@@ -1192,12 +1283,12 @@
                 };
             }
 
-            // Simulate condition checking with basic logic
+            // Step 2: Evaluate all conditions defined in the rule
             const conditionResults = rule.conditions?.map(condition => {
                 const conditionDesc = `${condition.field} ${condition.operator} ${condition.value}`;
                 let passed = false;
                 
-                // Basic condition evaluation logic
+                // Simulate condition evaluation (in production, this would query actual data)
                 switch (condition.operator) {
                     case 'equals':
                         passed = true; // For demo, assume field values match expectations
@@ -1652,11 +1743,27 @@
             logActivity('Exported all configurations');
         }
 
-        // Visual Rule Builder Functions
-        let conditionCounter = 0;
-        let actionCounter = 0;
-        let validationCounter = 0;
+        /* ============================================
+           VISUAL RULE BUILDER FUNCTIONS
+           ============================================
+           
+           These functions power the drag-and-drop visual
+           rule builder interface, allowing users to create
+           complex rules without writing JSON
+           
+           ============================================ */
 
+        // Global counters for generating unique IDs
+        let conditionCounter = 0;  // Tracks condition elements
+        let actionCounter = 0;     // Tracks action elements
+        let validationCounter = 0; // Tracks validation elements
+
+        /**
+         * Update condition fields based on job context selection
+         * Shows/hides relevant form fields based on the selected job context
+         * @param {HTMLElement} selectElement - The job context select element
+         * @param {number} conditionId - The unique condition ID
+         */
         function updateConditionFields(selectElement, conditionId) {
             const jobContext = selectElement.value;
             const conditionDiv = selectElement.closest('.condition-item');
@@ -1667,28 +1774,28 @@
             const jobStepDiv = conditionDiv.querySelector('.condition-job-step');
             
             if (jobContext === 'current') {
-                // Hide all job-specific controls for current job
+                // Current job context - hide all job-specific controls
                 jobSelector.style.display = 'none';
                 jobDetails.style.display = 'none';
                 if (jobValueDiv) jobValueDiv.style.display = 'none';
                 if (templateStepDiv) templateStepDiv.style.display = 'none';
                 if (jobStepDiv) jobStepDiv.style.display = 'none';
             } else if (jobContext === 'next') {
-                // For "Next Job in Flow", don't show job ID picker - it's automatic
+                // Next job context - automatic determination, no manual selection needed
                 jobSelector.style.display = 'none';
                 jobDetails.style.display = 'none';
                 if (jobValueDiv) jobValueDiv.style.display = 'none';
                 if (templateStepDiv) templateStepDiv.style.display = 'none';
                 if (jobStepDiv) jobStepDiv.style.display = 'none';
                 
-                // Add a helpful note
+                // Add informational note for user clarity
                 const noteDiv = conditionDiv.querySelector('.next-job-note');
                 if (!noteDiv) {
                     const noteHtml = '<div class="next-job-note"><small class="text-muted"><i class="fas fa-info-circle"></i> Next job will be automatically determined by workflow sequence</small></div>';
                     conditionDiv.insertAdjacentHTML('beforeend', noteHtml);
                 }
             } else if (jobContext === 'specific') {
-                // For specific job, show the job ID picker
+                // Specific job context - show job selection controls
                 jobSelector.style.display = 'block';
                 jobDetails.style.display = 'flex';
                 if (jobValueDiv) jobValueDiv.style.display = 'block';
@@ -1697,7 +1804,7 @@
                 const noteDiv = conditionDiv.querySelector('.next-job-note');
                 if (noteDiv) noteDiv.remove();
             } else {
-                // For other contexts (preceding, related), show controls but with different behavior
+                // Other contexts (preceding, related) - show all controls
                 jobSelector.style.display = 'block';
                 jobDetails.style.display = 'flex';
                 if (jobValueDiv) jobValueDiv.style.display = 'block';
@@ -2186,6 +2293,54 @@
                     `;
                     break;
 
+                case 'updateRelatedStatus':
+                    actionHtml = `
+                        <div class="action-item border rounded p-3 mb-3" id="action-${actionCounter}" data-type="updateRelatedStatus">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0"><i class="fas fa-link text-success"></i> Update Related Status Action</h6>
+                                <button class="btn btn-outline-danger btn-sm" onclick="removeAction(${actionCounter})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="form-label">Target Job</label>
+                                    <select class="form-select action-target" onchange="updateActionTarget(this, ${actionCounter})">
+                                        <option value="current_job">Current Job</option>
+                                        <option value="related_job">Related Job</option>
+                                        <option value="preceding_job">Preceding Job</option>
+                                        <option value="next_job">Next Job in Flow</option>
+                                        <option value="specific_job">Specific Job</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 action-job-details" style="display: none;">
+                                    <label class="form-label">Job Identifier</label>
+                                    <input type="text" class="form-control action-job-identifier" placeholder="Template ID or Job ID">
+                                    <button class="btn btn-outline-primary action-modal-btn" style="display: none;" onclick="openJobSelectionModal('action', ${actionCounter})">
+                                        <i class="fas fa-search"></i> Select Job
+                                    </button>
+                                    <input type="text" class="form-control action-selected-job" style="display: none;" readonly placeholder="No job selected">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">New Status</label>
+                                    <select class="form-select action-value">
+                                        <option value="pending">Pending</option>
+                                        <option value="active">Active</option>
+                                        <option value="complete">Complete</option>
+                                        <option value="cancelled">Cancelled</option>
+                                        <option value="on_hold">On Hold</option>
+                                        <option value="quality_check">Quality Check</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Description</label>
+                                    <input type="text" class="form-control action-description" placeholder="e.g., Activate next job in workflow">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
                 case 'addLog':
                     actionHtml = `
                         <div class="action-item border rounded p-3 mb-3" id="action-${actionCounter}" data-type="addLog">
@@ -2610,15 +2765,56 @@
                 switch(actionType) {
                     case 'updateStatus':
                         action = {
-                            type: 'updateRelatedStatus',
+                            type: 'updateStatus',
                             description: actionElement.querySelector('.action-description').value || 'Update status',
                             target: actionElement.querySelector('.action-target').value,
                             value: actionElement.querySelector('.action-value').value
                         };
 
                         // Add job identifier if targeting related job
-                        const target = actionElement.querySelector('.action-target').value;
-                        if (target !== 'current_job') {
+                        const statusTarget = actionElement.querySelector('.action-target').value;
+                        if (statusTarget !== 'current_job') {
+                            const jobIdentifierInput = actionElement.querySelector('.action-job-identifier');
+                            const selectedJobInput = actionElement.querySelector('.action-selected-job');
+                            
+                            if (selectedJobInput && selectedJobInput.dataset.jobId) {
+                                // Modal selection was used
+                                action.jobIdentifier = {
+                                    type: 'modal_selection',
+                                    value: selectedJobInput.dataset.jobId,
+                                    selectedJob: {
+                                        jobId: selectedJobInput.dataset.jobId,
+                                        displayText: selectedJobInput.value,
+                                        jobType: selectedJobInput.dataset.jobType || 'unknown'
+                                    }
+                                };
+                                if (selectedJobInput.dataset.templateId) {
+                                    action.jobIdentifier.templateId = selectedJobInput.dataset.templateId;
+                                }
+                                if (selectedJobInput.dataset.stepId) {
+                                    action.jobIdentifier.stepId = selectedJobInput.dataset.stepId;
+                                }
+                            } else if (jobIdentifierInput && jobIdentifierInput.value) {
+                                // Simple text input was used
+                                action.jobIdentifier = {
+                                    type: 'simple',
+                                    value: jobIdentifierInput.value
+                                };
+                            }
+                        }
+                        break;
+
+                    case 'updateRelatedStatus':
+                        action = {
+                            type: 'updateRelatedStatus',
+                            description: actionElement.querySelector('.action-description').value || 'Update related status',
+                            target: actionElement.querySelector('.action-target').value,
+                            value: actionElement.querySelector('.action-value').value
+                        };
+
+                        // Add job identifier if targeting related job
+                        const relatedTarget = actionElement.querySelector('.action-target').value;
+                        if (relatedTarget !== 'current_job') {
                             const jobIdentifierInput = actionElement.querySelector('.action-job-identifier');
                             const selectedJobInput = actionElement.querySelector('.action-selected-job');
                             
@@ -3030,6 +3226,21 @@
             }
         }
 
+        /* ============================================
+           RULE IMPORT/EXPORT FUNCTIONS
+           ============================================
+           
+           These functions handle importing JSON rules into
+           the visual builder and exporting visual rules
+           back to JSON format
+           
+           ============================================ */
+
+        /**
+         * Import a JSON rule into the visual rule builder
+         * Parses JSON and populates all visual builder components
+         * with comprehensive error handling and logging
+         */
         function importRuleToBuilder() {
             const jsonText = document.getElementById('importRuleJsonTextarea').value;
             
@@ -3040,12 +3251,12 @@
                 const rule = JSON.parse(jsonText);
                 console.log('✅ JSON parsing successful:', rule);
                 
-                // Clear existing builder
+                // Step 1: Clear existing builder state
                 console.log('🧹 Clearing existing rule builder...');
                 clearRuleBuilder();
                 console.log('✅ Rule builder cleared');
                 
-                // Import basic rule properties
+                // Step 2: Import basic rule properties (name, trigger, description)
                 console.log('📋 Importing basic rule properties...');
                 try {
                     if (rule.name) {
@@ -3309,12 +3520,21 @@
                                     
                                 case 'updateDate':
                                     if (action.field) {
-                                        const fieldInput = actionDiv.querySelector('.action-field');
+                                        const fieldInput = actionDiv.querySelector('.action-date-field');
                                         if (fieldInput) {
                                             fieldInput.value = action.field;
                                             console.log(`✅ Set date field: ${action.field}`);
                                         } else {
                                             console.warn('⚠️ Date field input not found');
+                                        }
+                                    }
+                                    if (action.target) {
+                                        const targetSelect = actionDiv.querySelector('.action-date-target');
+                                        if (targetSelect) {
+                                            targetSelect.value = action.target;
+                                            console.log(`✅ Set date target: ${action.target}`);
+                                        } else {
+                                            console.warn('⚠️ Date target select not found');
                                         }
                                     }
                                     break;
@@ -3399,8 +3619,6 @@
                 logActivity(`✅ Successfully imported rule: ${ruleName}`);
                 console.log(`🎉 Import completed successfully for: ${ruleName}`);
                 
-                alert('✅ Rule imported successfully! Check the Visual Builder tab to modify it.');
-                
             } catch (error) {
                 console.error('❌ Critical import error:', error);
                 console.error('Stack trace:', error.stack);
@@ -3458,6 +3676,21 @@
             logActivity('Rule builder cleared');
         }
 
+        /* ============================================
+           RULE COPY/TRANSFER FUNCTIONS
+           ============================================
+           
+           Functions for copying rules between the different
+           interface components (visual builder, test runner,
+           JSON editor) for seamless workflow
+           
+           ============================================ */
+
+        /**
+         * Copy rule from test runner to visual rule builder
+         * Streamlined workflow for editing tested rules
+         * Removes validation steps for seamless user experience
+         */
         function copyRuleToVisualBuilder() {
             const ruleJson = document.getElementById('testRuleJson').value;
             
@@ -3466,27 +3699,20 @@
                 return;
             }
             
-            try {
-                // Validate the JSON first
-                JSON.parse(ruleJson);
-                
-                // Pre-populate the import modal
-                document.getElementById('importRuleJsonTextarea').value = ruleJson;
-                
-                // Show the import modal
-                const modal = new bootstrap.Modal(document.getElementById('importRuleModal'));
-                modal.show();
-                
-                // Automatically format the JSON in the modal
-                formatImportJson();
-                
-                logActivity('Rule copied to import modal for visual builder');
-                
-            } catch (error) {
-                alert('❌ Cannot copy invalid JSON rule: ' + error.message);
-            }
+            // Skip validation and modal - directly import to visual builder
+            document.getElementById('importRuleJsonTextarea').value = ruleJson;
+            
+            // Directly import the rule to the builder without confirmation
+            importRuleToBuilder();
+            
+            logActivity('Rule copied directly to Visual Builder');
         }
 
+        /**
+         * Copy the currently generated JSON rule to the test runner
+         * Enables immediate testing of the visual rule builder output
+         * without manual copy/paste operations
+         */
         function copyGeneratedRuleToTestRunner() {
             const generatedRuleText = document.getElementById('generated-rule-preview').textContent;
             
@@ -3496,25 +3722,29 @@
             }
             
             try {
-                // Validate it's proper JSON
+                // Validate it's proper JSON before copying
                 JSON.parse(generatedRuleText);
                 
-                // Copy to test runner
+                // Copy to test runner input field
                 document.getElementById('testRuleJson').value = generatedRuleText;
                 
-                // Switch to test runner tab
+                // Switch to test runner tab for immediate testing
                 const testRunnerTab = document.getElementById('test-runner-tab');
                 const tab = new bootstrap.Tab(testRunnerTab);
                 tab.show();
                 
                 logActivity('Generated rule copied to Test Runner');
-                alert('✅ Rule copied to Test Runner! You can now test it.');
                 
             } catch (error) {
                 alert('❌ Cannot copy invalid generated rule: ' + error.message);
             }
         }
 
+        /**
+         * Copy the generated rule JSON to the system clipboard
+         * Allows users to paste the rule into external applications
+         * Uses modern clipboard API with fallback support
+         */
         function copyGeneratedRuleToClipboard() {
             const generatedRuleText = document.getElementById('generated-rule-preview').textContent;
             
@@ -3524,10 +3754,10 @@
             }
             
             try {
-                // Validate it's proper JSON
+                // Validate it's proper JSON before copying
                 JSON.parse(generatedRuleText);
                 
-                // Copy to clipboard using modern API
+                // Copy to clipboard using modern API with fallback
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(generatedRuleText).then(() => {
                         alert('✅ Rule JSON copied to clipboard!');
@@ -3546,6 +3776,12 @@
             }
         }
 
+        /**
+         * Fallback clipboard copy function for older browsers
+         * Creates a temporary textarea element for copy operations
+         * when modern clipboard API is not available
+         * @param {string} text - The text to copy to clipboard
+         */
         function fallbackCopyToClipboard(text) {
             const textArea = document.createElement('textarea');
             textArea.value = text;
@@ -3578,12 +3814,22 @@
             document.body.removeChild(textArea);
         }
 
-        // ========================================
-        // SYSTEM STATUS TAB FUNCTIONS
-        // ========================================
+        /* ============================================
+           SYSTEM STATUS AND DATABASE SIMULATION
+           ============================================
+           
+           Functions and data for simulating database
+           operations and system status monitoring
+           
+           ============================================ */
 
-        // Mock database data - In real implementation, this would come from server API calls
+        /**
+         * Mock database data for demonstration purposes
+         * In production, this would be fetched from server APIs
+         * Provides realistic test data for rule execution simulation
+         */
         const mockDatabaseData = {
+            // Job templates represent different types of workflows
             jobTemplates: [
                 { id: 1, name: 'Quality Assurance Package', type: 'quality', rules: 3, status: 'active', lastModified: '2025-09-01' },
                 { id: 2, name: 'Customer Satisfaction Survey', type: 'survey', rules: 2, status: 'active', lastModified: '2025-08-30' },
@@ -3591,6 +3837,7 @@
                 { id: 4, name: 'Upsell Assessment', type: 'sales', rules: 2, status: 'inactive', lastModified: '2025-08-25' },
                 { id: 5, name: 'Training & Support', type: 'training', rules: 3, status: 'active', lastModified: '2025-08-22' }
             ],
+            // Jobs represent actual workflow instances for customers
             jobs: [
                 { id: 101, templateId: 1, customerId: 1, status: 'active', tier: 200 },
                 { id: 102, templateId: 1, customerId: 2, status: 'complete', tier: 300 },
@@ -3598,23 +3845,27 @@
                 { id: 104, templateId: 3, customerId: 3, status: 'pending', tier: 120 },
                 { id: 105, templateId: 5, customerId: 2, status: 'active', tier: 140 }
             ],
+            // Status change rules that trigger on specific status updates
             statusRules: [
                 { trigger: 'current_status:complete', count: 12, actions: ['updateDate', 'createWorkflow', 'notify'], status: 'active', lastModified: '2025-09-01' },
                 { trigger: 'current_status:pending', count: 8, actions: ['updateDate', 'notify'], status: 'active', lastModified: '2025-08-30' },
                 { trigger: 'current_status:active', count: 5, actions: ['updateDate'], status: 'active', lastModified: '2025-08-28' },
                 { trigger: 'tier:changed', count: 3, actions: ['validate', 'notify'], status: 'warning', lastModified: '2025-08-25' }
             ],
+            // Workflow automation rules for job progression
             workflowRules: [
                 { type: 'completion_workflow', templates: 4, triggers: ['status:complete'], nextJobs: 'auto', status: 'active' },
                 { type: 'quality_check', templates: 2, triggers: ['status:complete', 'tier:high'], nextJobs: 'specific', status: 'active' },
                 { type: 'follow_up', templates: 3, triggers: ['date:target'], nextJobs: 'auto', status: 'active' }
             ],
+            // Data validation rules for ensuring data integrity
             validationRules: [
                 { type: 'businessRule', field: 'customer_id', check: 'customer_active', severity: 'error', usage: 15 },
                 { type: 'dataIntegrity', field: 'tier', check: 'tier_valid', severity: 'error', usage: 12 },
                 { type: 'security', field: 'user_id', check: 'has_permission', severity: 'critical', usage: 18 },
                 { type: 'workflow', field: 'status', check: 'workflow_allows', severity: 'warning', usage: 9 }
             ],
+            // Custom business logic rules
             customRules: [
                 { name: 'High Priority Customer Alert', type: 'notification', trigger: 'customer:vip', target: 'all_jobs', status: 'active' },
                 { name: 'Emergency Escalation', type: 'escalation', trigger: 'tier:urgent', target: 'next_job', status: 'active' },
@@ -3622,7 +3873,10 @@
             ]
         };
 
-        // Initialize system status when tab is loaded
+        /**
+         * Initialize system status tab when first loaded
+         * Sets up all the status monitoring displays and data tables
+         */
         function initializeSystemStatus() {
             loadSystemOverview();
             loadStatusRules();
@@ -3633,9 +3887,13 @@
             logActivity('System status initialized', 'info');
         }
 
-        // Load system overview cards
+        /**
+         * Load system overview statistics and display in dashboard cards
+         * Calculates and displays key metrics about the rule engine system
+         */
         function loadSystemOverview() {
             try {
+                // Calculate system statistics from mock data
                 document.getElementById('jobTemplateCount').textContent = mockDatabaseData.jobTemplates.length;
                 document.getElementById('activeJobCount').textContent = mockDatabaseData.jobs.filter(j => j.status === 'active').length;
                 document.getElementById('ruleTypeCount').textContent = 
@@ -3645,7 +3903,7 @@
                     mockDatabaseData.customRules.length;
                 document.getElementById('validationCount').textContent = mockDatabaseData.validationRules.length;
                 
-                // Update last sync time
+                // Update last synchronization timestamp
                 document.getElementById('lastSync').textContent = new Date().toLocaleTimeString();
                 
                 logActivity('System overview loaded successfully', 'success');
@@ -3654,7 +3912,10 @@
             }
         }
 
-        // Load status change rules
+        /**
+         * Load and display status change rules in the status rules table
+         * Shows all rules that trigger on job status changes
+         */
         function loadStatusRules() {
             const tbody = document.getElementById('statusRulesTable');
             
@@ -3700,7 +3961,10 @@
             }
         }
 
-        // Load workflow rules
+        /**
+         * Load and display workflow automation rules
+         * Shows rules that control job progression and workflow automation
+         */
         function loadWorkflowRules() {
             const tbody = document.getElementById('workflowRulesTable');
             
@@ -3743,7 +4007,10 @@
             }
         }
 
-        // Load validation rules
+        /**
+         * Load and display data validation rules
+         * Shows rules that validate data integrity and business logic
+         */
         function loadValidationRules() {
             const tbody = document.getElementById('validationRulesTable');
             
@@ -3786,7 +4053,10 @@
             }
         }
 
-        // Load custom rules
+        /**
+         * Load and display custom business logic rules
+         * Shows user-defined rules for specific business scenarios
+         */
         function loadCustomRules() {
             const tbody = document.getElementById('customRulesTable');
             
@@ -3832,16 +4102,19 @@
             }
         }
 
-        // System health update
+        /**
+         * Update system health indicators and performance metrics
+         * Simulates real-time health monitoring of the rule engine
+         */
         function updateSystemHealth() {
-            // Simulate health checks
+            // Simulate random health check results (in production, these would be real API calls)
             const healthChecks = {
-                jobs: Math.random() > 0.1, // 90% healthy
-                templates: Math.random() > 0.05, // 95% healthy
-                rules: Math.random() > 0.13 // 87% healthy
+                jobs: Math.random() > 0.1,        // 90% healthy
+                templates: Math.random() > 0.05,  // 95% healthy
+                rules: Math.random() > 0.13       // 87% healthy
             };
             
-            // Update status indicators
+            // Update visual status indicators based on health check results
             document.getElementById('jobsTableStatus').className = `badge bg-${healthChecks.jobs ? 'success' : 'danger'}`;
             document.getElementById('jobsTableStatus').textContent = healthChecks.jobs ? 'Healthy' : 'Issues';
             
@@ -3851,7 +4124,7 @@
             document.getElementById('rulesTableStatus').className = `badge bg-${healthChecks.rules ? 'success' : 'warning'}`;
             document.getElementById('rulesTableStatus').textContent = healthChecks.rules ? 'Healthy' : 'Warning';
             
-            // Update performance indicator
+            // Calculate and update overall performance score
             const performanceScore = Object.values(healthChecks).filter(Boolean).length / Object.keys(healthChecks).length;
             const performance = performanceScore > 0.9 ? 'Excellent' : performanceScore > 0.7 ? 'Good' : 'Poor';
             const performanceColor = performanceScore > 0.9 ? 'success' : performanceScore > 0.7 ? 'info' : 'warning';
@@ -3860,11 +4133,23 @@
             document.getElementById('performance').textContent = performance;
         }
 
-        // System management functions
+        /* ============================================
+           SYSTEM MANAGEMENT AND ANALYSIS FUNCTIONS
+           ============================================
+           
+           Functions for analyzing, validating, and managing
+           the overall rule engine system health and performance
+           
+           ============================================ */
+
+        /**
+         * Analyze all system rules for conflicts and optimization opportunities
+         * Performs comprehensive analysis of rule interactions and performance
+         */
         function analyzeSystemRules() {
             logActivity('Starting comprehensive rule analysis...', 'info');
             
-            // Simulate analysis process
+            // Simulate analysis process with realistic delay
             setTimeout(() => {
                 const analysis = {
                     totalRules: mockDatabaseData.statusRules.length + mockDatabaseData.workflowRules.length + mockDatabaseData.validationRules.length + mockDatabaseData.customRules.length,
@@ -3876,11 +4161,15 @@
                 logActivity(`Analysis complete: ${analysis.totalRules} total rules, ${analysis.activeRules} active, ${analysis.conflicts} conflicts found, ${analysis.optimizations} optimizations suggested`, 'success');
                 
                 if (analysis.conflicts > 0) {
-                    logActivity(`⚠️ Found ${analysis.conflicts} potential rule conflicts`, 'warning');
+                    logActivity(`⚠️ Found ${analysis.conflicts} potential rule conflicts that need attention`, 'warning');
                 }
             }, 2000);
         }
 
+        /**
+         * Validate all rules in the system for correctness and consistency
+         * Checks rule syntax, logic, and dependencies
+         */
         function validateAllRules() {
             logActivity('Validating all rules...', 'info');
             
@@ -4072,3 +4361,5 @@
     </script>
 </body>
 </html>
+
+admin/rules-engine-demo.ejs
