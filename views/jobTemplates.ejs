@@ -140,7 +140,7 @@
 </div>
 
 <script>
-// Get API URL (index.js server)
+// Get API URL (src/index.js server)
 const baseUrl = "<%= baseURL %>";
 const apiUrl = baseUrl ? baseUrl.replace("3000", "4000") : "http://localhost:4000";
 console.log('Base URL:', baseUrl);
@@ -296,7 +296,7 @@ async function editJsonField(recordId, fieldName) {
     console.log('fieldName type:', typeof fieldName);
     
     try {
-        // Fetch the current data from index.js server
+    // Fetch the current data from src/index.js server
         const fullApiUrl = `${apiUrl}/api/job-templates/${recordId}`;
         console.log('Attempting to fetch from URL:', fullApiUrl);
         
