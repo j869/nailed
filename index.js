@@ -1887,6 +1887,33 @@ export async function createDecendantsForJob(jobID, pool, thisJobOnly = false ) 
 
 
 
+// Admin Users API
+app.get("/api/admin/users", async (req, res) => {
+  console.log("au1      Starting admin users API", { ip: req.ip });
+
+  try {
+    const result = await pool.query(`
+      SELECT id, email, full_name, display_name, data_security, roles 
+      FROM users 
+      ORDER BY id
+    `);
+    
+    console.log("au2      Retrieved users successfully", { count: result.rows.length });
+    
+    res.json({
+      success: true,
+      users: result.rows,
+      count: result.rows.length
+    });
+
+  } catch (error) {
+    console.error("au8      Admin users API error", { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
 
 // Workflow Validator Admin Interface API
 app.get("/api/workflow-problems", async (req, res) => {

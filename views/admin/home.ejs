@@ -1,0 +1,113 @@
+    <%- include('../partials/header') %>
+    
+    <div class="container mt-4">
+        <div class="bg-dark text-white p-4 rounded mb-4 text-center">
+            <h1>Admin Dashboard</h1>
+            <p class="mb-0">System Administration & Management Tools</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0 text-dark border-bottom border-primary pb-2">Rule Engine & Workflow Management</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/rules" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Rule Engine Demo</h5>
+                                <p class="card-text text-muted small">Test and demonstrate the rule engine functionality</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/rule-builder" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Production Rule Builder - BROKEN</h5>
+                                <p class="card-text text-muted small">Create and manage production workflow rules</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/workflow-validator" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Workflow Validator</h5>
+                                <p class="card-text text-muted small">Validate and troubleshoot workflow issues</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0 text-dark border-bottom border-primary pb-2">User Management</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/users" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Manage Users</h5>
+                                <p class="card-text text-muted small">View, edit, and manage system users</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0 text-dark border-bottom border-primary pb-2">Customer Data Management</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/customers/import" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Customer Import</h5>
+                                <p class="card-text text-muted small">Import customer data from Excel files</p>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/customers/import/reverts" class="card text-decoration-none h-100">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Import Reverts</h5>
+                                <p class="card-text text-muted small">View and execute import revert scripts</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0 text-dark border-bottom border-primary pb-2">API Endpoints & Testing</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <a href="/admin/rules/configs" class="card text-decoration-none h-100" target="_blank">
+                            <div class="card-body bg-light">
+                                <h5 class="card-title text-dark">Field Configurations API</h5>
+                                <p class="card-text text-muted small">View demo field configuration data (JSON)</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-outline-primary">← Return to Main Application</a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <%- include('../partials/footer') %>
+

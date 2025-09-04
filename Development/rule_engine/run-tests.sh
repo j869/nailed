@@ -30,6 +30,14 @@ else
 fi
 
 echo ""
+echo "Test 3: Workflow Rules Tests"
+echo "-----------------------------------------------"
+for test_file in Testing_and_Documentation/workflow_rules/test_*.js; do
+    echo "Running $test_file..."
+    node "$test_file"
+done
+
+echo ""
 echo "========================================="
 echo "Test Suite Complete"
 echo "========================================="
