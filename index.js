@@ -2470,7 +2470,8 @@ app.get("/executeJobAction", async (req, res) => {
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
-
+    const jobNext = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID]);" );
+    const childID = jobNext.rows[0].id || null;
     const parentStatus = jobRec.rows[0].current_status;
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
@@ -2485,7 +2486,8 @@ app.get("/executeJobAction", async (req, res) => {
             let value;
             if (action.status) {
               //{"status": "pending@520"}
-              jobID = action.status.split("@")[1] ; 
+              jobID = action.status.split("@")[1];
+              if (jobID === 'next') {jobID = childID}
               value = action.status.split("@")[0];
               const q = await pool.query("SELECT id, current_status FROM jobs WHERE id = $1", [jobID]);
               let oldStatus = q.rows[0].current_status;
@@ -2500,7 +2502,8 @@ app.get("/executeJobAction", async (req, res) => {
               }
             } else if (action.target) {
               //{"target": "today_1@520"}
-              jobID = action.target.split("@")[1] ; 
+              jobID = action.target.split("@")[1];
+              if (jobID === 'next') {jobID = childID} 
               value = action.target.split("@")[0];
               if (action.target.startsWith("today")) {
                 // console.log(`ufg4666          `, today.toISOString().split('T')[0]);
