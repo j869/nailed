@@ -2470,7 +2470,7 @@ app.get("/executeJobAction", async (req, res) => {
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
-    const jobNext = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID]);" );
+    const jobNext = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID]); );
     const childID = jobNext.rows[0].id || null;
     const parentStatus = jobRec.rows[0].current_status;
     const userID = jobRec.rows[0].user_id;
