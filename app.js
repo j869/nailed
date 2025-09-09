@@ -108,6 +108,7 @@ app.use((req, res, next) => {
 import adminRoutes from './views/admin/routes.js';
 app.use('/admin', adminRoutes);
 
+
 //#endregion
 
 
@@ -2503,56 +2504,6 @@ app.get("/deltask", async (req, res) => {
     }
     console.log("dlt9   success")
     res.redirect("/jobs/" + req.query.jobnum);
-  } else {
-    res.redirect("/login");
-  }
-});
-
-//#endregion
-
-
-//#region job templates
-
-app.get("/job-templates", async (req, res) => {
-  if (req.isAuthenticated()) {
-    // Check if user has sysadmin role
-    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
-      return res.status(403).send(`
-        <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif;">
-          <h1 style="color: #dc3545;">Access Denied</h1>
-          <p>System administrator privileges required to access Job Templates.</p>
-          <a href="/" style="color: #007bff; text-decoration: none;">← Return to Home</a>
-        </div>
-      `);
-    }
-    
-    try {
-      const { product_id } = req.query;
-      let apiUrl = `${API_URL}/job-templates`;
-      
-      if (product_id) {
-        apiUrl += `?product_id=${encodeURIComponent(product_id)}`;
-      }
-      
-      const response = await axios.get(apiUrl);
-      res.render("jobTemplates.ejs", {
-        jobTemplates: response.data.jobTemplates,
-        products: response.data.products,
-        selectedProductId: response.data.selectedProductId,
-        baseURL: baseURL,
-        user: req.user
-      });
-    } catch (error) {
-      console.error("Error fetching job templates:", error);
-      res.render("jobTemplates.ejs", {
-        jobTemplates: [],
-        products: [],
-        selectedProductId: '',
-        error: "Error loading job templates",
-        baseURL: baseURL,
-        user: req.user
-      });
-    }
   } else {
     res.redirect("/login");
   }

@@ -1252,10 +1252,340 @@ app.get("/deltask", async (req, res) => {
 
 
 app.get("/addjob", async (req, res) => {
+  // Supported ways of adding a job:
+  // - parent: (Deprecated) Intended to add a job as an antecedent (parent) of the current job.
+  // - child: Adds a job as a descendant (child) of the specified job.
+  // - template: Adds a job based on a template, linking it in the workflow.
+  // - origin: Adds the first job for a build, triggering the creation of the entire workflow from the job_templates table.
+  // - insert: adds a job after the given record and adjusts flow to the decendant job
+
+  console.log("a001   USER is adding a new job", req.query);
+
+  const title = req.query.title || 'UNNAMED';
+  let precedence = req.query.precedence;
+  let tier = req.query.tier;
+  let buildID, jobID, templateId, firstJobID, template, productID, templateSQL;
+
+  // Default tier if not provided
+  if (!tier) {
+    console.error("a2      No tier provided, defaulting to 500");
+    tier = 500;
+  }
+
+  // If adding job from template
+  if (precedence.startsWith("template")) {
+    templateId = precedence.replace("template", "");
+    jobID = req.query.id; // This is the jobID unless 'origin', then it's build_id
+
+    try {
+      templateSQL = `SELECT * FROM job_templates WHERE id = ${templateId} or (antecedent_array = '${templateId}' and tier > 500) order by sort_order`;
+      console.log("a800     ", templateSQL);
+      template = await pool.query(templateSQL);
+      productID = template.rows[0].product_id;
+
+      const q1 = await pool.query("SELECT build_id FROM jobs WHERE id = $1", [jobID]);
+      buildID = q1.rows[0].build_id;
+
+      if (template.rows.length === 0) {
+        console.error("a821     No templates found for this product type.");
+      } else {
+        console.log("a822     this workflow consists of ", template.rows.length, " templates");
+      }
+    } catch (error) {
+      console.error("a828     Error fetching template:", error);
+    }
+
+    precedence = "origin";
+  } else {
+    if (precedence == "origin") {
+      buildID = req.query.id;
+      // Get product for build
+      const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]);
+      productID = product.rows[0].product_id;
+
+      // Get first template for product
+      const q = await pool.query(
+        "SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL",
+        [buildID]
+      );
+      let firstTemplateID = q.rows[0].id;
+      console.log("a81    USER added a new workflow(" + productID + ") for build(" + buildID + "). Beginner template is " + firstTemplateID);
+
+      try {
+        templateSQL = `SELECT * FROM job_templates WHERE product_id = ${productID} order by sort_order`;
+        template = await pool.query(templateSQL);
+        if (template.rows.length === 0) {
+          console.error("a821     No templates found for this product type.");
+        } else {
+          console.log("a822     this workflow consists of ", template.rows.length, " templates");
+        }
+      } catch (error) {
+        console.error("a828     Error fetching template:", error);
+      }
+    } else if (precedence == "insert") {
+      jobID = req.query.id;  // this is the job after which we are inserting the new job
+      const q3 = await pool.query("SELECT * FROM jobs WHERE id = $1", [jobID]);
+      tier = q3.rows[0].tier;
+      precedence = "child";  //inserting a job is the same as adding a child job, except we need to fix up the flow later
+      console.log("a782    USER is inserting a new job after job(" + jobID + ") on tier " + tier);
+      buildID = q3.rows[0].build_id;
+
+      const q1 = await pool.query("SELECT * FROM job_templates WHERE id = " + templateId);
+      const tt = q1.rows[0];
+      const q2 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+      const jt = q2.rows[0];
+      let new_sort_order = jt.sortOrder + 1;
+
+      let newJob;
+      try {
+        newJob = await pool.query(
+          "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+          [title, 1, jt.job_template_id, new_sort_order, jt.build_id, jt.product_id, jt.tier]
+        );
+        console.log("a743     based on job ", newJob.rows[0]);
+
+        // Fix up relationships in job_process_flow table
+        const q6 = await pool.query(
+          "SELECT decendant_id FROM job_process_flow WHERE antecedent_id = $1;",
+          [jobID]
+        );
+        const postJobID = q6.rows[0].decendant_id;
+        const preJobID = jobID;
+        const newJobID = newJob.rows[0].id;
+        console.log("a744     new jobID = " + newJobID + ", preJobID = " + preJobID + ", postJobID = " + postJobID);
+
+        await pool.query(
+          "UPDATE job_process_flow SET decendant_id = $1 WHERE antecedent_id = $2 RETURNING id;",
+          [newJobID, preJobID]
+        );
+        await pool.query(
+          "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES ($1, $2, $3) RETURNING id;",
+          [newJobID, postJobID, tt.tier]
+        );
+
+        // Add child tasks from template to the new job
+        if (newJobID) {
+          await createDecendantsForJob(newJobID, pool, true);
+        } else {
+          console.log("a748      newJobID has not been set");
+        }
+        console.log("a7339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");
+      } catch (error) {
+        console.error("a7338    Error inserting new job:", error);
+      }
+      console.log("a749     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " ");
+
+    } else {
+      jobID = req.query.id;
+    }
+  }
+
+  console.log("a01    adding to job(" + jobID + ") for build(" + buildID + ") on " + precedence + " called " + title);
+
+  try {
+    let newJobID;
+
+    // Add job as parent (deprecated)
+    if (precedence == "parent") {
+      // This block is deprecated and not supported
+      console.log("a19   adding of parents has been retracted... no longer supported functionality");
+    }
+    // Add job as child
+    else if (precedence == "child") {
+      console.log("a30     new job is a child to job(" + jobID + ")");
+      const q4 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+      let oldJobTemplateID = q4.rows[0].job_template_id;
+
+      let newJob;
+      try {
+        newJob = await pool.query(
+          "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+          [title, 1, null, '0', q4.rows[0].build_id, q4.rows[0].product_id, tier]
+        );
+        console.log("a339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");
+      } catch (error) {
+        console.error("a338    Error inserting new job:", error);
+      }
+
+      newJobID = newJob.rows[0].id;
+      const newRelationship = await pool.query(
+        "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES ($1, $2, $3);",
+        [jobID, newJobID, tier]
+      );
+      console.log("a39     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " on " + tier);
+    }
+    // Add job from template
+    else if (precedence == "template") {
+      console.log("a40     new job is a child to job(" + jobID + ") based on template(" + templateId + ")");
+      const q1 = await pool.query("SELECT * FROM job_templates WHERE id = " + templateId);
+      const tt = q1.rows[0];
+      const q2 = await pool.query("SELECT * FROM jobs WHERE id = " + jobID);
+      const jt = q2.rows[0];
+
+      let newJob;
+      try {
+        newJob = await pool.query(
+          "INSERT INTO jobs (display_text, reminder_id, job_template_id, sort_order, build_id, product_id, tier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
+          [tt.display_text, 1, tt.id, tt.sort_order, jt.build_id, jt.product_id, tt.tier]
+        );
+        console.log("a43     based on job ", newJob.rows[0]);
+
+        // Fix up relationships in job_process_flow table
+        const q6 = await pool.query(
+          "SELECT decendant_id FROM job_process_flow WHERE antecedent_id = $1;",
+          [jobID]
+        );
+        const postJobID = q6.rows[0].decendant_id;
+        const preJobID = jobID;
+        const newJobID = newJob.rows[0].id;
+        console.log("a44     new jobID = " + newJobID + ", preJobID = " + preJobID + ", postJobID = " + postJobID);
+
+        await pool.query(
+          "UPDATE job_process_flow SET decendant_id = $1 WHERE antecedent_id = $2 RETURNING id;",
+          [newJobID, preJobID]
+        );
+        await pool.query(
+          "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier) VALUES ($1, $2, $3) RETURNING id;",
+          [newJobID, postJobID, tt.tier]
+        );
+
+        // Add child tasks from template to the new job
+        if (newJobID) {
+          await createDecendantsForJob(newJobID, pool, true);
+        } else {
+          console.log("a48      newJobID has not been set");
+        }
+        console.log("a339    New job inserted successfully. jobID(" + newJob.rows[0].id + ")");
+      } catch (error) {
+        console.error("a338    Error inserting new job:", error);
+      }
+      console.log("a49     job relationship added to job_process_flow for " + jobID + " and " + newJobID + " ");
+    }
+    // Add job as origin (new workflow for build)
+    else if (precedence == "origin") {
+      let parentJobID, parentChangeArray = '', antecedentJobID;
+      console.log("a831     Copying template to build and creating jobs ");
+
+      // Loop through each template and create jobs
+      for (const t of template.rows) {
+        console.log("a832       working with template(", t.id, ") on tier [" + t.tier + "] ...");
+        let title = t.display_text;
+        let description = t.free_text;
+        let userID = t.user_id || 1;
+        let tempID = t.id;
+        let remID = t.reminder_id || 1;
+        let prodID = productID;
+        let createdAt = new Date().toISOString();
+        let sortOrder = t.sort_order;
+        let tier = t.tier;
+        let antecedentTemplateID = t.antecedent_array;
+        let decendantTemplateID = t.decendant_array;
+        let jobChangeArray = t.job_change_array;
+        let flowChangeArray = t.flow_change_array;
+
+        try {
+          // Find parent job for this template
+          const parentJob = await pool.query(
+            "SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2",
+            [antecedentTemplateID, buildID]
+          );
+          parentJobID = parentJob.rows.length > 0 ? parentJob.rows[0].id : null;
+
+          // Insert job for this template
+          const result = await pool.query(
+            `INSERT INTO jobs (display_text, free_text, job_template_id, build_id, product_id, reminder_id, user_id, created_date, sort_order, tier, change_array) VALUES
+              ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id;`,
+            [title, description, tempID, buildID, prodID, remID, userID, createdAt, sortOrder, tier, jobChangeArray]
+          );
+          let newJobID = result.rows[0].id;
+          console.log("a818       ...template(" + t.id + ") became job(", newJobID, ") " + title);
+
+          // Insert job_process_flow relationship
+          await pool.query(
+            "INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES ($1, $2, $3, $4) RETURNING id;",
+            [parentJobID, newJobID, tier, flowChangeArray]
+          );
+
+          // Save first jobID to return to caller
+          if (!firstJobID) {
+            firstJobID = newJobID;
+          }
+        } catch (error) {
+          console.error("a8081     Error inserting new job:", error);
+        }
+      }
+
+      // Update job change_array references to job IDs
+      console.log("a820     Resolving relationships for build(" + buildID + ") with " + template.rows.length + " jobs... ");
+      template = await pool.query(templateSQL);
+      for (const t of template.rows) {
+        let antecedentTemplateID = t.antecedent_array;
+        let decendantTemplateID = t.decendant_array;
+        let templateID = t.id;
+        let jobChangeArray = t.job_change_array;
+        let flowChangeArray = t.flow_change_array;
+        let replaceTemplateID;
+        let job = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2 ", [templateID, buildID]);
+        let jobID = job.rows[0].id;
+
+        // Replace template IDs with job IDs in change_array
+        if (jobChangeArray) {
+          let c1, c2;
+          for (let c = 0; c < jobChangeArray.length; c++) {
+            if (jobChangeArray.substring(c, c + 1) == '@') {
+              c1 = c + 1;
+            }
+            if (c1 && jobChangeArray.substring(c, c + 1) == '"') {
+              c2 = c;
+              replaceTemplateID = jobChangeArray.substring(c1, c2);
+              let replaceJobID = await pool.query(
+                "SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2",
+                [replaceTemplateID, buildID]
+              );
+              if (replaceJobID.rows.length > 0) {
+                jobChangeArray = jobChangeArray.replace('@' + replaceTemplateID, '@' + replaceJobID.rows[0].id);
+              } else {
+                console.error("a832       ...error in workflow definition... no job found for templateID(" + replaceTemplateID + ") in build(" + buildID + ")");
+              }
+              c1 = null;
+            }
+          }
+        }
+        let result = await pool.query("UPDATE jobs SET change_array = $1 WHERE id = $2 returning change_array", [jobChangeArray, jobID]);
+      }
+
+      // Update customer status to match product title
+      console.log("a87     updating customer status for build(" + buildID + ") to match product(" + productID + ") title ");
+      await pool.query(
+        "UPDATE customers SET current_status = (select display_text from products where id = $1) WHERE id = (select customer_id from builds where id = $2)",
+        [productID, buildID]
+      );
+
+      console.log("a830     added workflow for build(" + buildID + ") starting with next_job", firstJobID);
+      newJobID = firstJobID;
+    }
+    // Unknown precedence
+    else {
+      console.error("trying to evaluate " + precedence + " but expecting 'parent', 'child'.");
+    }
+
+    // Respond with new job ID
+    res.status(201).json({ id: newJobID });
+
+  } catch (error) {
+    console.error('Error adding job:', error);
+    res.status(500).json({ error: 'Failed to add job' });
+  }
+});
+
+
+
+app.get("/addjob_old", async (req, res) => {
   // the following are the supported ways of adding a job...
-  //     parent: add a job and attach it as an antecedent of the job you're looking at
-  //     child: add a decendant
-  //     origin: add the first job on a build.  This triggers building out the entire workflow, based on the job_template table
+      // parent: (Deprecated) Intended to add a job as an antecedent (parent) of the current job.
+      // child: Adds a job as a descendant (child) of the specified job.
+      // template: Adds a job based on a template, linking it in the workflow.
+      // origin: Adds the first job for a build, triggering the creation of the entire workflow from the job_templates table.
 
   console.log("a001   USER is adding a new job", req.query);
   const title = req.query.title || 'UNNAMED';
