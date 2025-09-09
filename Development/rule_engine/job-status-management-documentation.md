@@ -225,6 +225,18 @@ INSERT INTO jobs (display_text, ..., current_status, ...) VALUES (?, ..., 'activ
 INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) VALUES (?, ?, ?, ?)
 ```
 
+### instances
+| Function Name         | Location (File:Line)         | Console.log / Logging Code | Description & Contrast                                                                                   |
+|-----------------------|------------------------------|---------------------------|---------------------------------------------------------------------------------------------------------|
+| `app.get("/addjob")`  | index.js:1175-1586           | `a001`, `a800`, `a822`    | Main job creation route. Handles hierarchical relationships, applies templates, and logs creation steps. |
+| `app.post("/")`       | app.js:73-97                 | `wb1`, `wb7`              | user defined tasks on Day task List
+| `/jobDone/:id`        | index.js:784-803             | `jd1`, `jd8`              | Marks an existing job as completed, not for creation. Logs completion request and errors.               |
+| `/jobComplete`        | app.js:1758-1813             | `jb1`, `jb2`, `jb71`      | Updates job status via UI checkbox, cascades completion to child jobs/tasks. Not for initial creation.  |
+| `/executeJobAction`   | index.js:814-970             | `ja6002`, `ja6003`,       | Internal API for workflow automation. Can create new builds/jobs as part of workflow rules.             |
+| SQL Direct Insert     | Various (see documentation)  | N/A                       | Direct SQL: `INSERT INTO jobs ...` used in multiple places, sometimes without explicit logging.         |
+
+
+
 ## 7. Job Reads
 
 ### Job Details Retrieval - **gd** codes

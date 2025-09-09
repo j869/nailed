@@ -65,9 +65,13 @@
       <li class="nav-item"><a href="/2/customers" class="nav-link link-light">List view</a></li>
       <li class="nav-item"><a href="/management-report" class="nav-link link-light">Management Report</a></li>
       <% if (locals.user && locals.user.roles && locals.user.roles.includes('sysadmin')) { %>
-        <li class="nav-item"><a href="/job-templates" class="nav-link link-light">Job Templates</a></li>
+        <li class="nav-item"><a href="/admin/wf-rule-report" class="nav-link link-light">WF Rule Report</a></li>
+        <li class="nav-item"><a href="/admin/job-templates" class="nav-link link-light">Job Templates</a></li>
         <li class="nav-item"><a href="/admin/customers/import" class="nav-link link-light">Customer Import</a></li>
         <li class="nav-item"><a href="/admin/users" class="nav-link link-light">Manage Users</a></li>
+        <li class="nav-item"><a href="/admin/rule-builder" class="nav-link link-light" style="color: #28a745 !important;"><i class="fas fa-cogs"></i> Rule Builder</a></li>
+        <li class="nav-item"><a href="/admin/demo/rules" class="nav-link link-light" style="color: #ffc107 !important;">🧪 Rule Engine Demo</a></li>
+        <li class="nav-item"><a href="/admin/home" class="nav-link link-light" style="color: #ffc107 !important;">Admin</a></li>
       <% } %>
       <li class="nav-item"><a href="/logout" class="nav-link link-light">Log Out</a></li>
     </ul>

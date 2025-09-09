@@ -904,3 +904,26 @@ CREATE TABLE IF NOT EXISTS public.customers (
     CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 
+
+
+CREATE TABLE
+  public.rule_templates (
+    id serial NOT NULL,
+    name character varying(255) NOT NULL,
+    description text NULL,
+    category character varying(50) NOT NULL,
+    template_json jsonb NOT NULL,
+    is_active boolean NULL DEFAULT true,
+    created_by integer NULL,
+    created_at timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone NULL DEFAULT CURRENT_TIMESTAMP,
+    tags text[] NULL,
+    usage_count integer NULL DEFAULT 0
+  );
+
+ALTER TABLE
+  public.rule_templates
+ADD
+  CONSTRAINT rule_templates_pkey PRIMARY KEY (id)
+
+  

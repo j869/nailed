@@ -29,5 +29,9 @@
     "passport-google-oauth2": "^0.2.0",
     "passport-local": "^1.0.0",
     "pg": "^8.13.2"
+  },
+  "devDependencies": {
+    "node-fetch": "^3.3.2",
+    "supertest": "^7.1.4"
   }
 }

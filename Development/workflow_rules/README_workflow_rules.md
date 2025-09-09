@@ -1,7 +1,9 @@
-# Workflow System Documentation
+# Current Workflow System Documentation
+
+### We are migrating our workflow system to a new engine.  This is the documentation for the legacy workflows
 
 ## Overview
-The workflow system is designed to manage customer processes through structured job templates organized by products. Each workflow consists of interconnected job templates that create a process flow for different business scenarios.
+The OLD workflow system is designed to manage customer processes through structured job templates organized by products. Each workflow consists of interconnected job templates that create a process flow for different business scenarios.
 
 ## Core Workflow Trigger Logic
 
@@ -296,6 +298,22 @@ job_change_array = '[{"antecedent": "complete","product": [{"addWorkflow": "54"}
 To prevent conflicts, each modular workflow uses dedicated ID ranges:
 - **Workflow 51**: 5110-5235 (126 IDs reserved)
 - **Workflow 52**: 5240-5274 (35 IDs reserved)  
+
+## Test Scripts
+
+### Workflow Engine Tests
+- **`test_workflow_logic.js`** - Tests workflow execution logic and rule processing
+- **`test_workflow_setup.sql`** - Database setup and schema tests for workflows
+- **`test_complete_workflow.js`** - End-to-end workflow completion testing
+- **`test-rule-engine.js`** - Rule engine validation and action handling tests
+- **`test-rule-builder-functions.html`** - Browser-based rule builder UI testing
+
+### Test Locations
+- **Root**: Primary test files for current development
+- **`/testing/`**: Duplicate test files for backup/comparison
+
+### Prototype 1 Validator
+- **`/test-validator`** - Live endpoint for comprehensive workflow validation (Prototype 1)  
 - **Workflow 53**: 5280-5313 (34 IDs reserved)
 - **Workflow 54**: 5320-5365 (46 IDs reserved)
 - **Workflow 55**: 5370-5424 (55 IDs reserved)

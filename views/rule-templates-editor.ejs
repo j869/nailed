@@ -1,0 +1,94 @@
+<%- include('partials/header', { user: locals.user }) %>
+
+<div style="margin-top: 100px; padding: 20px;">
+  <div class="container-fluid">
+    
+    <div class="row mb-4">
+      <div class="col-12">
+        <h2 class="mb-3">Rule Templates Editor</h2>
+        <p class="text-muted">Simple editor for rule templates - double-click to edit fields</p>
+        <a href="/rule-templates-editor/add" class="btn btn-primary">Add New +</a>
+      </div>
+    </div>
+
+    <!-- Templates List -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <% if (templates && templates.length > 0) { %>
+              <% templates.forEach(template => { %>
+                <div class="card mb-3">
+                  <div class="card-body">
+                    <h5 class="card-title">
+                      <div class="editable" id="name" contenteditable="true" data-record-id="<%= template.id %>"><%= template.name %></div>
+                    </h5>
+                    <p class="card-text">
+                      <strong>Description:</strong> 
+                      <div class="editable" id="description" contenteditable="true" data-record-id="<%= template.id %>"><%= template.description || 'No description' %></div>
+                    </p>
+                    <p class="card-text">
+                      <strong>Category:</strong> 
+                      <div class="editable" id="category" contenteditable="true" data-record-id="<%= template.id %>"><%= template.category %></div>
+                    </p>
+                    <p class="card-text">
+                      <strong>Template JSON:</strong><br>
+                      <div class="editable" id="template_json" contenteditable="true" data-record-id="<%= template.id %>" style="font-family: monospace; background: #f8f9fa; padding: 10px; border-radius: 4px;"><%= JSON.stringify(template.template_json) %></div>
+                    </p>
+                    <p class="card-text">
+                      <strong>Active:</strong> 
+                      <div class="editable" id="is_active" contenteditable="true" data-record-id="<%= template.id %>"><%= template.is_active %></div>
+                    </p>
+                    <p class="card-text">
+                      <strong>Usage Count:</strong> 
+                      <div class="editable" id="usage_count" contenteditable="true" data-record-id="<%= template.id %>"><%= template.usage_count || 0 %></div>
+                    </p>
+                    <a href="/rule-templates-editor/delete?id=<%= template.id %>" class="btn btn-danger btn-sm" onclick="return confirm('Delete this template?')">Delete</a>
+                  </div>
+                </div>
+              <% }); %>
+            <% } else { %>
+              <p class="text-muted">No rule templates found. <a href="/rule-templates-editor/add">Add the first one</a>.</p>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Exact same JavaScript pattern from editTask.ejs
+document.addEventListener('DOMContentLoaded', function() {
+    const editableElements = document.querySelectorAll('.editable');
+    editableElements.forEach(function(element) {
+        element.addEventListener('dblclick', function(event) {
+            event.preventDefault();
+            event.target.contentEditable = true;
+            event.target.focus();
+        });
+        element.addEventListener('blur', function(event) {
+            console.log('Updating field...');
+            const newValue = event.target.textContent;
+            const fieldID = event.target.id;
+            const recordID = event.target.getAttribute('data-record-id');
+            
+            fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`)
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Database updated successfully.');
+                    } else {
+                        throw new Error('Failed to update database.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Update failed: ' + error.message);
+                });
+        });
+    });
+});
+</script>
+
+<%- include('partials/footer') %>
