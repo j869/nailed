@@ -2,6 +2,9 @@ import express from 'express';
 import axios from 'axios';
 import multer from "multer";
 const router = express.Router();
+const baseURL = process.env.BASE_URL;
+const apiURL = process.env.API_URL;
+
 // import upload from "./fileUpload.js";
 // import { pool } from "./database.js";
 import pg from "pg";
