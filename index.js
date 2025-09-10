@@ -2465,7 +2465,7 @@ app.get("/executeJobAction", async (req, res) => {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
     console.log("ja1      executing changeArray: ", changeArrayJson);
-    const jobRec = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE id = $1", [parentID]);
+    const jobRec = await pool.query("SELECT id, current_status, user_id, build_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
