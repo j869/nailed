@@ -1,12 +1,9 @@
 #!/bin/bash
-# to run use this command: ./run_workflow_setup.sh
+# to run use this command: bash run_workflow_setup.sh
 
 # Script to run the schema changes SQL and verify basic execution
 # This script will execute the schema_changes.sql file
 
-echo "=== Schema Changes Setup Script ==="
-echo "Starting at: $(date)"
-echo ""
 
 # Check if PostgreSQL is available
 if ! command -v psql &> /dev/null; then
@@ -34,13 +31,14 @@ if [ ! -f "schema_changes.sql" ]; then
 fi
 
 echo "=== Executing schema changes SQL ==="
-echo "Running schema_changes.sql..."
 
 # Execute the SQL file and capture output
 OUTPUT=$(psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -f schema_changes.sql 2>&1)
 EXIT_CODE=$?
 
 echo "$OUTPUT"
+
+echo "=== Schema Changes Setup Complete ==="
 
 if [ $EXIT_CODE -ne 0 ]; then
     echo ""
@@ -59,16 +57,3 @@ else
     echo "✅ SQL execution completed successfully"
 fi
 
-echo ""
-echo "=== Schema Changes Setup Complete ==="
-echo "Finished at: $(date)"
-echo ""
-echo "Summary:"
-echo "- schema_changes.sql has been executed"
-echo "- Customer table columns have been added (if not existing)"
-echo "- Financials table has been created (if not existing)"
-echo ""
-echo "Next steps:"
-echo "1. Test your application with the new schema"
-echo "2. Verify customer data displays correctly"
-echo "3. Check that new columns are available in forms"

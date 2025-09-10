@@ -186,6 +186,7 @@ router.post("/rule-test", async (req, res) => {
 
 router.get("/job-templates", async (req, res) => {
   if (req.isAuthenticated()) {
+    console.log(`jt1      USER(${req.user.id}) accessing job templates`);
     // Check if user has sysadmin role
     if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
       return res.status(403).send(`
@@ -198,6 +199,7 @@ router.get("/job-templates", async (req, res) => {
     }
     
     try {
+      console.log("jt2      Fetching job templates from API");
       const { product_id } = req.query;
       let apiUrl = `${process.env.API_URL}/job-templates`;
       
@@ -213,6 +215,7 @@ router.get("/job-templates", async (req, res) => {
         baseURL: baseURL,
         user: req.user
       });
+      console.log("jt3      Job templates page rendered");
     } catch (error) {
       console.error("Error fetching job templates:", error);
       res.render("jobTemplates.ejs", {
@@ -225,6 +228,7 @@ router.get("/job-templates", async (req, res) => {
       });
     }
   } else {
+    console.log("jt91      User not authenticated, redirecting to login");
     res.redirect("/login");
   }
 });

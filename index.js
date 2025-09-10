@@ -2173,6 +2173,7 @@ app.get("/api/workflow-problems", async (req, res) => {
 
 // GET - Get all job templates (API)
 app.get("/job-templates", async (req, res) => {
+  console.log("jt1     Loading job templates with filter:", req.query);
   try {
     const { product_id } = req.query;
     
@@ -2207,6 +2208,7 @@ app.get("/job-templates", async (req, res) => {
 
 // GET - Get single job template (API)
 app.get("/api/job-templates/:id", async (req, res) => {
+  console.log("ks1     Fetching job template with ID:", req.params.id);
   try {
     const { id } = req.params;
     const result = await pool.query("SELECT * FROM job_templates WHERE id = $1", [id]);
@@ -2224,6 +2226,7 @@ app.get("/api/job-templates/:id", async (req, res) => {
 
 // POST - Create new job template (API)
 app.post("/api/job-templates", async (req, res) => {
+  console.log("ld1    Creating new job template with data:", req.body);
   try {
     const {
       user_id,
@@ -2287,6 +2290,7 @@ app.post("/api/job-templates", async (req, res) => {
 
 // PUT - Update job template (API)
 app.put("/api/job-templates/:id", async (req, res) => {
+  console.log("kt1     Updating job template with ID:", req.params.id);
   try {
     const { id } = req.params;
     const {
@@ -2352,6 +2356,7 @@ app.put("/api/job-templates/:id", async (req, res) => {
 
 // DELETE - Delete job template (API)
 app.delete("/api/job-templates/:id", async (req, res) => {
+  console.log("ku1     Deleting job template with ID:", req.params.id);
   try {
     const { id } = req.params;
     
@@ -2382,6 +2387,7 @@ app.delete("/api/job-templates/:id", async (req, res) => {
 
 // GET - Get single product (API)
 app.get("/api/products/:id", async (req, res) => {
+  console.log("kv1     Fetching product with ID:", req.params.id);
   try {
     const { id } = req.params;
     const result = await pool.query("SELECT * FROM products WHERE id = $1", [id]);
@@ -2399,6 +2405,7 @@ app.get("/api/products/:id", async (req, res) => {
 
 // PUT - Update product (API)
 app.put("/api/products/:id", async (req, res) => {
+  console.log("kw1     Updating product with ID:", req.params.id);
   try {
     const { id } = req.params;
     const { display_text, user_id = 1 } = req.body;
@@ -2460,7 +2467,7 @@ app.put("/api/products/:id", async (req, res) => {
 app.get("/executeJobAction", async (req, res) => {
                   // execute the action
           //[{"antecedent": "complete", "build": [{"status": "Archive"}], "decendant": [{"status": "pending@520"}, {"target": "today_1@520"}]}]
-
+  console.log("jn1      executing job action for job: ", req.query);
   try {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
