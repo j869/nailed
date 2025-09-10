@@ -2650,7 +2650,7 @@ passport.serializeUser((user, cb) => {
 
 passport.deserializeUser(async (id, cb) => {
   try {
-    console.log('pp96     Deserializing user ID:', id);
+    // console.log('pp96     Deserializing user ID:', id);
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
     if (result.rows.length > 0) {
       cb(null, result.rows[0]); // Return fresh user data from database
