@@ -2471,6 +2471,9 @@ app.get("/executeJobAction", async (req, res) => {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
     const jobNext = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID]); 
+    if (jobNext.rows.length === 0) {
+      console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
+    }
     const childID = jobNext.rows[0].id || null;
     const parentStatus = jobRec.rows[0].current_status;
     const userID = jobRec.rows[0].user_id;
