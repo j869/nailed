@@ -769,15 +769,11 @@ router.post("/wf-rule-report/update", async (req, res) => {
   try {
     const { templateIds, jobIds, newChangeArray, newTemplateName } = req.body;
 
-    if (!jobIds || !Array.isArray(jobIds) || !newChangeArray) {
+    if (!jobIds || !Array.isArray(jobIds) ) {
       return res.status(400).json({ success: false, error: "Missing required parameters" });
     }
 
     console.log(`wru3a   Job IDs array:`, jobIds);
-    console.log(`wru3b   New change_array:`, newChangeArray);
-    if (newTemplateName) {
-      console.log(`wru3c   New template name:`, newTemplateName);
-    }
 
     // Get user's security clause for data access control
     const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
@@ -789,6 +785,7 @@ router.post("/wf-rule-report/update", async (req, res) => {
     // Update the change_array for specified jobs with optional template filtering
     let updateQuery, queryParams;
     if (newChangeArray) {
+      console.log(`wru3b   New change_array:`, newChangeArray);
       if (templateIds) {
         // templateIds can be a comma-separated string or a single value
         const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
@@ -826,6 +823,7 @@ router.post("/wf-rule-report/update", async (req, res) => {
 
     let templateUpdateResult = null;
     if (newTemplateName && jobIds) {
+      console.log(`wru3c   New template name:`, newTemplateName);
       // Update job_templates.display_text for all affected template IDs
       const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
       const templateUpdateQuery = `
