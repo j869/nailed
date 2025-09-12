@@ -635,7 +635,6 @@ router.get("/wf-rule-report", async (req, res) => {
         LEFT JOIN job_templates jt ON j.job_template_id = jt.id
         LEFT JOIN builds b ON j.build_id = b.id
         LEFT JOIN customers c ON b.customer_id = c.id
-        WHERE j.job_template_id IS NOT NULL 
         AND j.change_array IS NOT NULL 
         AND j.change_array != ''
         AND (${processedSecurityClause})
