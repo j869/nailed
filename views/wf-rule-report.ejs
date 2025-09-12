@@ -228,6 +228,10 @@
             <input type="text" class="form-control" id="affectedJobs" readonly>
           </div>
           <div class="mb-3">
+            <label for="templateName" class="form-label">Template Name</label>
+            <input type="text" class="form-control" id="templateName" placeholder="Edit template name...">
+          </div>
+          <div class="mb-3">
             <label for="currentChangeArray" class="form-label">Current Change Array</label>
             <textarea class="form-control" id="currentChangeArray" rows="4" readonly style="font-family: monospace;"></textarea>
           </div>
@@ -285,7 +289,10 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('affectedJobs').value = jobIds;
       document.getElementById('currentChangeArray').value = changeArray;
       document.getElementById('newChangeArray').value = changeArray;
-      
+      // Set template name if available
+      const templateName = this.closest('tr').querySelector('.fw-bold')?.textContent?.trim() || '';
+      document.getElementById('templateName').value = templateName;
+
       // Generate appropriate WHERE condition
       let whereCondition;
       if (templateId) {
@@ -299,9 +306,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fallback to job IDs only
         whereCondition = `WHERE id IN (${jobIds})`;
       }
-      
+
       document.getElementById('updateCondition').textContent = whereCondition;
-      
+
       // Show modal
       new bootstrap.Modal(document.getElementById('updateChangeArrayModal')).show();
     });
@@ -312,27 +319,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const templateIds = document.getElementById('templateId').value; // Can be single ID or comma-separated IDs
     const jobIds = document.getElementById('affectedJobs').value.split(',');
     const newChangeArray = document.getElementById('newChangeArray').value;
-    
+    const newTemplateName = document.getElementById('templateName').value;
+
     if (!newChangeArray.trim()) {
       alert('Please enter a new change array value');
       return;
     }
-    
+
     // Disable button during request
     this.disabled = true;
     this.textContent = 'Updating...';
-    
+
     // Debug logging
     console.log('Update request:', {
       templateIds: templateIds,
       jobIdsCount: jobIds.length,
+      newTemplateName: newTemplateName,
       payloadSize: JSON.stringify({
         templateIds: templateIds,
         jobIds: jobIds,
-        newChangeArray: newChangeArray
+        newChangeArray: newChangeArray,
+        newTemplateName: newTemplateName
       }).length
     });
-    
+
     // Send update request
     fetch('/admin/wf-rule-report/update', {
       method: 'POST',
@@ -342,7 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
       body: JSON.stringify({
         templateIds: templateIds, // Changed from templateId to templateIds
         jobIds: jobIds,
-        newChangeArray: newChangeArray
+        newChangeArray: newChangeArray,
+        newTemplateName: newTemplateName
       })
     })
     .then(response => response.json())

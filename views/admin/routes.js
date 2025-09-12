@@ -768,34 +768,38 @@ router.post("/wf-rule-report/update", async (req, res) => {
   }
 
   try {
-    const { templateId, jobIds, newChangeArray } = req.body;
+    const { templateIds, jobIds, newChangeArray, newTemplateName } = req.body;
 
     if (!jobIds || !Array.isArray(jobIds) || !newChangeArray) {
       return res.status(400).json({ success: false, error: "Missing required parameters" });
     }
 
-    console.log(`wru3    Updating change_array for template ${templateId || 'ALL'}, jobs: ${jobIds.join(',')}`);
+    console.log(`wru3    Updating change_array for template(s) ${templateIds || 'ALL'}, jobs: ${jobIds.join(',')}`);
     console.log(`wru3a   Job IDs array:`, jobIds);
     console.log(`wru3b   New change_array:`, newChangeArray);
+    if (newTemplateName) {
+      console.log(`wru3c   New template name:`, newTemplateName);
+    }
 
     // Get user's security clause for data access control
     const securityResult = await db.query('SELECT data_security FROM users WHERE id = $1', [req.user.id]);
     const securityClause = securityResult.rows[0]?.data_security || '1=0';
     const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
-    console.log(`wru3c   Security clause: ${processedSecurityClause}`);
+    console.log(`wru3d   Security clause: ${processedSecurityClause}`);
 
     // Update the change_array for specified jobs with optional template filtering
     let updateQuery, queryParams;
-
-    if (templateId) {
+    if (templateIds) {
+      // templateIds can be a comma-separated string or a single value
+      const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
       updateQuery = `
         UPDATE jobs 
         SET change_array = $1
-        WHERE job_template_id = $2 
+        WHERE job_template_id = ANY($2) 
           AND id = ANY($3)
       `;
-      queryParams = [newChangeArray, templateId, jobIds];
+      queryParams = [newChangeArray, templateIdArr, jobIds];
     } else {
       updateQuery = `
         UPDATE jobs 
@@ -805,8 +809,8 @@ router.post("/wf-rule-report/update", async (req, res) => {
       queryParams = [newChangeArray, jobIds];
     }
 
-    console.log(`wru3d   Update query:`, updateQuery);
-    console.log(`wru3e   Query params:`, queryParams);
+    console.log(`wru3e   Update query:`, updateQuery);
+    console.log(`wru3f   Query params:`, queryParams);
 
     // Check which jobs exist and meet the criteria
     const checkQuery = `
@@ -815,11 +819,22 @@ router.post("/wf-rule-report/update", async (req, res) => {
       WHERE j.id = ANY($1)
     `;
     const checkResult = await db.query(checkQuery, [jobIds]);
-    console.log(`wru3f   Jobs found matching criteria:`, checkResult.rows);
+    console.log(`wru3g   Jobs found matching criteria:`, checkResult.rows);
 
     const result = await db.query(updateQuery, queryParams);
 
-    console.log(`wru4    Updated ${result.rowCount} records for template ${templateId}`);
+    let templateUpdateResult = null;
+    if (newTemplateName && templateIds) {
+      // Update job_templates.display_text for all affected template IDs
+      const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
+      const templateUpdateQuery = `
+        UPDATE job_templates
+        SET display_text = $1
+        WHERE id = ANY($2)
+      `;
+      templateUpdateResult = await db.query(templateUpdateQuery, [newTemplateName, templateIdArr]);
+      console.log(`wru4    Updated template name for ${templateUpdateResult.rowCount} template(s)`);
+    }
 
     res.json({
       success: true,
