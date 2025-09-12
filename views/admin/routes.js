@@ -823,7 +823,7 @@ router.post("/wf-rule-report/update", async (req, res) => {
     const result = await db.query(updateQuery, queryParams);
 
     let templateUpdateResult = null;
-    if (newTemplateName && templateIds) {
+    if (newTemplateName && jobIds) {
       // Update job_templates.display_text for all affected template IDs
       const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
       const templateUpdateQuery = `
