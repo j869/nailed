@@ -781,6 +781,7 @@ router.post("/wf-rule-report/update", async (req, res) => {
     const processedSecurityClause = securityClause.replace(/\$USER_ID/g, req.user.id);
 
     console.log(`wru3d   Security clause: ${processedSecurityClause}`);
+    let rowsAffected = 0;
 
     // Update the change_array for specified jobs with optional template filtering
     let updateQuery, queryParams;
@@ -817,8 +818,9 @@ router.post("/wf-rule-report/update", async (req, res) => {
       `;
       const checkResult = await db.query(checkQuery, [jobIds]);
       console.log(`wru3g   Jobs found matching criteria:`, checkResult.rows);
-
+      
       const result = await db.query(updateQuery, queryParams);
+      rowsAffected = result.rowCount;
     }
 
     let templateUpdateResult = null;
@@ -831,12 +833,13 @@ router.post("/wf-rule-report/update", async (req, res) => {
       `;
       templateUpdateResult = await db.query(templateUpdateQuery, [newTemplateName, jobIds]);
       console.log(`wru4    Updated task title for ${templateUpdateResult.rowCount} job(s)\n`, `UPDATE jobs SET display_text = ${newTemplateName} WHERE id = ANY(${jobIds})`);
+      rowsAffected += templateUpdateResult.rowCount;
     }
 
     res.json({
       success: true,
-      updatedCount: result.rowCount,
-      message: `Successfully updated ${result.rowCount} record(s)`
+      updatedCount: rowsAffected,
+      message: `Successfully updated ${rowsAffected} record(s)`
     });
 
   } catch (err) {
