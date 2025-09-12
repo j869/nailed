@@ -830,8 +830,8 @@ router.post("/wf-rule-report/update", async (req, res) => {
       const templateUpdateQuery = `
         UPDATE jobs SET display_text = $1 WHERE id = ANY($2)
       `;
-      templateUpdateResult = await db.query(templateUpdateQuery, [newTemplateName, templateIdArr]);
-      console.log(`wru4    Updated task title for ${templateUpdateResult.rowCount} job(s)\n`, `UPDATE jobs SET display_text = ${newTemplateName} WHERE id = ANY(${templateIdArr})`);
+      templateUpdateResult = await db.query(templateUpdateQuery, [newTemplateName, jobIds]);
+      console.log(`wru4    Updated task title for ${templateUpdateResult.rowCount} job(s)\n`, `UPDATE jobs SET display_text = ${newTemplateName} WHERE id = ANY(${jobIds})`);
     }
 
     res.json({
