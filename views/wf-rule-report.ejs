@@ -16,6 +16,9 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab">Grouped by Rule</button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="alljobs-tab" data-bs-toggle="tab" data-bs-target="#alljobs" type="button" role="tab">All Jobs</button>
+          </li>
         </ul>
       </div>
     </div>
@@ -204,6 +207,71 @@
         </div>
       </div>
 
+      <!-- All Jobs Ungrouped -->
+      <div class="tab-pane fade" id="alljobs" role="tabpanel">
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterJobId" placeholder="Job ID">
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterProductId" placeholder="Product ID">
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterSortOrder" placeholder="Sort Order">
+          </div>
+          <div class="col-md-3">
+            <input type="text" class="form-control" id="filterDisplayText" placeholder="Display Text">
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-12 text-end">
+            <button class="btn btn-primary" id="filterJobsBtn">Filter</button>
+            <button class="btn btn-danger" id="updateAllFilteredBtn">Update All Filtered</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Template ID</th>
+                <th>Product ID</th>
+                <th>Sort Order</th>
+                <th>Display Text</th>
+                <th>Change Array</th>
+              </tr>
+            </thead>
+            <tbody id="allJobsBody">
+              <% if (individualJobs && individualJobs.length > 0) { %>
+                <% individualJobs.forEach(job => { %>
+                  <tr>
+                    <td><%= job.job_id %></td>
+                    <td><%= job.job_template_id %></td>
+                    <td><%= job.product_id || '' %></td>
+                    <td><%= job.sort_order || '' %></td>
+                    <td><%= job.job_name || '' %></td>
+                    <td>
+                      <%= job.change_array || '' %>
+                        <button class="btn btn-sm btn-outline-primary update-btn"
+                          data-template-id="<%= job.job_template_id %>"
+                          data-template-ids="<%= job.job_template_id %>"
+                          data-change-array="<%= encodeURIComponent(job.change_array || '') %>"
+                          data-job-ids="<%= job.job_id %>">
+                          Update
+                        </button>
+                    </td>
+                  </tr>
+                <% }); %>
+              <% } else { %>
+                <tr>
+                  <td colspan="6" class="text-center text-muted">No jobs found.</td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -230,10 +298,6 @@
           <div class="mb-3">
             <label for="templateName" class="form-label">Template Name</label>
             <input type="text" class="form-control" id="templateName" placeholder="Edit template name...">
-          </div>
-          <div class="mb-3">
-            <label for="currentChangeArray" class="form-label">Current Change Array</label>
-            <textarea class="form-control" id="currentChangeArray" rows="4" readonly style="font-family: monospace;"></textarea>
           </div>
           <div class="mb-3">
             <label for="newChangeArray" class="form-label">New Change Array</label>
@@ -287,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Populate modal
       document.getElementById('templateId').value = effectiveTemplateIds;
       document.getElementById('affectedJobs').value = jobIds;
-      document.getElementById('currentChangeArray').value = changeArray;
+      // document.getElementById('currentChangeArray').value = changeArray;
       document.getElementById('newChangeArray').value = changeArray;
       // Set template name if available
       const templateName = this.closest('tr').querySelector('.fw-bold')?.textContent?.trim() || '';
@@ -409,7 +473,71 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('filterJobsBtn').addEventListener('click', function() {
+    const jobId = document.getElementById('filterJobId').value.trim();
+    const productId = document.getElementById('filterProductId').value.trim();
+    const sortOrder = document.getElementById('filterSortOrder').value.trim();
+    const displayText = document.getElementById('filterDisplayText').value.trim().toLowerCase();
+
+    const rows = document.querySelectorAll('#allJobsBody tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length < 6) return;
+      const cellJobId = (cells[0].textContent || '').trim();
+      const cellProductId = (cells[2].textContent || '').trim();
+      const cellSortOrder = (cells[3].textContent || '').trim();
+      const cellDisplayText = (cells[4].textContent || '').trim().toLowerCase();
+
+      let show = true;
+      if (jobId && cellJobId !== jobId) show = false;
+      if (productId && cellProductId !== productId) show = false;
+      if (sortOrder && cellSortOrder !== sortOrder) show = false;
+      if (displayText && !cellDisplayText.includes(displayText)) show = false;
+
+      row.style.display = show ? '' : 'none';
+    });
+  });
+});
+
+
+document.getElementById('updateAllFilteredBtn').addEventListener('click', function() {
+  const rows = document.querySelectorAll('#allJobsBody tr');
+  const filteredJobIds = [];
+  let templateIds = new Set();
+  let changeArrays = [];
+
+  rows.forEach(row => {
+    if (row.style.display === 'none') return;
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 6) return;
+    filteredJobIds.push(cells[0].textContent.trim());
+    templateIds.add(cells[1].textContent.trim());
+    changeArrays.push(cells[5].textContent.trim());
+  });
+
+  if (filteredJobIds.length === 0) {
+    alert('No jobs match the current filter.');
+    return;
+  }
+
+  // Pre-fill modal fields
+  document.getElementById('templateId').value = Array.from(templateIds).join(',');
+  document.getElementById('affectedJobs').value = filteredJobIds.join(',');
+  // document.getElementById('currentChangeArray').value = changeArrays[0] || '';
+  document.getElementById('newChangeArray').value = changeArrays[0] || '';
+  document.getElementById('templateName').value = ''; // Optional, or set if you want
+
+  // Set update condition text
+  document.getElementById('updateCondition').textContent =
+    `WHERE id IN (${filteredJobIds.join(',')})`;
+
+  // Show the modal
+  new bootstrap.Modal(document.getElementById('updateChangeArrayModal')).show();
+});
 </script>
+
 
 <%- include('partials/footer') %>
 wf-rule-report.ejs
