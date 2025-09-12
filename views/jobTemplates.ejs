@@ -100,7 +100,7 @@
     </div>
 
     <!-- Add New Job Template Section -->
-    <div class="row mt-3">
+    <div class="row mtf-3">
         <div class="col">
             <button class="btn btn-success" id="addNewTemplateBtn" onclick="addNewJobTemplate()" 
                     <%= !locals.selectedProductId ? 'disabled' : '' %>>
@@ -427,13 +427,13 @@ document.addEventListener('DOMContentLoaded', function() {
             event.target.focus();
         });
         element.addEventListener('blur', function(event) {
-            const newValue = event.target.textContent;
+            const newValue = encodeURIComponent(event.target.textContent);
             const fieldID = event.target.id;
             const recordID = event.target.getAttribute('data-record-id');
             
             console.log('Updating job template:', fieldID, newValue, recordID);
             
-            fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
+                fetch(`/update?fieldID=${fieldID}&newValue=${newValue}&whereID=${recordID}`)
                 .then(response => {
                     if (response.ok) {
                         console.log('Job template updated successfully.');
