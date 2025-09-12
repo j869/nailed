@@ -385,11 +385,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const newChangeArray = document.getElementById('newChangeArray').value;
     const newTemplateName = document.getElementById('templateName').value;
 
-    if (!newChangeArray.trim()) {
-      alert('Please enter a new change array value');
-      return;
-    }
-
     // Disable button during request
     this.disabled = true;
     this.textContent = 'Updating...';
