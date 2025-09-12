@@ -773,7 +773,6 @@ router.post("/wf-rule-report/update", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing required parameters" });
     }
 
-    console.log(`wru3    Updating change_array for template(s) ${templateIds || 'ALL'}, jobs: ${jobIds.join(',')}`);
     console.log(`wru3a   Job IDs array:`, jobIds);
     console.log(`wru3b   New change_array:`, newChangeArray);
     if (newTemplateName) {
@@ -789,38 +788,41 @@ router.post("/wf-rule-report/update", async (req, res) => {
 
     // Update the change_array for specified jobs with optional template filtering
     let updateQuery, queryParams;
-    if (templateIds) {
-      // templateIds can be a comma-separated string or a single value
-      const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
-      updateQuery = `
-        UPDATE jobs 
-        SET change_array = $1
-        WHERE job_template_id = ANY($2) 
-          AND id = ANY($3)
+    if (newChangeArray) {
+      if (templateIds) {
+        // templateIds can be a comma-separated string or a single value
+        const templateIdArr = templateIds.split(',').map(id => id.trim()).filter(Boolean);
+        updateQuery = `
+          UPDATE jobs 
+          SET change_array = $1
+          WHERE job_template_id = ANY($2) 
+            AND id = ANY($3)
+        `;
+        queryParams = [newChangeArray, templateIdArr, jobIds];
+        console.log(`wru3    Updating change_array for template(s) - UPDATE jobs SET change_array = $1 WHERE job_template_id = ANY(${templateIdArr}) AND id = ANY($3)`);
+      } else {
+        updateQuery = `
+          UPDATE jobs 
+          SET change_array = $1
+          WHERE id = ANY($2)
+        `;
+        queryParams = [newChangeArray, jobIds];
+      }
+
+      console.log(`wru3e   Update query:`, updateQuery);
+      console.log(`wru3f   Query params:`, queryParams);
+
+      // Check which jobs exist and meet the criteria
+      const checkQuery = `
+        SELECT j.id, j.job_template_id, j.build_id
+        FROM jobs j
+        WHERE j.id = ANY($1)
       `;
-      queryParams = [newChangeArray, templateIdArr, jobIds];
-    } else {
-      updateQuery = `
-        UPDATE jobs 
-        SET change_array = $1
-        WHERE id = ANY($2)
-      `;
-      queryParams = [newChangeArray, jobIds];
+      const checkResult = await db.query(checkQuery, [jobIds]);
+      console.log(`wru3g   Jobs found matching criteria:`, checkResult.rows);
+
+      const result = await db.query(updateQuery, queryParams);
     }
-
-    console.log(`wru3e   Update query:`, updateQuery);
-    console.log(`wru3f   Query params:`, queryParams);
-
-    // Check which jobs exist and meet the criteria
-    const checkQuery = `
-      SELECT j.id, j.job_template_id, j.build_id
-      FROM jobs j
-      WHERE j.id = ANY($1)
-    `;
-    const checkResult = await db.query(checkQuery, [jobIds]);
-    console.log(`wru3g   Jobs found matching criteria:`, checkResult.rows);
-
-    const result = await db.query(updateQuery, queryParams);
 
     let templateUpdateResult = null;
     if (newTemplateName && jobIds) {
