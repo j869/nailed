@@ -2767,7 +2767,7 @@ app.get("/update", async (req,res) => {
         // console.log("ufg41     [" + newValue + "] ")
         table = "customers"
         columnName = "follow_up"
-        value = encodeURIComponent(newValue);
+        value = newValue;
         console.log("ufg410     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
@@ -3449,7 +3449,7 @@ app.get("/update", async (req,res) => {
       case "display_text":
         table = "job_templates";
         columnName = "display_text";
-        value = newValue;
+        value = encodeURIComponent(newValue);
         console.log("ufg_jt1     update "+ table + " set "+ columnName + " = " + value);
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         if (q && q.status === 201) {
