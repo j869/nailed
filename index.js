@@ -897,6 +897,7 @@ app.get("/jobDone/:id", async (req,res) => {
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
+  console.log("ud001    new value: ", req.query.value);
   let value = decodeURIComponent(req.query.value);
   //value = value.replace(/%/g,"_");
   const id = req.query.id;
