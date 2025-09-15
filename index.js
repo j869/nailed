@@ -2555,11 +2555,11 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ufg4305          target is `, target.toISOString().split('T')[0]);
               console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
-              // console.log(`ufg4666           `, value);
+              console.log(`ufg4666           wf action change_array`, JSON.stringify(action)]);
               console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id FROM jobs WHERE id = $1", [parentID]);
               // let newFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
-              let jobNew = await pool.query("INSERT INTO jobs (display_text, reminder_id, job_template_id, product_id, build_id, sort_order, user_id, current_status, target_date, created_date, tier, snoozed_until, system_comments) SELECT $6, reminder_id, job_template_id, product_id, build_id, sort_order || 'a', $1, 'pending', $2, $4, tier, $2, $5 FROM jobs WHERE id = $3 RETURNING *", [userID, target, parentID, today, `ja43071   initialise reminder created from job(${parentID})`, 'Reminder to follow up council when they recieve application']);
+              let jobNew = await pool.query("INSERT INTO jobs (change_array, display_text, reminder_id, job_template_id, product_id, build_id, sort_order, user_id, current_status, target_date, created_date, tier, snoozed_until, system_comments) SELECT $7, $6, reminder_id, job_template_id, product_id, build_id, sort_order || 'a', $1, 'pending', $2, $4, tier, $2, $5, change_array FROM jobs WHERE id = $3 RETURNING *", [userID, target, parentID, today, `ja43071   initialise reminder created from job(${parentID})`, 'Reminder to follow up council when they recieve application', JSON.stringify(action)]);
               console.log(`ja43071           ...created new job(${jobNew.rows[0].id}) from job(${parentID}) for user(${userID}) with target date ${value}`);
               let antFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
               console.log(`ja4306           ...antecedant flow is ${antFlow.rows[0].id}`);
