@@ -2474,8 +2474,10 @@ app.get("/executeJobAction", async (req, res) => {
   console.log("jn1      executing job action for job: ", req.query);
   try {
     const parentID = req.query.origin_job_id || null;
-    const changeArrayJson = JSON.parse(req.query.changeArray);
-    console.log("ja1      executing changeArray: ", changeArrayJson);
+  const changeArrayJson = JSON.parse(req.query.changeArray);
+  // DEBUG LOG 1: Log the entire changeArrayJson before processing
+  console.log("DEBUG: changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
+  console.log("ja1      executing changeArray: ", changeArrayJson);
     const jobRec = await pool.query("SELECT id, current_status, user_id, build_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ja300     Job not found for job_id:", parentID);
@@ -2489,6 +2491,8 @@ app.get("/executeJobAction", async (req, res) => {
     const parentStatus = jobRec.rows[0].current_status;
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
+      // DEBUG LOG 2: Log each scenario's antecedent and decendant
+      console.log(`DEBUG: scenario antecedent: ${scenario.antecedent}, decendant:`, scenario.decendant);
       // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
       console.log("ja4001     IF job("+parentID+") status changes too " + scenario.antecedent + " then... ");
       if (scenario.antecedent === parentStatus) {   
@@ -2544,6 +2548,8 @@ app.get("/executeJobAction", async (req, res) => {
               }
             } else if (action.insertReminder) {
               //{"insertReminder":"28_day_followup"}
+              // DEBUG LOG 3: Log when insertReminder block is entered
+              console.log("DEBUG: Entered insertReminder block for action:", action);
               console.log(`ja4301           ...insert new job from job(${parentID}) template(${action.insertReminder}) for user(${userID})`, action);
               const daysToAdd = action.insertReminder.split("_")[0];
               console.log(`ufg4303          ${daysToAdd} days `);
@@ -2556,7 +2562,7 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
               const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${daysToAdd/2}_day_followup"} ] }]` ;
-              console.log(`ufg4666           wf action change_array`, JSON.stringify(action));
+              console.log(`ufg4666           wf action change_array`, newChangeArray);
               console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id, sort_order FROM jobs WHERE id = $1", [parentID]);
               let oldSortOrder = jobOld.rows[0].sort_order;
