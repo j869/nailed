@@ -1377,10 +1377,13 @@ app.get("/addjob", async (req, res) => {
             if (c1 && jobChangeArray.substring(c, c + 1) == '"') {
               c2 = c;
               replaceTemplateID = jobChangeArray.substring(c1, c2);
-              let replaceJobID = await pool.query(
-                "SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2",
-                [replaceTemplateID, buildID]
-              );
+              if (replaceTemplateID != 'next') {
+                // some workflows are defined without specifying an exact templateID
+                let replaceJobID = await pool.query(
+                  "SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2",
+                  [replaceTemplateID, buildID]
+                );
+              }
               if (replaceJobID.rows.length > 0) {
                 jobChangeArray = jobChangeArray.replace('@' + replaceTemplateID, '@' + replaceJobID.rows[0].id);
               } else {
@@ -2512,7 +2515,7 @@ app.get("/executeJobAction", async (req, res) => {
                 console.log(`ja4108           ...job(${jobID}) status is already ${value}, or task is completed.`);
               }
             } else if (action.target) {
-              //{"target": "today_1@520"}
+              //{"target": "today_1@next"}
               jobID = action.target.split("@")[1];
               if (jobID === 'next') {jobID = childID} 
               value = action.target.split("@")[0];
