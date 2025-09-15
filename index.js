@@ -2555,9 +2555,16 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ufg4305          target is `, target.toISOString().split('T')[0]);
               console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
+              const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${daysToAdd/2}_day_followup"} ] }]` ;
               console.log(`ufg4666           wf action change_array`, JSON.stringify(action));
               console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id FROM jobs WHERE id = $1", [parentID]);
+              oldSortOrder = jobOld.rows[0].sort_order;
+              console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
+              //format of sort order is 4.09   - it needs to increment to 4.10, 4.11 etc
+              newSortOrder = '' + (Math.round((parseFloat(oldSortOrder) + 0.01) * 100) / 100).toFixed(2);
+              let newSortOrder = (parentID * 10) + 5;   //inbetween parent and next job
+
               // let newFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
               let jobNew = await pool.query(
                 `INSERT INTO jobs (
@@ -2583,7 +2590,7 @@ app.get("/executeJobAction", async (req, res) => {
                   job_template_id,
                   product_id,
                   build_id,
-                  sort_order || 'a',
+                  $8,
                   $1,
                   'pending',
                   $2,
@@ -2599,7 +2606,8 @@ app.get("/executeJobAction", async (req, res) => {
                   today,
                   `ja43071   initialise reminder created from job(${parentID})`,
                   'Reminder to follow up council when they recieve application',
-                  JSON.stringify(action)
+                  newChangeArray,
+                  newSortOrder 
                 ]
               );
               console.log(`ja43071           ...created new job(${jobNew.rows[0].id}) from job(${parentID}) for user(${userID}) with target date ${value}`);
