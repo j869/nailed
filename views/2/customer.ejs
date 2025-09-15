@@ -299,7 +299,7 @@
                                                                                                                     </div>
                                                                                                                     <div style="margin-left: auto;">
                                                                                                                         <% if (locals.user.id = 1) { %>      
-                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/jobs/<%= jobID %>';" >Edit Category</button>
+                                                                                                                            <button class="btn btn-sm btn-outline-secondary" onclick="window.location.href='/jobs/<%= jobID %>';" >Edit Stage</button>
                                                                                                                         <% } %>
                                                                                                                         <button class="btn btn-sm btn-outline-danger" 
                                                                                                                             onclick="if(confirm('Are you sure you want to delete this Stage?')) { if(confirm('Are you REALLY sure?')) { window.location.href='/delJob?btn=103c&jobnum=<%= jobID %>&returnto=build/<%= site.id %>'; } }" >

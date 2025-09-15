@@ -244,7 +244,7 @@ INSERT INTO job_process_flow (antecedent_id, decendant_id, tier, change_array) V
 - **Location**: `index.js:430-602`
 - **UI Forms**: Multiple EJS templates link to job details:
   - `editTask.ejs` - Job antecedent/descendant "update" and "Edit" links
-  - `2/customer.ejs` - "Edit Category" buttons in customer build view
+  - `2/customer.ejs` - "Edit Stage" buttons in customer build view
 - **Logging Codes**:
   - `gd117` - Tier calculation
   - `gd18` - Missing job ID error
