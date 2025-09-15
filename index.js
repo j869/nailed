@@ -1383,11 +1383,11 @@ app.get("/addjob", async (req, res) => {
                   "SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2",
                   [replaceTemplateID, buildID]
                 );
-              }
-              if (replaceJobID.rows.length > 0) {
-                jobChangeArray = jobChangeArray.replace('@' + replaceTemplateID, '@' + replaceJobID.rows[0].id);
-              } else {
-                console.error("a832       ...error in workflow definition... no job found for templateID(" + replaceTemplateID + ") in build(" + buildID + ")");
+                if (replaceJobID.rows.length > 0) {
+                  jobChangeArray = jobChangeArray.replace('@' + replaceTemplateID, '@' + replaceJobID.rows[0].id);
+                } else {
+                  console.error("a832       ...error in workflow definition... no job found for templateID(" + replaceTemplateID + ") in build(" + buildID + ")");
+                }
               }
               c1 = null;
             }
