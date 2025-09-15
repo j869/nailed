@@ -2559,11 +2559,10 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ufg4666           wf action change_array`, JSON.stringify(action));
               console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id FROM jobs WHERE id = $1", [parentID]);
-              oldSortOrder = jobOld.rows[0].sort_order;
+              let oldSortOrder = jobOld.rows[0].sort_order;
               console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
               //format of sort order is 4.09   - it needs to increment to 4.10, 4.11 etc
-              newSortOrder = '' + (Math.round((parseFloat(oldSortOrder) + 0.01) * 100) / 100).toFixed(2);
-              let newSortOrder = (parentID * 10) + 5;   //inbetween parent and next job
+              let newSortOrder = '' + (Math.round((parseFloat(oldSortOrder) + 0.01) * 100) / 100).toFixed(2);
 
               // let newFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
               let jobNew = await pool.query(
