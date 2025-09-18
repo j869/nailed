@@ -2632,7 +2632,7 @@ app.get("/executeJobAction", async (req, res) => {
               //{"disarmReminder":"complete@5409"}
               console.log(`ja43074           ...disarming reminder for job(${parentID})`);
               //{"status": "pending@520"}
-              job_template_ID = action.disarmReminder.split("@")[1];
+              let job_template_ID = action.disarmReminder.split("@")[1];
               value = action.disarmReminder.split("@")[0];
               const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and current_status != $2 and build_id = $3", [job_template_ID, value, buildID]);
               for (const row of q.rows) {
