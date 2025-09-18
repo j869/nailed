@@ -1129,30 +1129,6 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
     `, [buildData.product_id, buildID]);
 
 
-
-/*
-      SELECT t.id, t.sort_order, t.display_text,
-      (select b.sort_order from job_templates b where t.antecedent_array = b.id::text) as before,
-      (select a.sort_order from job_templates a where t.decendant_array = a.id::text) as after
-      FROM job_templates t
-      WHERE t.product_id = 5 and t.tier = 500 AND t.id NOT IN (
-        SELECT j.job_template_id FROM jobs j WHERE j.build_id = 364
-      );
-
-      SELECT count(t.id)
-      FROM job_templates t
-      WHERE t.id NOT IN (
-        SELECT j.job_template_id FROM jobs j WHERE j.build_id = 364
-      );
-
-        SELECT count(j.job_template_id) FROM jobs j WHERE j.build_id = 364
-        SELECT count(t.id) FROM job_templates t where product_id = 5;
-
-        select t.id, t.product_id, t.sort_order,j.job_template_id, j.id, j.display_text from job_templates t, jobs j 
-        where t.id = j.job_template_id and j.build_id = 364 order by t.sort_order;
-
-        */
-
     // 4. Get emails
     const emailsResult = await db.query(`
       SELECT 
