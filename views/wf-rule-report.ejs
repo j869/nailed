@@ -8,92 +8,83 @@
         <h2 class="mb-3">WF Rule Report</h2>
         <p class="text-muted">Workflow rules analysis - Jobs grouped by template with change_array details</p>
         
-        <!-- Tab Navigation -->
-        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="grouped-tab" data-bs-toggle="tab" data-bs-target="#grouped" type="button" role="tab">Grouped by Template</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab">Grouped by Rule</button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="alljobs-tab" data-bs-toggle="tab" data-bs-target="#alljobs" type="button" role="tab">All Jobs</button>
-          </li>
-        </ul>
+
       </div>
     </div>
 
-    <!-- Tab Content -->
-    <div class="tab-content" id="reportTabsContent">
       
 
 
-      <!-- All Jobs Ungrouped -->
-      <div class="tab-pane fade" id="alljobs" role="tabpanel">
-        <div class="row mb-3">
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="filterJobId" placeholder="Job ID">
-          </div>
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="filterProductId" placeholder="Product ID">
-          </div>
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="filterSortOrder" placeholder="Sort Order">
-          </div>
-          <div class="col-md-3">
-            <input type="text" class="form-control" id="filterDisplayText" placeholder="Display Text">
-          </div>
-        </div>
-        <div class="row mb-3">
-          <div class="col-md-12 text-end">
-            <button class="btn btn-primary" id="filterJobsBtn">Filter</button>
-            <button class="btn btn-danger" id="updateAllFilteredBtn">Update All Filtered</button>
-          </div>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped table-hover">
-            <thead class="table-dark">
-              <tr>
-                <th>ID</th>
-                <th>Template ID</th>
-                <th>Product ID</th>
-                <th>Sort Order</th>
-                <th>Display Text</th>
-                <th>Change Array</th>
-              </tr>
-            </thead>
-            <tbody id="allJobsBody">
-              <% if (individualJobs && individualJobs.length > 0) { %>
-                <% individualJobs.forEach(job => { %>
-                  <tr>
-                    <td><%= job.job_id %></td>
-                    <td><%= job.job_template_id %></td>
-                    <td><%= job.product_id || '' %></td>
-                    <td><%= job.sort_order || '' %></td>
-                    <td><%= job.job_name || '' %></td>
-                    <td>
-                      <%= job.change_array || '' %>
-                        <button class="btn btn-sm btn-outline-primary update-btn"
-                          data-template-id="<%= job.job_template_id %>"
-                          data-template-ids="<%= job.job_template_id %>"
-                          data-change-array="<%= encodeURIComponent(job.change_array || '') %>"
-                          data-job-ids="<%= job.job_id %>">
-                          Update
-                        </button>
-                    </td>
-                  </tr>
-                <% }); %>
-              <% } else { %>
-                <tr>
-                  <td colspan="6" class="text-center text-muted">No jobs found.</td>
-                </tr>
-              <% } %>
-            </tbody>
-          </table>
-        </div>
+    <!-- All Jobs Ungrouped -->
+    <div class="row mb-3">
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterJobId" placeholder="Job ID">
       </div>
-
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterProductId" placeholder="Product ID">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterSortOrder" placeholder="Sort Order">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterTemplateId" placeholder="Template ID">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterDisplayText" placeholder="Display Text">
+      </div>
+      <div class="col-md-2">
+        <input type="text" class="form-control" id="filterChangeArray" placeholder="Change Array">
+      </div>
     </div>
+    <div class="row mb-3">
+      <div class="col-md-12 text-end">
+        <button class="btn btn-primary" id="filterJobsBtn">Filter</button>
+        <button class="btn btn-danger" id="updateAllFilteredBtn">Update All Filtered</button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Template ID</th>
+            <th>Product ID</th>
+            <th>Sort Order</th>
+            <th>Display Text</th>
+            <th>Change Array</th>
+          </tr>
+        </thead>
+        <tbody id="allJobsBody">
+          <% if (individualJobs && individualJobs.length > 0) { %>
+            <% individualJobs.forEach(job => { %>
+              <tr>
+                <td><%= job.job_id %></td>
+                <td><%= job.job_template_id %></td>
+                <td><%= job.product_id || '' %></td>
+                <td><%= job.sort_order || '' %></td>
+                <td><%= job.job_name || '' %></td>
+                <td>
+                  <%= job.change_array || '' %>
+                    <button class="btn btn-sm btn-outline-primary update-btn"
+                      data-template-id="<%= job.job_template_id %>"
+                      data-template-ids="<%= job.job_template_id %>"
+                      data-change-array="<%= encodeURIComponent(job.change_array || '') %>"
+                      data-job-ids="<%= job.job_id %>">
+                      Update
+                    </button>
+                </td>
+              </tr>
+            <% }); %>
+          <% } else { %>
+            <tr>
+              <td colspan="6" class="text-center text-muted">No jobs found.</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+      
+
 
   </div>
 </div>
@@ -295,22 +286,28 @@ document.addEventListener('DOMContentLoaded', function() {
     const jobId = document.getElementById('filterJobId').value.trim();
     const productId = document.getElementById('filterProductId').value.trim();
     const sortOrder = document.getElementById('filterSortOrder').value.trim();
+    const templateId = document.getElementById('filterTemplateId').value.trim();
     const displayText = document.getElementById('filterDisplayText').value.trim().toLowerCase();
+    const changeArray = document.getElementById('filterChangeArray').value.trim().toLowerCase();
 
     const rows = document.querySelectorAll('#allJobsBody tr');
     rows.forEach(row => {
       const cells = row.querySelectorAll('td');
       if (cells.length < 6) return;
       const cellJobId = (cells[0].textContent || '').trim();
+      const cellTemplateId = (cells[1].textContent || '').trim();
       const cellProductId = (cells[2].textContent || '').trim();
       const cellSortOrder = (cells[3].textContent || '').trim();
       const cellDisplayText = (cells[4].textContent || '').trim().toLowerCase();
+      const cellChangeArray = (cells[5].textContent || '').trim().toLowerCase();
 
       let show = true;
       if (jobId && cellJobId !== jobId) show = false;
       if (productId && cellProductId !== productId) show = false;
       if (sortOrder && cellSortOrder !== sortOrder) show = false;
+      if (templateId && cellTemplateId !== templateId) show = false;
       if (displayText && !cellDisplayText.includes(displayText)) show = false;
+      if (changeArray && !cellChangeArray.includes(changeArray)) show = false;
 
       row.style.display = show ? '' : 'none';
     });

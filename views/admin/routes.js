@@ -623,6 +623,7 @@ router.get("/wf-rule-report", async (req, res) => {
       const jobsQuery = `
         SELECT 
           j.job_template_id,
+          j.product_id,
           jt.display_text as template_name,
           j.sort_order,
           j.id as job_id,
@@ -643,93 +644,12 @@ router.get("/wf-rule-report", async (req, res) => {
 
       const jobsResult = await db.query(jobsQuery);
 
-      // Process and group by patterns
-      const templateGroups = {};
-
-      jobsResult.rows.forEach(job => {
-        const templateId = job.job_template_id;
-
-        if (!templateGroups[templateId]) {
-          templateGroups[templateId] = {
-            job_template_id: templateId,
-            template_name: job.template_name,
-            jobs: [],
-            patterns: {}
-          };
-        }
-
-        // Add job to template group
-        templateGroups[templateId].jobs.push(job);
-
-        // Create pattern by replacing @jobId with @X
-        if (job.change_array) {
-          const pattern = job.change_array.replace(/@\d+/g, '@X');
-
-          if (!templateGroups[templateId].patterns[pattern]) {
-            templateGroups[templateId].patterns[pattern] = {
-              pattern: pattern,
-              example: job.change_array,
-              count: 0,
-              job_ids: []
-            };
-          }
-
-          templateGroups[templateId].patterns[pattern].count++;
-          templateGroups[templateId].patterns[pattern].job_ids.push(job.job_id);
-        }
-      });
-
-      // Convert to array format for the view
-      const jobs = Object.values(templateGroups).map(template => {
-        const uniqueJobNames = [...new Set(template.jobs.map(j => j.job_name).filter(name => name))];
-        const uniqueProducts = [...new Set(template.jobs.map(j => j.product_id).filter(id => id))];
-        const uniqueSortOrders = [...new Set(template.jobs.map(j => j.sort_order).filter(order => order !== null && order !== undefined))];
-
-        return {
-          job_template_id: template.job_template_id,
-          template_name: template.template_name,
-          job_count: template.jobs.length,
-          job_ids: template.jobs.map(j => j.job_id),
-          job_names: uniqueJobNames,
-          product_ids: uniqueProducts,
-          sort_orders: uniqueSortOrders,
-          patterns: Object.values(template.patterns)
-        };
-      });
-
-      console.log("wr3      WF Rule Report loaded with pattern analysis:", jobs.length, "templates");
-
-      // Create rule groups - group all jobs by their change_array pattern across all templates
-      const rulePatterns = {};
-      let patternCounter = 1;
-
-      jobsResult.rows.forEach(job => {
-        if (job.change_array) {
-          const pattern = job.change_array.replace(/@\d+/g, '@X');
-
-          if (!rulePatterns[pattern]) {
-            rulePatterns[pattern] = {
-              pattern_id: patternCounter++,
-              pattern: pattern,
-              change_array: job.change_array, // Use first occurrence as example
-              job_count: 0,
-              job_ids: [],
-              template_ids: []
-            };
-          }
-
-          rulePatterns[pattern].job_count++;
-          rulePatterns[pattern].job_ids.push(job.job_id);
-          rulePatterns[pattern].template_ids.push(job.job_template_id);
-        }
-      });
-
-      const ruleGroups = Object.values(rulePatterns);
 
       // Also get individual jobs for backward compatibility
       const individualJobs = jobsResult.rows.map(job => ({
         job_id: job.job_id,
         job_template_id: job.job_template_id,
+        product_id: job.product_id,
         template_name: job.template_name,
         job_name: job.job_name,
         sort_order: job.sort_order,
@@ -738,9 +658,9 @@ router.get("/wf-rule-report", async (req, res) => {
 
       res.render("wf-rule-report.ejs", {
         user: req.user,
-        jobs: jobs,
-        individualJobs: individualJobs,
-        ruleGroups: ruleGroups
+        // jobs: jobs,
+        individualJobs: individualJobs
+        // ruleGroups: ruleGroups
       });
 
     } catch (err) {
