@@ -2628,7 +2628,21 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ja43072           ...repoint decFlow to newJob`);
               console.log(`ja43073           ...repointed antFlow to newJob`);
 
-            
+            } else if (action.disarmReminder) {
+              //{"disarmReminder":"complete@5409"}
+              console.log(`ja43074           ...disarming reminder for job(${parentID})`);
+              //{"status": "pending@520"}
+              jobID = action.status.split("@")[1];
+              value = action.status.split("@")[0];
+              const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and current_status != $2", [jobID, value]);
+              for (const row of q.rows) {
+                console.log(`ja43075           ...set job(${row.id}) status to ${value} `, action);
+                const updateStatus = await pool.query(
+                  "UPDATE jobs SET current_status = $1 WHERE id = $2 ",
+                  [value, row.id]
+                );
+              }
+              
             } else if (action.log_trigger) {
               console.log(`ja4007           ...add to change_log for job(${parentID}) `, action.log_trigger);
               const logTrigger = await pool.query(
