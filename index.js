@@ -2634,6 +2634,7 @@ app.get("/executeJobAction", async (req, res) => {
               //{"status": "pending@520"}
               let job_template_ID = action.disarmReminder.split("@")[1];
               value = action.disarmReminder.split("@")[0];
+              let buildID = jobRec.rows[0].build_id;
               const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and current_status != $2 and build_id = $3", [job_template_ID, value, buildID]);
               for (const row of q.rows) {
                 console.log(`ja43075           ...set job(${row.id}) status to ${value} `, action);
