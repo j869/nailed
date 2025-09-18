@@ -899,9 +899,8 @@ app.get("/jobDone/:id", async (req, res) => {
 app.get("/update", async (req, res) => {
   const table = req.query.table;
   const column = req.query.column;
-  console.log("ud001    new value: ", req.query.value);
   let value = decodeURIComponent(req.query.value);
-  //value = value.replace(/%/g,"_");
+  console.log("ud001    new value: \x1b[90m", value, "\x1b[0m");
   const id = req.query.id;
   if (id === undefined || id === null) {
     console.log("ud18  bad request: id is required");
