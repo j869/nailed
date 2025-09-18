@@ -2561,7 +2561,8 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ufg4305          target is `, target.toISOString().split('T')[0]);
               console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
-              const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${daysToAdd/2}_day_followup"} ] }]` ;
+              const roundedDays = Math.ceil(daysToAdd / 2);
+              const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${roundedDays}_day_followup"} ] }]` ;
               console.log(`ufg4666           wf action change_array`, newChangeArray);
               console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id, sort_order FROM jobs WHERE id = $1", [parentID]);
