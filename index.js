@@ -2479,14 +2479,15 @@ app.get("/executeJobAction", async (req, res) => {
     // DEBUG LOG 1: Log the entire changeArrayJson before processing
     console.log("DEBUG: changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
     console.log("ja1      executing changeArray... ");
-    const jobRec = await pool.query("SELECT id, current_status, user_id, build_id FROM jobs WHERE id = $1", [parentID]);
+    const jobRec = await pool.query("SELECT id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
+      console.log("ja303     SELECT id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1;", [parentID]);
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
     const jobNext = await pool.query("SELECT id, current_status, user_id, tier FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
     if (jobNext.rows.length === 0) {
-      console.log("ja300     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
+      console.log("ja302     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier, 'parentID:'+ parentID]);
       console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
     }
     const childID = jobNext.rows[0].id || null;
@@ -2650,6 +2651,7 @@ app.get("/executeJobAction", async (req, res) => {
               }
 
             } else if (action.log_trigger) {
+              //{"log_trigger":"added 28day followup"}
               console.log(`ja4007           ...add to change_log for job(${parentID}) `, action.log_trigger);
               const logTrigger = await pool.query(
                 "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
