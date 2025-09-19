@@ -2654,7 +2654,16 @@ app.get("/executeJobAction", async (req, res) => {
             } else if (action.log_trigger) {
               //{"log_trigger":"added 28day followup"}
               console.log(`ja4007       ...add to change_log for job(${parentID}) `, action);
-              let logText = `${new Date().toISOString()} - ${action.log_trigger}`;
+              let today = new Date().toISOString().split('T')[0];
+              let dateFormatted = today.split('-')[2] + '-' + today.split('-')[1] + '-' + today.split('-')[0].slice(2);
+              let logText = `${dateFormatted} - ${action.log_trigger}`;
+              const oldValue = await pool.query("SELECT change_log FROM jobs WHERE id = $1", [parentID]);
+              if (oldValue.rows.length === 0) {
+                console.log("ja40071       ...SELECT change_log FROM jobs WHERE id = $1", [parentID]);
+                console.error("ja40072       ...Job not found for job_id:", parentID);
+              } else {
+                console.log(`ja40073       ...old change_log for job(${parentID}) is: `, oldValue.rows[0].change_log);
+              }
               const logTrigger = await pool.query("UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id", [logText, parentID]);
               if (logTrigger.rowCount === 0) {
                 console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id`, [logText, parentID]);
