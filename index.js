@@ -2664,9 +2664,10 @@ app.get("/executeJobAction", async (req, res) => {
               } else {
                 console.log(`ja40073       ...old change_log for job(${parentID}) is: `, oldValue.rows[0].change_log);
               }
-              const logTrigger = await pool.query("UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id", [logText, parentID]);
+              // console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id`, [logText, parentID]);
+              console.log(`ja40072       ...UPDATE jobs SET change_log = COALESCE(change_log, '') || $1 || E'\n' WHERE id = $2 RETURNING id`, [logText, parentID])
+              const logTrigger = await pool.query("UPDATE jobs SET change_log = COALESCE(change_log, '') || $1 || E'\n' WHERE id = $2 RETURNING id", [logText, parentID]);
               if (logTrigger.rowCount === 0) {
-                console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id`, [logText, parentID]);
                 console.error(`ja40072       ...failed to update change_log for job(${parentID}) `, action);
               } else {
                 console.log(`ja40073       ...updated ${logTrigger.rowCount} rows for jobs![change_log](${parentID}) `, action);
