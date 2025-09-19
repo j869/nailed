@@ -2556,28 +2556,28 @@ app.get("/executeJobAction", async (req, res) => {
               console.log("DEBUG: Entered insertReminder block for action:", action);
               console.log(`ja4301           ...insert new job from job(${parentID}) template(${action.insertReminder}) for user(${userID})`, action);
               const daysToAdd = action.insertReminder.split("_")[0];
-              console.log(`ufg4303          ${daysToAdd} days `);
               let daysToMin = isNaN(Number(action.insertReminder.split("_")[1])) ? 0 : Number(action.insertReminder.split("_")[1]);
-              console.log(`ufg4304          ${daysToMin} days `);
+              // console.log(`ufg4304          ${daysToMin} days `);
               let today = new Date()       //getMelbourneTime();    //new Date();
 
-              console.log(`ufg4304          today is `, today.toISOString().split('T')[0]);
+              // console.log(`ufg4304          today is `, today.toISOString().split('T')[0]);
               let target = new Date();
               target.setDate(target.getDate() + Number(daysToAdd));
-              console.log(`ufg4305          target is `, target.toISOString().split('T')[0]);
-              console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
+              // console.log(`ufg4305          target is `, target.toISOString().split('T')[0]);
+              // console.log(`ufg43051          days to add `, daysToAdd, " to today: ", today.getDate(), " ISO string ", today.toISOString().split('T')[0] + 1);    //today.toISOString().split('T')[0]
               value = today.toISOString().split('T')[0];     // Format as text to YYYY-MM-DD
+              console.log(`ufg4303          ...Set reminder to ${value} - ${daysToAdd} days in the future and at escallating to min of ${daysToMin} days`);
+              //building the spawned job's change_array
               const roundedDays = Math.max(Math.ceil(daysToAdd / 2), daysToMin);
               const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${roundedDays}_${daysToMin}_followup"} ] }]`;
-              console.log(`ufg4666           wf action change_array`, newChangeArray);
-              console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
+              // console.log(`ufg4666           wf action change_array`, newChangeArray);
+              // console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
               let jobOld = await pool.query("SELECT id, display_text, reminder_id, sort_order FROM jobs WHERE id = $1", [parentID]);
               let oldSortOrder = jobOld.rows[0].sort_order;
-              console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
+              // console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
               //format of sort order is 4.09   - it needs to increment to 4.10, 4.11 etc
               let newSortOrder = '' + (Math.round((parseFloat(oldSortOrder) + 0.01) * 100) / 100).toFixed(2);
-              console.log(`ja43062           ...new sort_order is ${newSortOrder}`);
-              // let newFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
+               console.log(`ja43062           ...INSERTING the new job...`);
               let jobNew = await pool.query(
                 `INSERT INTO jobs (
                   change_array,
@@ -2622,7 +2622,15 @@ app.get("/executeJobAction", async (req, res) => {
                   newSortOrder
                 ]
               );
-              console.log(`ja43071           ...created new job(${jobNew.rows[0].id}) from job(${parentID}) for user(${userID}) with target date ${value}`);
+              // ###############################
+              console.log(`ja43071           ...created ${jobNew.rowCount} new job(${jobNew.rows[0].id}) `);
+              console.log(`                  ...INSERT INTO jobs (change_array,display_text,reminder_id,job_template_id,product_id,build_id,sort_order,user_id,current_status,target_date,created_date,tier,snoozed_until,system_comments) 
+                SELECT $7, $6, reminder_id, job_template_id, product_id, build_id, $8, $1, 'pending', $2, $4, tier, $2, $5 FROM jobs WHERE id = $3 RETURNING *`, 
+                [userID,target,parentID,today,`ja43071   initialise reminder created from job(${parentID})`,'Reminder to follow up council when they recieve application',newChangeArray,newSortOrder]);
+              console.log(`                  ...from job(${parentID}) for user(${userID}) with target date ${value}`);
+              console.log(`ja43062           ...new sort_order is ${newSortOrder}`);
+              console.log(`ja43063           ...wf action change_array`, newChangeArray);
+
               let antFlow = await pool.query("SELECT * FROM job_process_flow where decendant_id = $1", [parentID]);
               console.log(`ja4306           ...antecedant flow is ${antFlow.rows[0].id}`);
               if (antFlow.rows.length == 0) {
