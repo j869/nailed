@@ -624,6 +624,7 @@ router.get('/wf-rule-report-server', async (req, res) => {
       jobs.id AS job_id,
       jobs.job_template_id,
       jobs.product_id,
+      jobs.build_id,
       jobs.sort_order,
       jobs.display_text AS job_name,
       jobs.change_array
