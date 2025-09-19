@@ -2647,6 +2647,7 @@ app.get("/executeJobAction", async (req, res) => {
                 console.error("ja43077           ...No matching reminder found for job_template_id:", job_template_ID, " build_id:", buildID);
               }
               for (const row of q.rows) {
+                const value = 'complete';
                 console.log(`ja43076           ...set job(${row.id}) status to ${value} `);
                 const updateStatus = await pool.query("UPDATE jobs SET current_status = $1 WHERE id = $2 returning id",[value, row.id]);
                 if (updateStatus.rowCount === 0) {
