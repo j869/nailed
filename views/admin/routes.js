@@ -613,7 +613,8 @@ router.get('/wf-rule-report-server', async (req, res) => {
 
   if (jobId) { conditions.push('jobs.id = $' + (params.length + 1)); params.push(jobId); }
   if (productId) { conditions.push('jobs.product_id = $' + (params.length + 1)); params.push(productId); }
-  if (sortOrder) { conditions.push('jobs.sort_order = $' + (params.length + 1)); params.push(sortOrder); }
+  // if (sortOrder) { conditions.push('jobs.sort_order = $' + (params.length + 1)); params.push(sortOrder); }
+  if (sortOrder) { conditions.push('LOWER(jobs.sort_order) LIKE $' + (params.length + 1)); params.push('%' + sortOrder.toLowerCase() + '%'); }
   if (templateId) { conditions.push('jobs.job_template_id = $' + (params.length + 1)); params.push(templateId); }
   if (buildId) { conditions.push('jobs.build_id = $' + (params.length + 1)); params.push(buildId); }
   if (displayText) { conditions.push('LOWER(jobs.display_text) LIKE $' + (params.length + 1)); params.push('%' + displayText.toLowerCase() + '%'); }
@@ -631,7 +632,7 @@ router.get('/wf-rule-report-server', async (req, res) => {
       jobs.change_array
     FROM jobs
     ${whereClause}
-    ORDER BY jobs.id DESC
+    ORDER BY sort_order, jobs.id DESC
   `, params);
 
 
