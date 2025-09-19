@@ -2479,9 +2479,9 @@ app.get("/executeJobAction", async (req, res) => {
     // DEBUG LOG 1: Log the entire changeArrayJson before processing
     console.log("DEBUG: changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
     console.log("ja1      executing changeArray... ");
-    const jobRec = await pool.query("SELECT id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1", [parentID]);
+    const jobRec = await pool.query("SELECT id, job_template_id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
-      console.log("ja303     SELECT id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1;", [parentID]);
+      console.log("ja303     SELECT id, job_template_id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1;", [parentID]);
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
@@ -2577,7 +2577,7 @@ app.get("/executeJobAction", async (req, res) => {
               const newChangeArray = `[{ "antecedent": "complete", "decendant": [ {"insertReminder":"${roundedDays}_${daysToMin}_followup"} ] }]`;
               // console.log(`ufg4666           wf action change_array`, newChangeArray);
               // console.log(`ja4306           ...read job(${parentID}) ` + action.insertReminder + ' for job(' + parentID + ')');
-              let jobOld = await pool.query("SELECT id, display_text, reminder_id, sort_order FROM jobs WHERE id = $1", [parentID]);
+              let jobOld = await pool.query("SELECT id, job_template_id, display_text, reminder_id, sort_order FROM jobs WHERE id = $1", [parentID]);
               let oldSortOrder = jobOld.rows[0].sort_order;
               // console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
               //format of sort order is 4.09   - it needs to increment to 4.10, 4.11 etc
