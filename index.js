@@ -2652,10 +2652,11 @@ app.get("/executeJobAction", async (req, res) => {
 
             } else if (action.log_trigger) {
               //{"log_trigger":"added 28day followup"}
-              console.log(`ja4007           ...add to change_log for job(${parentID}) `, action.log_trigger);
+              console.log(`ja4007       ...add to change_log for job(${parentID}) `, action);
+              console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2`, [`${new Date().toISOString()} - ${action.log_trigger}`, jobID]);
               const logTrigger = await pool.query(
                 "UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2",
-                [`${new Date().toISOString()} - ${req.user.email} - ${action.log_trigger}`, jobID]
+                [`${new Date().toISOString()} - ${action.log_trigger}`, jobID]
               );
             } else {
               console.log("ja4008           ...I dont know what to do with ", action);
