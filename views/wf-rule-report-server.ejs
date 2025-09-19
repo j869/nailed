@@ -19,6 +19,7 @@
     <div class="col-md-2"><input type="text" class="form-control" name="productId" value="<%= filters.productId || '' %>" placeholder="Product ID"></div>
     <div class="col-md-2"><input type="text" class="form-control" name="sortOrder" value="<%= filters.sortOrder || '' %>" placeholder="Sort Order"></div>
     <div class="col-md-2"><input type="text" class="form-control" name="templateId" value="<%= filters.templateId || '' %>" placeholder="Template ID"></div>
+    <div class="col-md-2"><input type="text" class="form-control" name="buildId" value="<%= filters.buildId || '' %>" placeholder="Build ID"></div>
     <div class="col-md-2"><input type="text" class="form-control" name="displayText" value="<%= filters.displayText || '' %>" placeholder="Display Text"></div>
     <div class="col-md-2"><input type="text" class="form-control" name="changeArray" value="<%= filters.changeArray || '' %>" placeholder="Change Array"></div>
     <div class="col-md-12 text-end mt-2">
@@ -33,6 +34,7 @@
             <th>ID</th>
             <th>Template ID</th>
             <th>Product ID</th>
+            <th>Build ID</th>
             <th>Sort Order</th>
             <th>Display Text</th>
             <th>Change Array</th>
@@ -46,6 +48,7 @@
                 <td><%= job.job_id %></td>
                 <td><%= job.job_template_id %></td>
                 <td><%= job.product_id || '' %></td>
+                <td><%= job.build_id || '' %></td>
                 <td><%= job.sort_order || '' %></td>
                 <td><%= job.job_name || '' %></td>
                 <td><%= job.change_array || '' %></td>

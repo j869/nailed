@@ -606,7 +606,7 @@ router.get("/rule-templates-editor/delete", (req, res) => {
 
 
 router.get('/wf-rule-report-server', async (req, res) => {
-  const { jobId, productId, sortOrder, templateId, displayText, changeArray } = req.query;
+  const { jobId, productId, sortOrder, templateId, buildId, displayText, changeArray } = req.query;
   let conditions = [];
   let params = [];
   console.log('hde1       fetching wf mgt report');
@@ -615,6 +615,7 @@ router.get('/wf-rule-report-server', async (req, res) => {
   if (productId) { conditions.push('jobs.product_id = $' + (params.length + 1)); params.push(productId); }
   if (sortOrder) { conditions.push('jobs.sort_order = $' + (params.length + 1)); params.push(sortOrder); }
   if (templateId) { conditions.push('jobs.job_template_id = $' + (params.length + 1)); params.push(templateId); }
+  if (buildId) { conditions.push('jobs.build_id = $' + (params.length + 1)); params.push(buildId); }
   if (displayText) { conditions.push('LOWER(jobs.display_text) LIKE $' + (params.length + 1)); params.push('%' + displayText.toLowerCase() + '%'); }
   if (changeArray) { conditions.push('LOWER(jobs.change_array) LIKE $' + (params.length + 1)); params.push('%' + changeArray.toLowerCase() + '%'); }
 
