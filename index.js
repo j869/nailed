@@ -2636,20 +2636,24 @@ app.get("/executeJobAction", async (req, res) => {
               console.log(`ja43073           ...repointed antFlow to newJob`);
 
             } else if (action.disarmReminder) {
-              //{"disarmReminder":"complete@5409"}
+              //{"disarmReminder":"5409"}
               console.log(`ja43074           ...disarming reminder for job(${parentID})`);
-              //{"status": "pending@520"}
-              let job_template_ID = action.disarmReminder.split("@")[1];
-              value = action.disarmReminder.split("@")[0];
+              let job_template_ID = action.disarmReminder;
+              // value = action.disarmReminder.split("@")[0];
               let buildID = jobRec.rows[0].build_id;
-              const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and current_status != $2 and build_id = $3", [job_template_ID, value, buildID]);
-              for (const row of q.rows) {
-                console.log(`ja43075           ...set job(${row.id}) status to ${value} `, action);
-                const updateStatus = await pool.query(
-                  "UPDATE jobs SET current_status = $1 WHERE id = $2 ",
-                  [value, row.id]
-                );
+              const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and build_id = $2", [job_template_ID, buildID]);
+              if (q.rows.length === 0) {
+                console.log(`ja43075           ...SELECT id, current_status FROM jobs WHERE job_template_id = $1 and build_id = $2`, [job_template_ID, buildID]);
+                console.error("ja43077           ...No matching reminder found for job_template_id:", job_template_ID, " build_id:", buildID);
               }
+              for (const row of q.rows) {
+                const updateStatus = await pool.query("UPDATE jobs SET current_status = $1 WHERE id = $2 returning id",[value, row.id]);
+                if (updateStatus.rowCount === 0) {
+                  console.log("ja43075           ...UPDATE jobs SET current_status = $1 WHERE id = $2 ",[value, row.id]);
+                  console.error(`ja43076           ...failed to disarm reminder job(${row.id}) for jobID:`, row.id, " build_id:", buildID);
+                }
+              }
+              console.log(`ja43078           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
 
             } else if (action.log_trigger) {
               //{"log_trigger":"added 28day followup"}
