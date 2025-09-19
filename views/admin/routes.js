@@ -606,38 +606,55 @@ router.get("/rule-templates-editor/delete", (req, res) => {
 
 
 router.get('/wf-rule-report-server', async (req, res) => {
-  const { jobId, productId, sortOrder, templateId, buildId, displayText, changeArray } = req.query;
-  let conditions = [];
-  let params = [];
-  console.log('hde1       fetching wf mgt report');
+  console.log("wr1     navigate to WF RULE REPORT page");
+  if (req.isAuthenticated()) {
+    // Check if user has admin/sysadmin role
+    if (!req.user.roles || !req.user.roles.includes('sysadmin')) {
+      console.log("wr2     Access denied - user does not have sysadmin role");
+      return res.status(403).send("Access denied - Admin role required");
+    }
 
-  if (jobId) { conditions.push('jobs.id = $' + (params.length + 1)); params.push(jobId); }
-  if (productId) { conditions.push('jobs.product_id = $' + (params.length + 1)); params.push(productId); }
-  // if (sortOrder) { conditions.push('jobs.sort_order = $' + (params.length + 1)); params.push(sortOrder); }
-  if (sortOrder) { conditions.push('LOWER(jobs.sort_order) LIKE $' + (params.length + 1)); params.push('%' + sortOrder.toLowerCase() + '%'); }
-  if (templateId) { conditions.push('jobs.job_template_id = $' + (params.length + 1)); params.push(templateId); }
-  if (buildId) { conditions.push('jobs.build_id = $' + (params.length + 1)); params.push(buildId); }
-  if (displayText) { conditions.push('LOWER(jobs.display_text) LIKE $' + (params.length + 1)); params.push('%' + displayText.toLowerCase() + '%'); }
-  if (changeArray) { conditions.push('LOWER(jobs.change_array) LIKE $' + (params.length + 1)); params.push('%' + changeArray.toLowerCase() + '%'); }
+    try {
 
-  const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-  const jobs = await pool.query(`
-    SELECT
-      jobs.id AS job_id,
-      jobs.job_template_id,
-      jobs.product_id,
-      jobs.build_id,
-      jobs.sort_order,
-      jobs.display_text AS job_name,
-      jobs.change_array
-    FROM jobs
-    ${whereClause}
-    ORDER BY sort_order, jobs.id DESC
-  `, params);
+      const { jobId, productId, sortOrder, templateId, buildId, displayText, changeArray } = req.query;
+      let conditions = [];
+      let params = [];
+      console.log('hde1       fetching wf mgt report');
+
+      if (jobId) { conditions.push('jobs.id = $' + (params.length + 1)); params.push(jobId); }
+      if (productId) { conditions.push('jobs.product_id = $' + (params.length + 1)); params.push(productId); }
+      // if (sortOrder) { conditions.push('jobs.sort_order = $' + (params.length + 1)); params.push(sortOrder); }
+      if (sortOrder) { conditions.push('LOWER(jobs.sort_order) LIKE $' + (params.length + 1)); params.push('%' + sortOrder.toLowerCase() + '%'); }
+      if (templateId) { conditions.push('jobs.job_template_id = $' + (params.length + 1)); params.push(templateId); }
+      if (buildId) { conditions.push('jobs.build_id = $' + (params.length + 1)); params.push(buildId); }
+      if (displayText) { conditions.push('LOWER(jobs.display_text) LIKE $' + (params.length + 1)); params.push('%' + displayText.toLowerCase() + '%'); }
+      if (changeArray) { conditions.push('LOWER(jobs.change_array) LIKE $' + (params.length + 1)); params.push('%' + changeArray.toLowerCase() + '%'); }
+
+      const whereClause = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+      const jobs = await pool.query(`
+        SELECT
+          jobs.id AS job_id,
+          jobs.job_template_id,
+          jobs.product_id,
+          jobs.build_id,
+          jobs.sort_order,
+          jobs.display_text AS job_name,
+          jobs.change_array
+        FROM jobs
+        ${whereClause}
+        ORDER BY sort_order, jobs.id DESC
+      `, params);
 
 
-  console.log('hde9     filters: ', req.query);
-  res.render('wf-rule-report-server', { individualJobs: jobs.rows, filters: req.query, user : req.user });
+      console.log('hde9     filters: ', req.query);
+      res.render('wf-rule-report-server', { individualJobs: jobs.rows, filters: req.query, user : req.user });
+    } catch (err) {
+      console.error("Error loading WF rule report:", err);
+      res.status(500).send("Internal Server Error");
+    }
+  } else {
+    res.redirect("/login");
+  }      
 });
 
 
