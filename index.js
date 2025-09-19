@@ -2507,6 +2507,7 @@ app.get("/executeJobAction", async (req, res) => {
             let jobID;
             let value;
             if (action.status) {
+              console.log(`ja4101         setting status`, action);
               //{"status": "pending@520"}
               jobID = action.status.split("@")[1];
               if (jobID === 'next') { jobID = childID }
@@ -2522,8 +2523,11 @@ app.get("/executeJobAction", async (req, res) => {
               } else {
                 console.log(`ja4108           ...job(${jobID}) status is already ${value}, or task is completed.`);
               }
+              console.log(`ja4109         completed setting status`);
+
             } else if (action.target) {
               //{"target": "today_1@next"}
+              console.log(`ja4201         setting target date`, action);
               jobID = action.target.split("@")[1];
               if (jobID === 'next') { jobID = childID }
               value = action.target.split("@")[0];
@@ -2550,11 +2554,12 @@ app.get("/executeJobAction", async (req, res) => {
                 console.log(`ja4208         defaulting pending jobID(${jobID}) user_id to ${userID} because it was `, q.rows[0].user_id ? q.rows[0].user_id : "null");
                 const updateUser = await pool.query("UPDATE jobs SET user_id = $1 WHERE id = $2 ", [responsibleUser, jobID]);
               }
+              console.log(`ja4209         completed setting target date`);
             } else if (action.insertReminder) {
               //{"insertReminder":"28_7_followup"}
               // DEBUG LOG 3: Log when insertReminder block is entered
-              console.log("DEBUG: Entered insertReminder block for action:", action);
-              console.log(`ja4301           ...insert new job from job(${parentID}) template(${action.insertReminder}) for user(${userID})`, action);
+              // console.log("DEBUG: Entered insertReminder block for action:", action);
+              console.log(`ja4301           insert reminder job `, action);
               const daysToAdd = action.insertReminder.split("_")[0];
               let daysToMin = isNaN(Number(action.insertReminder.split("_")[1])) ? 0 : Number(action.insertReminder.split("_")[1]);
               // console.log(`ufg4304          ${daysToMin} days `);
@@ -2622,7 +2627,6 @@ app.get("/executeJobAction", async (req, res) => {
                   newSortOrder
                 ]
               );
-              // ###############################
               console.log(`ja43071           ...created ${jobNew.rowCount} new job(${jobNew.rows[0].id}) `);
               console.log(`                  ...INSERT INTO jobs (change_array,display_text,reminder_id,job_template_id,product_id,build_id,sort_order,user_id,current_status,target_date,created_date,tier,snoozed_until,system_comments) 
                 SELECT $7, $6, reminder_id, job_template_id, product_id, build_id, $8, $1, 'pending', $2, $4, tier, $2, $5 FROM jobs WHERE id = $3 RETURNING *`, 
@@ -2641,53 +2645,54 @@ app.get("/executeJobAction", async (req, res) => {
                 console.log(`ja43061        ...added newFlow(${newFlow.rows[0].id})`)
               }
               console.log(`ja43072           ...repoint decFlow to newJob`);
-              console.log(`ja43073           ...repointed antFlow to newJob`);
+              console.log(`ja4309           completed setting reminder`);
 
             } else if (action.disarmReminder) {
               //{"disarmReminder":"5409"}
-              console.log(`ja43074           ...disarming reminder for job(${parentID})`);
+              console.log(`ja4401          disarm reminders for job ${parentID} `, action);
               let job_template_ID = action.disarmReminder;
               // value = action.disarmReminder.split("@")[0];
               let buildID = jobRec.rows[0].build_id;
               const q = await pool.query("SELECT id, current_status FROM jobs WHERE job_template_id = $1 and build_id = $2", [job_template_ID, buildID]);
               if (q.rows.length === 0) {
-                console.log(`ja43075           ...SELECT id, current_status FROM jobs WHERE job_template_id = $1 and build_id = $2`, [job_template_ID, buildID]);
-                console.error("ja43077           ...No matching reminder found for job_template_id:", job_template_ID, " build_id:", buildID);
+                console.log(`ja44075           ...SELECT id, current_status FROM jobs WHERE job_template_id = $1 and build_id = $2`, [job_template_ID, buildID]);
+                console.error("ja44077           ...No matching reminder found for job_template_id:", job_template_ID, " build_id:", buildID);
               }
               for (const row of q.rows) {
                 const value = 'complete';
-                console.log(`ja43076           ...set job(${row.id}) status to ${value} `);
+                console.log(`ja44076           ...set job(${row.id}) status to ${value} `);
                 const updateStatus = await pool.query("UPDATE jobs SET current_status = $1 WHERE id = $2 returning id",[value, row.id]);
                 if (updateStatus.rowCount === 0) {
-                  console.log("ja43075           ...UPDATE jobs SET current_status = $1 WHERE id = $2 ",[value, row.id]);
-                  console.error(`ja43076           ...failed to disarm reminder job(${row.id}) for jobID:`, row.id, " build_id:", buildID);
+                  console.log("ja44075           ...UPDATE jobs SET current_status = $1 WHERE id = $2 ",[value, row.id]);
+                  console.error(`ja44076           ...failed to disarm reminder job(${row.id}) for jobID:`, row.id, " build_id:", buildID);
                 } else {
-                  console.log(`ja43077           ...disarmed ${updateStatus.rowCount} reminders for job(${row.id}) `);
+                  console.log(`ja44077           ...disarmed ${updateStatus.rowCount} reminders for job(${row.id}) `);
                 }
               }
-              console.log(`ja43078           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
+              console.log(`ja4409           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
 
             } else if (action.log_trigger) {
               //{"log_trigger":"added 28day followup"}
-              console.log(`ja4007       ...add to change_log for job(${parentID}) `, action);
+              console.log(`ja4501       Adding change_log `, action);
               let today = new Date().toISOString().split('T')[0];
               let dateFormatted = today.split('-')[2] + '-' + today.split('-')[1] + '-' + today.split('-')[0].slice(2);
               let logText = `${dateFormatted} - ${action.log_trigger}`;
               const oldValue = await pool.query("SELECT change_log FROM jobs WHERE id = $1", [parentID]);
               if (oldValue.rows.length === 0) {
-                console.log("ja40071       ...SELECT change_log FROM jobs WHERE id = $1", [parentID]);
-                console.error("ja40072       ...Job not found for job_id:", parentID);
+                console.log("ja4571       ...SELECT change_log FROM jobs WHERE id = $1", [parentID]);
+                console.error("ja4572       ...Job not found for job_id:", parentID);
               } else {
-                console.log(`ja40073       ...old change_log for job(${parentID}) is: `, oldValue.rows[0].change_log);
+                console.log(`ja4573       ...old change_log for job(${parentID}) is: `, oldValue.rows[0].change_log);
               }
               // console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id`, [logText, parentID]);
-              console.log(`ja40072       ...UPDATE jobs SET change_log = COALESCE(change_log, '') || $1 || E'\n' WHERE id = $2 RETURNING id`, [logText, parentID])
+              console.log(`ja4572       ...UPDATE jobs SET change_log = COALESCE(change_log, '') || $1 || E'\n' WHERE id = $2 RETURNING id`, [logText, parentID])
               const logTrigger = await pool.query("UPDATE jobs SET change_log = COALESCE(change_log, '') || $1 || E'\n' WHERE id = $2 RETURNING id", [logText, parentID]);
               if (logTrigger.rowCount === 0) {
-                console.error(`ja40072       ...failed to update change_log for job(${parentID}) `, action);
+                console.error(`ja4572       ...failed to update change_log for job(${parentID}) `, action);
               } else {
-                console.log(`ja40073       ...updated ${logTrigger.rowCount} rows for jobs![change_log](${parentID}) `, action);
+                console.log(`ja4573       ...updated ${logTrigger.rowCount} rows for jobs![change_log](${parentID}) `, action);
               }
+              console.log(`ja4509       completed change_log `);
             } else {
               console.log("ja4008           ...I dont know what to do with ", action);
 
