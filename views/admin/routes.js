@@ -640,6 +640,12 @@ router.get('/wf-rule-report-server', async (req, res) => {
 
 
 router.get("/wf-rule-report", async (req, res) => {
+  //##############################################
+  //this is now obsolete - see wf-rule-report-server for the new version
+  //when removing take caution to preserve update routes
+  //     >   wf-rule-report/update
+  //##############################################
+
   console.log("wr1     navigate to WF RULE REPORT page");
   if (req.isAuthenticated()) {
     // Check if user has admin/sysadmin role

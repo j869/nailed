@@ -2478,14 +2478,15 @@ app.get("/executeJobAction", async (req, res) => {
     const changeArrayJson = JSON.parse(req.query.changeArray);
     // DEBUG LOG 1: Log the entire changeArrayJson before processing
     console.log("DEBUG: changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
-    console.log("ja1      executing changeArray: ", changeArrayJson);
+    console.log("ja1      executing changeArray... ");
     const jobRec = await pool.query("SELECT id, current_status, user_id, build_id FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
-    const jobNext = await pool.query("SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
+    const jobNext = await pool.query("SELECT id, current_status, user_id, tier FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
     if (jobNext.rows.length === 0) {
+      console.log("ja300     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
       console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
     }
     const childID = jobNext.rows[0].id || null;
