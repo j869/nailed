@@ -2582,7 +2582,7 @@ app.get("/executeJobAction", async (req, res) => {
               // console.log(`ja43061           ...old sort_order is ${oldSortOrder}`)
               //format of sort order is 4.09   - it needs to increment to 4.10, 4.11 etc
               let newSortOrder = '' + (Math.round((parseFloat(oldSortOrder) + 0.01) * 100) / 100).toFixed(2);
-              let q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 ", [jobOld.rows[0].job_template_id]);
+              let q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [jobOld.rows[0].job_template_id, jobRec.rows[0].build_id]);
               console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobOld.rows[0].job_template_id})`);
               console.log(`ja43062           ...INSERTING the new job...`);
               let jobNew = await pool.query(
@@ -2630,7 +2630,7 @@ app.get("/executeJobAction", async (req, res) => {
                 ]
               );
               console.log(`ja43071           ...created ${jobNew.rowCount} new job(${jobNew.rows[0].id}) `);
-              q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 ", [jobOld.rows[0].job_template_id]);
+              q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [jobOld.rows[0].job_template_id, jobRec.rows[0].build_id]);
               console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobOld.rows[0].job_template_id})`);
               console.log(`                  ...INSERT INTO jobs (change_array,display_text,reminder_id,job_template_id,product_id,build_id,sort_order,user_id,current_status,target_date,created_date,tier,snoozed_until,system_comments) 
                 SELECT $7, $6, reminder_id, job_template_id, product_id, build_id, $8, $1, 'pending', $2, $4, tier, $2, $5 FROM jobs WHERE id = $3 RETURNING *`, 
@@ -2674,6 +2674,8 @@ app.get("/executeJobAction", async (req, res) => {
                 }
               }
               console.log(`ja4409           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
+              q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [jobRec.rows[0].job_template_id, jobRec.rows[0].build_id]);
+              console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobRec.rows[0].job_template_id})`);
 
             } else if (action.log_trigger) {
               //{"log_trigger":"log comment here"}
