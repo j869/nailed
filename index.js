@@ -2655,9 +2655,9 @@ app.get("/executeJobAction", async (req, res) => {
               //{"log_trigger":"added 28day followup"}
               console.log(`ja4007       ...add to change_log for job(${parentID}) `, action);
               let logText = `${new Date().toISOString()} - ${action.log_trigger}`;
-              const logTrigger = await pool.query("UPDATE jobs SET change_log = change_log = $1  WHERE id = $2 returning id", [logText, parentID]);
+              const logTrigger = await pool.query("UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id", [logText, parentID]);
               if (logTrigger.rowCount === 0) {
-                console.log(`ja40071       ...UPDATE jobs SET change_log = change_log = $1  WHERE id = $2 returning id`, [logText, parentID]);
+                console.log(`ja40071       ...UPDATE jobs SET change_log = change_log || $1 || E'\n' WHERE id = $2 returning id`, [logText, parentID]);
                 console.error(`ja40072       ...failed to update change_log for job(${parentID}) `, action);
               } else {
                 console.log(`ja40073       ...updated ${logTrigger.rowCount} rows for jobs![change_log](${parentID}) `, action);
