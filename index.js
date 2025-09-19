@@ -2647,10 +2647,13 @@ app.get("/executeJobAction", async (req, res) => {
                 console.error("ja43077           ...No matching reminder found for job_template_id:", job_template_ID, " build_id:", buildID);
               }
               for (const row of q.rows) {
+                console.log(`ja43076           ...set job(${row.id}) status to ${value} `);
                 const updateStatus = await pool.query("UPDATE jobs SET current_status = $1 WHERE id = $2 returning id",[value, row.id]);
                 if (updateStatus.rowCount === 0) {
                   console.log("ja43075           ...UPDATE jobs SET current_status = $1 WHERE id = $2 ",[value, row.id]);
                   console.error(`ja43076           ...failed to disarm reminder job(${row.id}) for jobID:`, row.id, " build_id:", buildID);
+                } else {
+                  console.log(`ja43077           ...disarmed ${updateStatus.rowCount} reminders for job(${row.id}) `);
                 }
               }
               console.log(`ja43078           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
@@ -2746,6 +2749,8 @@ app.get("/executeJobAction", async (req, res) => {
           }
         }
 
+      } else {
+        console.log("ja4002     ...but job(" + parentID + ") status is " + parentStatus + " not " + scenario.antecedent + ", so do nothing. ");
       }
     }
     console.log("ja9    job action executed for jobID: ", parentID);
