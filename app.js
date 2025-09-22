@@ -1638,11 +1638,12 @@ app.get("/customer/:id", async (req, res) => {
       
       let customer = result.rows;
       if (customer.length !== 1) {
-        if (customer.length === 0) {
-          console.log("c2      Customer not found or access denied for custID: ", custID);
-          res.redirect("/2/customers"); // Redirect to customer list instead of allowing new customer creation
-          return;
-        }
+        // if (customer.length === 0) {
+        //   console.log("c2      Customer not found or access denied for custID: ", custID);
+        //   res.redirect("/2/customers"); // Redirect to customer list instead of allowing new customer creation
+        //   return;
+        // }
+        //return to New Customer dialog
         console.error("c28     Error: Expected 1 row, but received " + customer.length + " rows.");      
       }
 
