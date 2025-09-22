@@ -118,6 +118,12 @@
 
 <div class="container"></div>
 
+    <!-- Test Notification Buttons -->
+    <div class="container mt-4 mb-4">
+        <button id="failAjaxBtn" class="btn btn-danger me-2">Trigger Failed AJAX (Error Notification)</button>
+        <button id="successAjaxBtn" class="btn btn-success">Trigger Successful AJAX (Success Notification)</button>
+    </div>
+
     <div class="container">
         <div class="col-md-12">
             <div class="panel panel-default">
@@ -535,6 +541,22 @@
 
     <!-- JavaScript to handle the API request -->
 <script>
+
+
+    // Test notification buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('failAjaxBtn').addEventListener('click', function() {
+            // AJAX call to a non-existent endpoint to force failure
+                    showNotification('AJAX call failed: ', true);
+        
+        });
+
+        document.getElementById('successAjaxBtn').addEventListener('click', function() {
+            // AJAX call to a valid endpoint (use /api/ping or similar, or simulate success)
+                    showNotification('AJAX call succeeded!', false);
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         var table = document.getElementById('jobsTable');
         var headerRow = table.querySelector('thead tr'); // Select the header row
@@ -632,7 +654,7 @@
             
             // Optional: Handle additional response data
             if (response.message) {
-            showToast(response.message); // Example: Show notification
+            showNotification(response.message, true); // Example: Show notification
             }
         },
         error: function(xhr, status, error) {
@@ -642,7 +664,7 @@
             $label.text(isChecked ? '' : 'Done');
             
             // Show error message
-            showToast('tb82     Failed to update task status', 'error');
+            showNotification('Failed to update task status', false);
         },
         complete: function() {
             // Always execute
@@ -653,11 +675,7 @@
         });
     });
     
-    // Example toast notification function
-    function showToast(message, type = 'success') {
-        // Implement your preferred toast/notification system
-        console.log(`ts5      ${type.toUpperCase()}: ${message}`);
-    }
+    
     });
 
 
@@ -685,6 +703,7 @@
             },
             error: function(xhr, status, error) {
                 console.error(`jb8    Error updating job ${jobId}:`, error);
+                showNotification(`Error updating job ${jobId}: ${error.message}`, false);
                 // Revert checkbox if error occurs
                 $(this).prop('checked', !isChecked);
             }.bind(this) // Maintain checkbox context in error handler
@@ -733,25 +752,55 @@
 
 <script>
 
-    function showNotification(message, isError = true) {
-        const notification = document.getElementById('notification');
-        notification.textContent = message;
-        notification.style.display = 'block';
-        notification.style.background = isError ? '#ff4444' : '#4CAF50';
-        
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, 5000);
-    }    
 
-        console.log("locals ", <%- JSON.stringify(locals) %>);
-    
-        //---  add listener to all EDITABLE fields.  When field changes, notify the database
-        const baseUrl = "<%= locals.baseUrl %>";
-        const apiUrl = baseUrl.replace("3000", "4000") 
-        console.log("lf3     apiUrl: ", apiUrl);
-                
- document.addEventListener('DOMContentLoaded', function() {
+    console.log("locals ", <%- JSON.stringify(locals) %>);
+
+    //---  add listener to all EDITABLE fields.  When field changes, notify the database
+    const baseUrl = "<%= locals.baseUrl %>";
+    const apiUrl = baseUrl.replace("3000", "4000") 
+    console.log("lf3     apiUrl: ", apiUrl);
+
+
+
+let notificationTimeout;
+function showNotification(message, isError = true) {
+    const notification = document.getElementById('notification');
+    // Store messages and error states
+    if (!notification._messages) notification._messages = [];
+    if (!notification._errorStates) notification._errorStates = [];
+
+    if (notification.style.display === 'block') {
+        notification._messages.push(message);
+        notification._errorStates.push(isError);
+    } else {
+        notification._messages = [message];
+        notification._errorStates = [isError];
+    }
+
+    // Render each message with tick/cross
+    notification.innerHTML = notification._messages.map((m, i) => {
+        const icon = notification._errorStates[i] ? '❌' : '✔️';
+        return icon + ' ' + m.replace(/\n/g, '<br>');
+    }).join('<br>');
+    notification.style.display = 'block';
+
+    // If any error, show red; else green
+    const hasError = notification._errorStates.some(Boolean);
+    notification.style.background = hasError ? '#ff4444' : '#4CAF50';
+
+    if (notificationTimeout) {
+        clearTimeout(notificationTimeout);
+    }
+    notificationTimeout = setTimeout(() => {
+        notification.style.display = 'none';
+        notification.innerHTML = '';
+        notification._messages = [];
+        notification._errorStates = [];
+    }, 5000);
+}
+        
+
+document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - initializing editable elements");
     
     // Debounce variables
@@ -845,13 +894,16 @@
                         if (response.status === 400) {
                             const errorData = await response;
                             console.log('id48    Validation error:', errorData);
+                            showNotification('Validation error!', errorData);                
                             throw new Error('Validation error');
                         } else {
+                            showNotification('Server error: ' + response.statusText, false);
                             console.log('id58    Error:', response.status);
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                     } else {
                         console.log('id5    response OK');
+                        showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
 
                     }
   //              } catch (error) {
@@ -951,9 +1003,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 messageBox.textContent = "File uploaded successfully!";
                 fileInput.value = ""; // Clear input
                 console.log("uf9      File uploaded successfully.");
+                showNotification('File uploaded successfully!', false);                
             } else {
                 messageBox.textContent = "File upload failed.";
                 console.error("uf83      File upload failed with status:", response.status);
+                showNotification('File uploaded failed!');                
             }
         } catch (error) {
             console.error("uf8      Upload error:", error);
@@ -1021,7 +1075,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                         this.parentElement.remove();
                     } else {
                         console.warn(`df83     Failed to delete file ID: ${fileId}`);
-                        alert("Failed to delete file.");
+                        showNotification('Failed to delete file', false);
                     }
                 } catch (error) {
                     console.error("df831     Error deleting file:", error);
@@ -1031,6 +1085,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     } catch (error) {
         console.error("df8     Error fetching file list:", error);
+        showNotification('Failed to fetch file list');
         fileListContainer.innerHTML = "<p>Error loading files.</p>";
     }
 });
@@ -1116,9 +1171,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (jobOrderCell) {
             jobOrderCell.innerText = row.dataset.sortOrder;
         }
-        const response = fetch(`/update?fieldID=jobOrder&newValue=${row.dataset.sortOrder}&whereID=${row.dataset.rowId}`);
-  
-        // Here you'd send an AJAX request to save the new order to your backend
+        try {
+            const response = fetch(`/update?fieldID=jobOrder&newValue=${row.dataset.sortOrder}&whereID=${row.dataset.rowId}`);
+            if (response.ok) {
+                showNotification('Task order updated successfully', true);
+            } else {
+                console.error("Error response from server:", response.statusText);
+                showNotification('Failed to update task order', false);
+            }
+        } catch (error) {
+            console.error("Error updating sort_order:", error);
+            showNotification('Failed to update task order', false);
+        }
     });
   }
 });
