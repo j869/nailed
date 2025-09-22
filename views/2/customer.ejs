@@ -118,12 +118,6 @@
 
 <div class="container"></div>
 
-    <!-- Test Notification Buttons -->
-    <div class="container mt-4 mb-4">
-        <button id="failAjaxBtn" class="btn btn-danger me-2">Trigger Failed AJAX (Error Notification)</button>
-        <button id="successAjaxBtn" class="btn btn-success">Trigger Successful AJAX (Success Notification)</button>
-    </div>
-
     <div class="container">
         <div class="col-md-12">
             <div class="panel panel-default">
@@ -543,19 +537,6 @@
 <script>
 
 
-    // Test notification buttons
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('failAjaxBtn').addEventListener('click', function() {
-            // AJAX call to a non-existent endpoint to force failure
-                    showNotification('AJAX call failed: ', true);
-        
-        });
-
-        document.getElementById('successAjaxBtn').addEventListener('click', function() {
-            // AJAX call to a valid endpoint (use /api/ping or similar, or simulate success)
-                    showNotification('AJAX call succeeded!', false);
-        });
-    });
 
     document.addEventListener('DOMContentLoaded', function() {
         var table = document.getElementById('jobsTable');
@@ -897,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             showNotification('Validation error!', errorData);                
                             throw new Error('Validation error');
                         } else {
-                            showNotification('Server error: ' + response.statusText, false);
+                            showNotification('Server error: ' + response.statusText);
                             console.log('id58    Error:', response.status);
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
