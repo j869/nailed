@@ -344,9 +344,9 @@
                                                                                                                                         <% } %>
                                                                                                                                     <td>ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
-                                                                                                                                        <div class="form-check">
-                                                                                                                                            <input class="editable " type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %>> 
-                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>"><%= task.current_status %></label>
+                                                                                                                                        <div class="form-check" style="display: flex; align-items: center;">
+                                                                                                                                            <input class="editable" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %> style="width: 32px; height: 32px; accent-color: #28a745; margin-right: 8px; box-shadow: 0 2px 8px rgba(40,167,69,0.15); border-radius: 50%; border: 2px solid #e0e0e0; background: #fff;">
+                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>" style="font-size: 0.95em; font-weight: 400; color: #aaa; opacity: 0.7; margin-left: 2px;"> <%= task.current_status %></label>
                                                                                                                                         </div>
 
                                                                                                                                         <div class="form-check d-none">
@@ -635,17 +635,18 @@
             
             // Optional: Handle additional response data
             if (response.message) {
-            showNotification(response.message, true); // Example: Show notification
+            showNotification(response.message, false); // Example: Show notification
             }
         },
         error: function(xhr, status, error) {
             console.error(`tb81   Error updating task ${taskId}:`, error);
+            showNotification(`Error updating task ${taskId}: ${error.message}`); // Example: Show notification
             // Revert UI state
             $checkbox.prop('checked', !isChecked);
             $label.text(isChecked ? '' : 'Done');
             
             // Show error message
-            showNotification('Failed to update task status', false);
+            showNotification('Failed to update task status');
         },
         complete: function() {
             // Always execute
@@ -663,33 +664,35 @@
 
         $(document).ready(function() {
         console.log("jb1     DOM ready - initializing job checkboxes");
-        
-        // Use event delegation for dynamic elements
-        $(document).on('change', '.job-checkbox', function() {
-            const jobId = $(this).attr('data-job-id');
-            const isChecked = $(this).is(':checked');
             
-            console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
-            
-            $.ajax({
-            url: '<%= locals.baseUrl %>/jobComplete',
-            method: 'POST',
-            data: {
-                jobId: jobId,
-                status: isChecked ? 'true' : 'false' 
-            },
-            success: function(response) {
-                console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
-                // Optional: Update UI based on response
-            },
-            error: function(xhr, status, error) {
-                console.error(`jb8    Error updating job ${jobId}:`, error);
-                showNotification(`Error updating job ${jobId}: ${error.message}`, false);
-                // Revert checkbox if error occurs
-                $(this).prop('checked', !isChecked);
-            }.bind(this) // Maintain checkbox context in error handler
+            // Use event delegation for dynamic elements
+            $(document).on('change', '.job-checkbox', function() {
+                const jobId = $(this).attr('data-job-id');
+                const isChecked = $(this).is(':checked');
+                
+                console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
+                
+                $.ajax({
+                url: '<%= locals.baseUrl %>/jobComplete',
+                method: 'POST',
+                data: {
+                    jobId: jobId,
+                    status: isChecked ? 'true' : 'false' 
+                },
+                success: function(response) {
+                    console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
+                    showNotification(`Job ${jobId} and all children set to ${isChecked}`, false);
+                    // Optional: Update UI based on response
+                },
+                error: function(xhr, status, error) {
+                    console.error(`jb8    Error updating job ${jobId}:`, error);
+                    showNotification(`Error updating job ${jobId}: ${error.message}`, true);
+                    // Revert checkbox if error occurs
+                    $(this).prop('checked', !isChecked);
+                }.bind(this) // Maintain checkbox context in error handler
+                });
+
             });
-        });
         });
 
 
@@ -875,10 +878,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (response.status === 400) {
                             const errorData = await response;
                             console.log('id48    Validation error:', errorData);
-                            showNotification('Validation error!', errorData);                
+                            showNotification('Validation error! ' );
                             throw new Error('Validation error');
                         } else {
-                            showNotification('Server error: ' + response.statusText);
+                            showNotification('Server error: ' );
                             console.log('id58    Error:', response.status);
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
@@ -904,7 +907,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             } catch (error) {
                 console.error('id8     Update failed:', error, 'reset value', event.target);
-                showNotification(error || 'Validation failed');
+                showNotification('Validation failed');
                 resetToOriginalValue(event.target);
             } finally {
                 isUpdating = false;
@@ -988,11 +991,12 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 messageBox.textContent = "File upload failed.";
                 console.error("uf83      File upload failed with status:", response.status);
-                showNotification('File uploaded failed!');                
+                showNotification('File upload failed!');
             }
         } catch (error) {
             console.error("uf8      Upload error:", error);
             messageBox.textContent = "Error uploading file.";
+            showNotification('Error uploading file!');
         }
     });
 });
