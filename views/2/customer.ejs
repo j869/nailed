@@ -1124,7 +1124,11 @@ async function uploadJobAttachment(event, taskID) {
         if (response.ok) {
             showNotification('Attachment uploaded!', false);
             // console.log('ua5    Attachment uploaded successfully');
-            const newFileName = response.filename;
+            console.log("ua3    Server response:", response);
+            const data = await response.json();
+            const newFileName = data.filename;
+            //const newFileName = response.filename;
+            console.log("ua4    New file name from server:", newFileName);
             const originalName = file.name;
             //add download html to the free_text field and trigger the save event
             //get element where id=jobDesc and data-record-id=taskID
@@ -1150,6 +1154,7 @@ async function uploadJobAttachment(event, taskID) {
                 }
                 // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
                 // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
+                console.log("ua72    filename", newFileName);
                 jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
                 //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
 
