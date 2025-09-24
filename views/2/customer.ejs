@@ -340,29 +340,31 @@
                                                                                                                                                 let uuid = originalName.split('_')[0];
                                                                                                                                                 let fileName = att.filename;
                                                                                                                                                 let taskID = att.task_id;
+                                                                                                                                                let iconColor = '#1bbd0c';
+                                                                                                                                                let iconClass = 'fas fa-save';
                                                                                                                                                 try {
-                                                                                                                                                    // Get file extension from originalName
                                                                                                                                                     fileType = originalName.split('.').pop().toLowerCase();
+                                                                                                                                                    if (fileType === 'pdf') {
+                                                                                                                                                        iconColor = '#d9534f';
+                                                                                                                                                        iconClass = 'fas fa-file-pdf';
+                                                                                                                                                    } else if (fileType === 'txt') {
+                                                                                                                                                        iconColor = '#007bff';
+                                                                                                                                                        iconClass = 'fas fa-file-alt';
+                                                                                                                                                    } else if (fileType === 'doc' || fileType === 'docx') {
+                                                                                                                                                        iconColor = '#2b579a';
+                                                                                                                                                        iconClass = 'fas fa-file-word';
+                                                                                                                                                    } else if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileType)) {
+                                                                                                                                                        iconColor = '#f4b400';
+                                                                                                                                                        iconClass = 'fas fa-file-image';
+                                                                                                                                                    }
                                                                                                                                                 } catch (e) {
                                                                                                                                                     fileType = '';
                                                                                                                                                 }
                                                                                                                                         %>
-                                                                                                                                            <i class="
-                                                                                                                                            <% if (fileType === 'pdf') { %>
-                                                                                                                                                fas fa-file-pdf
-                                                                                                                                            <% } else if (fileType === 'txt') { %>
-                                                                                                                                                fas fa-file-alt
-                                                                                                                                            <% } else if (fileType === 'doc' || fileType === 'docx') { %>
-                                                                                                                                                fas fa-file-word
-                                                                                                                                            <% } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileType)) { %>
-                                                                                                                                                fas fa-file-image
-                                                                                                                                            <% } else { %>
-                                                                                                                                                fas fa-save
-                                                                                                                                            <% } %>
-                                                                                                                                            " style="color: #1bbd0c; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="<%= originalName %>" onclick="downloadAttachment('<%= fileName %>','<%= originalName %>')"></i>
+                                                                                                                                            <i class="<%= iconClass %>" style="color: <%= iconColor %>; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="<%= originalName %>" onclick="downloadAttachment('<%= fileName %>','<%= originalName %>')"></i>
                                                                                                                                         <% }); } %>
                                                                                                                                         <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
-                                                                                                                                            <i class="fas fa-plus-square" style="color: #28a745;"></i>
+                                                                                                                                            <i class="fas fa-upload" style="color: #007bff; margin-left: 12px;" title="Upload"></i>
                                                                                                                                         </button>
                                                                                                                                         <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
                                                                                                                                                                                                                                                                                 <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
