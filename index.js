@@ -314,10 +314,14 @@ app.delete("/fileDelete/:UUID", async (req, res) => {
   }
 });
 
-app.get("/fileDownload/:UUID", (req, res) => {
-  const { UUID } = req.params;
+app.get("/fileDownload/:filename", (req, res) => {
+  console.log("fd1      Download request for file: ", req.params);
+  const { filename } = req.params;
+  console.log("fd11      ", filename);
   const uploadDir = path.join(process.cwd(), "opt/job_attachments");
-  const filePath = path.join(uploadDir, UUID);
+  console.log("fd12    ", uploadDir);
+  const filePath = path.join(uploadDir, filename);
+  console.log("fd2      Looking on disk for: ", filePath);
   if (fs.existsSync(filePath)) {
     res.download(filePath);
   } else {

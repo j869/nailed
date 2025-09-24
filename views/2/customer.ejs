@@ -337,6 +337,7 @@
                                                                                                                                             task.attachments.forEach(function(att) { 
                                                                                                                                                 let fileType = '';
                                                                                                                                                 let originalName = att.originalname;
+                                                                                                                                                let uuid = originalName.split('_')[0];
                                                                                                                                                 let fileName = att.filename;
                                                                                                                                                 let taskID = att.task_id;
                                                                                                                                                 try {
@@ -346,24 +347,25 @@
                                                                                                                                                     fileType = '';
                                                                                                                                                 }
                                                                                                                                         %>
+                                                                                                                                            <i class="
                                                                                                                                             <% if (fileType === 'pdf') { %>
-                                                                                                                                                <i class="fas fa-file-pdf" style="color: #d9534f; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                                fas fa-file-pdf
                                                                                                                                             <% } else if (fileType === 'txt') { %>
-                                                                                                                                                <i class="fas fa-file-alt" style="color: #007bff; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                                fas fa-file-alt
                                                                                                                                             <% } else if (fileType === 'doc' || fileType === 'docx') { %>
-                                                                                                                                                <i class="fas fa-file-word" style="color: #2b579a; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                                fas fa-file-word
                                                                                                                                             <% } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileType)) { %>
-                                                                                                                                                <i class="fas fa-file-image" style="color: #f4b400; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                                fas fa-file-image
                                                                                                                                             <% } else { %>
-                                                                                                                                                <i class="fas fa-save" style="color: #007bff; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
-                                                                                                                                                
+                                                                                                                                                fas fa-save
                                                                                                                                             <% } %>
+                                                                                                                                            " style="color: #1bbd0c; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="<%= originalName %>" onclick="downloadAttachment('<%= fileName %>','<%= originalName %>')"></i>
                                                                                                                                         <% }); } %>
                                                                                                                                         <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
                                                                                                                                             <i class="fas fa-plus-square" style="color: #28a745;"></i>
                                                                                                                                         </button>
                                                                                                                                         <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
-                                                                                                                                        <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
+                                                                                                                                                                                                                                                                                <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                     </td>
                                                                                                                                     <td>
                                                                                                                                         <div style="display: flex; flex-direction: column; align-items: flex-start;">
@@ -1169,6 +1171,30 @@ async function uploadJobAttachment(event, taskID) {
     event.target.value = '';
 }
 
+async function downloadAttachment(fileName, originalName) {
+    if (!fileName) return;
+    try {
+        const response = await fetch(apiUrl + '/fileDownload/' + fileName);
+        if (!response.ok) throw new Error('Download failed');
+        const blob = await response.blob();
+        // Get fileName from response headers or fallback
+        let downloadName = originalName ? originalName : fileName ;
+        const disposition = response.headers.get('Content-Disposition');
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+            originalName = disposition.split('filename=')[1].replace(/"/g, '').trim();
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        showNotification('Failed to download attachment');
+    }
+}
 
 
 //drag and drop to reorder tasks within a job
