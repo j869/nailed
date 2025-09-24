@@ -330,44 +330,14 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                     <td style="text-align: left;">
-                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline;">
-                                                                                                                                            <%= task.free_text %>
+                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
+                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
                                                                                                                                         </span>
-                                                                                                                                        <% if (task.attachments && Array.isArray(task.attachments) && task.attachments.length > 0) { 
-                                                                                                                                            task.attachments.forEach(function(att) { 
-                                                                                                                                                let fileType = '';
-                                                                                                                                                let originalName = att.originalname;
-                                                                                                                                                let uuid = originalName.split('_')[0];
-                                                                                                                                                let fileName = att.filename;
-                                                                                                                                                let taskID = att.task_id;
-                                                                                                                                                let iconColor = '#1bbd0c';
-                                                                                                                                                let iconClass = 'fas fa-save';
-                                                                                                                                                try {
-                                                                                                                                                    fileType = originalName.split('.').pop().toLowerCase();
-                                                                                                                                                    if (fileType === 'pdf') {
-                                                                                                                                                        iconColor = '#d9534f';
-                                                                                                                                                        iconClass = 'fas fa-file-pdf';
-                                                                                                                                                    } else if (fileType === 'txt') {
-                                                                                                                                                        iconColor = '#007bff';
-                                                                                                                                                        iconClass = 'fas fa-file-alt';
-                                                                                                                                                    } else if (fileType === 'doc' || fileType === 'docx') {
-                                                                                                                                                        iconColor = '#2b579a';
-                                                                                                                                                        iconClass = 'fas fa-file-word';
-                                                                                                                                                    } else if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileType)) {
-                                                                                                                                                        iconColor = '#f4b400';
-                                                                                                                                                        iconClass = 'fas fa-file-image';
-                                                                                                                                                    }
-                                                                                                                                                } catch (e) {
-                                                                                                                                                    fileType = '';
-                                                                                                                                                }
-                                                                                                                                        %>
-                                                                                                                                            <i class="<%= iconClass %>" style="color: <%= iconColor %>; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="<%= originalName %>" onclick="downloadAttachment('<%= fileName %>','<%= originalName %>')"></i>
-                                                                                                                                        <% }); } %>
                                                                                                                                         <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
                                                                                                                                             <i class="fas fa-upload" style="color: #007bff; margin-left: 12px;" title="Upload"></i>
                                                                                                                                         </button>
                                                                                                                                         <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
-                                                                                                                                                                                                                                                                                <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
+                                                                                                                                        <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                     </td>
                                                                                                                                     <td>
                                                                                                                                         <div style="display: flex; flex-direction: column; align-items: flex-start;">
@@ -892,26 +862,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 let newValue;
                 const target = event.target;
                 
-                // Store current value for potential rollback
-                // console.log('id222   setting original value')
-                // if (target.tagName === "SELECT") {
-                //     originalValues.set(target, target.value);
-                // } else if (target.type === "checkbox") {
-                //     originalValues.set(target, target.checked);
-                // } else {
-                //     console.log('id2223   ... new value is ', target.innerText)
-                //     originalValues.set(target, target.innerText);
-                // }
-                
 
                 // Determine new value
+                target.contentEditable = false; 
                 if (target.tagName === "SELECT") {
                     newValue = target.value;
                 } else if (target.type === "checkbox") {
                     newValue = target.checked ? 'complete' : 'pending';
+                } else if (target.id === "jobDesc" ) {
+                    newValue = target.innerHTML.trim();
                 } else {
                     newValue = target.innerText.trim();  //textContent;
-                    target.contentEditable = false; // Disable editing
                 }
                 
 
@@ -945,7 +906,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         console.log('id5    response OK');
                         showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
-
+                        target.contentEditable = true;
                     }
   //              } catch (error) {
                  //   console.log("id38      ", error)
@@ -1144,6 +1105,7 @@ function showAttachmentInput(taskID) {
 // Handle file upload for a specific task
 async function uploadJobAttachment(event, taskID) {
     const file = event.target.files[0];
+    console.log("ua1    uploadJobAttachment called for taskID:", taskID, "file:", file);
     if (!file) return;
 
     // Show spinner
@@ -1161,6 +1123,42 @@ async function uploadJobAttachment(event, taskID) {
         });
         if (response.ok) {
             showNotification('Attachment uploaded!', false);
+            // console.log('ua5    Attachment uploaded successfully');
+            const newFileName = response.filename;
+            const originalName = file.name;
+            //add download html to the free_text field and trigger the save event
+            //get element where id=jobDesc and data-record-id=taskID
+            const jobDesc = document.querySelector(`#jobDesc[data-record-id="${taskID}"]`);
+            // console.log("ua51    jobDesc element:", jobDesc);
+            if (jobDesc) {
+                // console.log("ua6    Found jobDesc element for taskID:", taskID);
+                const fileType = originalName.split('.').pop().toLowerCase();
+                let iconColor = '#1bbd0c';
+                let iconClass = 'fas fa-save';
+                if (fileType === 'pdf') {
+                    iconColor = '#d9534f';
+                    iconClass = 'fas fa-file-pdf';
+                } else if (fileType === 'txt') {
+                    iconColor = '#007bff';
+                    iconClass = 'fas fa-file-alt';
+                } else if (fileType === 'doc' || fileType === 'docx') {
+                    iconColor = '#2b579a';
+                    iconClass = 'fas fa-file-word';
+                } else if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileType)) {
+                    iconColor = '#f4b400';
+                    iconClass = 'fas fa-file-image';
+                }
+                // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
+                // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
+                jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
+                //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
+
+                // Trigger blur event to save changes
+                jobDesc.dispatchEvent(new Event('input', { bubbles: true }));
+
+                jobDesc.focus();
+                console.log("ua9   Added attachment", newFileName, "to task", taskID);
+            }
         } else {
             showNotification('Failed to upload attachment');
         }
