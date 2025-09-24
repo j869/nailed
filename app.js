@@ -976,6 +976,7 @@ async function getJobs(parentID, parentTier, logString) {
         t.change_log,
         t.task_template_id,
         t.task_id,
+        null as attachments,
         t.completed_by_person
       FROM tasks t
       WHERE t.job_id = $1
@@ -997,6 +998,7 @@ async function getJobs(parentID, parentTier, logString) {
         j.change_log,
         null as task_template_id,
         null as task_id,
+        j.uploaded_docs as attachments,
         j.completed_by_person
       FROM jobs j 
       INNER JOIN job_process_flow f ON j.id = f.decendant_id 
@@ -1035,6 +1037,7 @@ async function getJobs(parentID, parentTier, logString) {
             j.change_log,
             null as task_template_id,
             null as task_id,
+            j.uploaded_docs,
             j.completed_by_person
           FROM jobs j 
           INNER JOIN job_process_flow f ON j.id = f.decendant_id 
@@ -1162,6 +1165,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
         TO_CHAR(j.completed_date, 'DD-Mon-YY') AS completed_date,
         j.current_status,
         j.change_log,
+        j.uploaded_docs,
         j.completed_by_person
       FROM jobs j  
       WHERE build_id = $1 AND (tier IS NULL OR tier = 500)
@@ -1196,6 +1200,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
         change_log: job.change_log,
         completed_by_person: job.completed_by_person,
         sort_order: job.sort_order,
+        attachments : job.uploaded_docs,
         tasks: tasks
       });
     }
@@ -1263,8 +1268,12 @@ app.get("/2/build/:id", async (req, res) => {
         // console.log("b29       jobs for build("+buildID+")", JSON.stringify(allCustomers, null, 2));
         // return allCustomers;
         // printJobHierarchy(tableData);
+
+        const usersList = await db.query("SELECT id, full_name FROM users where org IS NULL ORDER BY full_name");
+
+
         console.log("b30   found " + allCustomers.length + " jobs for build(" + buildID + ") with USER(" + req.user.id + ") ");
-        res.render("2/customer.ejs", { user: req.user, tableData: allCustomers, baseUrl: process.env.BASE_URL });
+        res.render("2/customer.ejs", { user: req.user, tableData: allCustomers, baseUrl: process.env.BASE_URL, resources : usersList.rows });
 
       } else {
         console.log("b3   ");
@@ -1309,9 +1318,9 @@ app.get("/2/build/:id", async (req, res) => {
         const customerId = 2;  // Extract customer id from buildId, assuming buildId contains both customer and build ids;
         // Fetch additional data for the selected build, e.g., jobs
         const jobsResult = await db.query("SELECT * FROM jobs WHERE build_id = $1", [req.query.buildId]);
+
         // Render customer.ejs with customer, builds, and jobs data
-        res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows });
-      }
+        res.render("customer.ejs", { customer: allCustomers.find(customer => customer.id === customerId), builds: allCustomers, jobs: jobsResult.rows});      }
 
     } catch (err) {
       console.log("b8   ");

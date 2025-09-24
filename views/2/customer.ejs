@@ -224,7 +224,7 @@
                                                                                                 <th style="background-color:#77dd7783;">Target Date</th>
                                                                                                 <th style="display: none;">Created By</th>
                                                                                                 <th style="display: none;">Created Date</th>
-                                                                                                <th style="background-color:#77dd7783;" >Change Array</th>
+                                                                                                <th style="display: none; background-color:#77dd7783;" >Change Array</th>
                                                                                                 <th style="display: none;">Completed By</th>
                                                                                                 <th style="display: none;">Completed Date</th>
                                                                                                 <th style="background-color:#77dd7783;">Current Status</th>
@@ -255,12 +255,12 @@
                                                                                                         <td style="background-color:#77DD77;" class="editable" id="jobTargetDate" data-record-id="<%= jobID %>"><%= job.target_date %></td>
                                                                                                         <td style="display: none;"><%= job.created_by %></td>
                                                                                                         <td style="display: none;"><%= job.created_date %></td>
-                                                                                                        <td style="background-color:#77DD77;" ><%= job.change_array %>ID[<%= jobID %>]</td>
+                                                                                                        <td style="display: none; background-color:#77DD77;" ><%= job.change_array %>ID[<%= jobID %>]</td>
                                                                                                         <td style="display: none;"><%= job.completed_by %></td>
                                                                                                         <td style="display: none;"><%= job.completed_date %></td>
                                                                                                         <td style="background-color:#77DD77;">
                                                                                                             <div class="form-check">
-                                                                                                                <input class="job-checkbox " type="checkbox" id="jobStatus" data-job-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
+                                                                                                                <input class="job-checkbox " title='<%= job.change_array %>ID[<%= jobID %>]' type="checkbox" id="jobStatus" data-job-id="<%= jobID %>" <% if (job.current_status === 'complete') { %> checked <% } %>> 
                                                                                                                 <label class="form-check-label" for="jobComplete<%= jobID %>"><%= job.current_status %></label>
                                                                                                             </div>
                                                                                                             <div class="form-check d-none" display="none">
@@ -314,10 +314,10 @@
                                                                                                                             <th>Num</th>
                                                                                                                             <th class="display-text-column">Task Title</th>
                                                                                                                             <th>Free Text</th>
-                                                                                                                            <th>Target Date</th>
-                                                                                                                            <th>Completed Date</th>
-                                                                                                                            <th>User</th>
-                                                                                                                            <th>Change Log</th>
+                                                                                                                            <th>Status</th>
+                                                                                                                            <th class="d-none">Completed Date</th>
+                                                                                                                            <th>Assigned To</th>
+                                                                                                                            <th class="d-none">Change Log</th>
                                                                                                                             <th>Actions</th>
                                                                                                                         </tr>
                                                                                                                     </thead>                                                        
@@ -329,24 +329,77 @@
                                                                                                                                     <td class="drag-handle" data-record-id="<%= taskID %>" data-sort-order="<%= task.sort_order %>">⋮⋮</td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>"  style="width: 25%; white-space: pre-wrap;"><%= task.free_text %></td>
-                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>"><%= task.target_date %></td>
-                                                                                                                                    <td><%= task.completed_date %></td>
+                                                                                                                                    <td style="text-align: left;">
+                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline;">
+                                                                                                                                            <%= task.free_text %>
+                                                                                                                                        </span>
+                                                                                                                                        <% if (task.attachments && Array.isArray(task.attachments) && task.attachments.length > 0) { 
+                                                                                                                                            task.attachments.forEach(function(att) { 
+                                                                                                                                                let fileType = '';
+                                                                                                                                                let originalName = att.originalname;
+                                                                                                                                                let fileName = att.filename;
+                                                                                                                                                let taskID = att.task_id;
+                                                                                                                                                try {
+                                                                                                                                                    // Get file extension from originalName
+                                                                                                                                                    fileType = originalName.split('.').pop().toLowerCase();
+                                                                                                                                                } catch (e) {
+                                                                                                                                                    fileType = '';
+                                                                                                                                                }
+                                                                                                                                        %>
+                                                                                                                                            <% if (fileType === 'pdf') { %>
+                                                                                                                                                <i class="fas fa-file-pdf" style="color: #d9534f; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                            <% } else if (fileType === 'txt') { %>
+                                                                                                                                                <i class="fas fa-file-alt" style="color: #007bff; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                            <% } else if (fileType === 'doc' || fileType === 'docx') { %>
+                                                                                                                                                <i class="fas fa-file-word" style="color: #2b579a; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                            <% } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(fileType)) { %>
+                                                                                                                                                <i class="fas fa-file-image" style="color: #f4b400; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                            <% } else { %>
+                                                                                                                                                <i class="fas fa-save" style="color: #007bff; margin-left: 6px; vertical-align: middle;" title="<%= originalName %>"></i>
+                                                                                                                                                
+                                                                                                                                            <% } %>
+                                                                                                                                        <% }); } %>
+                                                                                                                                        <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
+                                                                                                                                            <i class="fas fa-plus-square" style="color: #28a745;"></i>
+                                                                                                                                        </button>
+                                                                                                                                        <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
+                                                                                                                                        <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
+                                                                                                                                    </td>
+                                                                                                                                    <td>
+                                                                                                                                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                                                                                                                                            <% if (task.current_status === 'complete') { %>
+                                                                                                                                                <span style="font-size: 1em; color: #28a745; font-weight: 500;"><%= task.current_status + ':' %><br> <%= task.completed_date ? task.completed_date : '' %></span>
+                                                                                                                                            <% } else { %>
+                                                                                                                                                <span class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>" style="font-size: 1em; color: #007bff; font-weight: 500;">
+                                                                                                                                                    <%= task.current_status ? task.current_status + ':' : '' %><br> <%= task.target_date ? task.target_date : '' %>
+                                                                                                                                                </span>
+                                                                                                                                            <% } %>
+                                                                                                                                        </div>
+                                                                                                                                    </td>
                                                                                                                                     <td id="<%= task.precedence === 'jobflow' ? 'jobPerson' : 'taskPerson' %>" data-record-id="<%= taskID %>">
-                                                                                                                                        <% if (task.owned_by == 1) { %>
-                                                                                                                                            John
-                                                                                                                                        <% } else if (task.owned_by == 12) { %>
-                                                                                                                                            Bryan
-                                                                                                                                        <% } else if (task.owned_by == 13) { %>
-                                                                                                                                            VPA
-                                                                                                                                        <% } else { %>
-                                                                                                                                            <%= task.owned_by %>
-                                                                                                                                        <% } %>
-                                                                                                                                    <td>ID[<%= task.id %>] <%= task.change_log %></td>
+                                                                                                                                        <% 
+                                                                                                                                            let resourceName = null;
+                                                                                                                                            let resourceID = null;
+                                                                                                                                            if (Array.isArray(locals.resources)) {
+                                                                                                                                                for (let i = 0; i < locals.resources.length; i++) {
+                                                                                                                                                    if (locals.resources[i].id == task.owned_by) {
+                                                                                                                                                        resourceName = locals.resources[i].full_name;
+                                                                                                                                                        resourceID = locals.resources[i].id;
+                                                                                                                                                        break;
+                                                                                                                                                    }
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                            if (resourceName) {
+                                                                                                                                                %><%= resourceID %> <%= resourceName %><%
+                                                                                                                                            } else {
+                                                                                                                                                %><%= task.owned_by %><%
+                                                                                                                                            }
+                                                                                                                                        %>
+                                                                                                                                    <td class="d-none">ID[<%= task.id %>] <%= task.change_log %></td>
                                                                                                                                     <td>
                                                                                                                                         <div class="form-check" style="display: flex; align-items: center;">
-                                                                                                                                            <input class="editable" type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %> style="width: 32px; height: 32px; accent-color: #28a745; margin-right: 8px; box-shadow: 0 2px 8px rgba(40,167,69,0.15); border-radius: 50%; border: 2px solid #e0e0e0; background: #fff;">
-                                                                                                                                            <label class="form-check-label" for="taskComplete<%= taskID %>" style="font-size: 0.95em; font-weight: 400; color: #aaa; opacity: 0.7; margin-left: 2px;"> <%= task.current_status %></label>
+                                                                                                                                            <input class="editable" title='ID[<%= task.id %>] <%= task.change_log %>' type="checkbox" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>" <% if (task.current_status === 'complete') { %> checked <% } %> style="width: 32px; height: 32px; accent-color: #28a745; margin-right: 8px; box-shadow: 0 2px 8px rgba(40,167,69,0.15); border-radius: 50%; border: 2px solid #e0e0e0; background: #fff;">
+                                                                                                                                            <label class="d-none form-check-label" for="taskComplete<%= taskID %>" style="font-size: 0.95em; font-weight: 400; color: #aaa; opacity: 0.7; margin-left: 2px;"> <%= task.current_status %></label>
                                                                                                                                         </div>
 
                                                                                                                                         <div class="form-check d-none">
@@ -1076,6 +1129,49 @@ document.addEventListener("DOMContentLoaded", async function () {
 });
 
 
+
+//new + better method of doing file attachments - save to drive not database for scalability
+// Show file input when attachment button is clicked
+function showAttachmentInput(taskID) {
+    const input = document.getElementById('attachmentInput_' + taskID);
+    if (input) input.click();
+}
+
+// Handle file upload for a specific task
+async function uploadJobAttachment(event, taskID) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Show spinner
+    const spinner = document.getElementById('attachmentSpinner_' + taskID);
+    if (spinner) spinner.classList.remove('d-none');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('task_id', taskID);
+
+    try {
+    const response = await fetch(apiUrl + '/fileUpload', {
+            method: 'POST',
+            body: formData
+        });
+        if (response.ok) {
+            showNotification('Attachment uploaded!', false);
+        } else {
+            showNotification('Failed to upload attachment');
+        }
+    } catch (err) {
+        showNotification('Error uploading attachment');
+    }
+    // Hide spinner
+    if (spinner) spinner.classList.add('d-none');
+    // Optionally reset file input
+    event.target.value = '';
+}
+
+
+
+//drag and drop to reorder tasks within a job
 document.addEventListener('DOMContentLoaded', () => {
     console.log("dr1    Initializing drag-and-drop functionality for tasks");
   let table 
@@ -1176,5 +1272,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <%- include('../partials/footer') %>
+
 
 <br>views/2/customer.ejs

@@ -10,6 +10,8 @@ import nodemailer from "nodemailer";
 import { ImapFlow } from 'imapflow';
 import crypto from 'crypto';   //const crypto = require('crypto');
 import axios from "axios";
+import path from "path";
+import fs from "fs";
 
 
 
@@ -250,6 +252,81 @@ app.get("/decrypt/:text", async (req, res) => {
 });
 
 
+//#region File handling
+
+
+const uploadDir = path.join(process.cwd(), "opt/job_attachments");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const attachmentUpload = multer({ dest: uploadDir });
+
+app.post("/fileUpload", attachmentUpload.single("file"), async (req, res) => {
+  try {
+    const { task_id } = req.body;
+    const file = req.file;
+    if (!file || !task_id) return res.status(400).json({ error: "Missing file or task_id" });
+
+    // Rename file for uniqueness
+    const ext = path.extname(file.originalname);
+    const newFilename = `${Date.now()}_${file.originalname}`;
+    const newPath = path.join(uploadDir, newFilename);
+    fs.renameSync(file.path, newPath);
+
+    // Update jobs.uploaded_docs JSONB (append new file info)
+    await pool.query(
+      "UPDATE jobs SET uploaded_docs = COALESCE(uploaded_docs, '[]'::jsonb) || $1::jsonb WHERE id = $2",
+      [JSON.stringify([{ filename: newFilename, originalname: file.originalname, task_id }]), task_id]
+    );
+
+    res.json({ success: true, filename: newFilename });
+  } catch (err) {
+    console.error("File upload error:", err);
+    res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+app.get("/fileGetList", async (req, res) => {
+  const { task_id } = req.query;
+  if (!task_id) return res.status(400).json([]);
+  try {
+    const result = await pool.query("SELECT uploaded_docs FROM jobs WHERE id = $1", [task_id]);
+    const files = (result.rows[0]?.uploaded_docs) || [];
+    res.json(files);
+  } catch (err) {
+    res.status(500).json([]);
+  }
+});
+
+app.delete("/fileDelete/:UUID", async (req, res) => {
+  const { UUID } = req.params;
+  const { task_id } = req.body;
+  const uploadDir = path.join(process.cwd(), "opt/job_attachments");
+  const filePath = path.join(uploadDir, UUID);
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    // Remove from jobs.uploaded_docs JSONB
+    await pool.query(
+      "UPDATE jobs SET uploaded_docs = uploaded_docs - $1 WHERE id = $2",
+      [UUID, task_id]
+    );
+    res.json({ success: true, message: "File deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+app.get("/fileDownload/:UUID", (req, res) => {
+  const { UUID } = req.params;
+  const uploadDir = path.join(process.cwd(), "opt/job_attachments");
+  const filePath = path.join(uploadDir, UUID);
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    res.status(404).send("File not found");
+  }
+});
+
+//#region old File handling method
+
 /**
  * Route to Upload a File
  */
@@ -330,8 +407,6 @@ app.delete("/deletefile/:id", async (req, res) => {
   }
 });
 
-
-
 /**
  * Route to Download a File
  */
@@ -358,6 +433,14 @@ app.get("/download/:id", async (req, res) => {
     res.status(500).send("Error retrieving file.");
   }
 });
+
+
+//#endregion
+
+
+
+//#endregion
+
 
 
 /**
