@@ -10,7 +10,11 @@
 
 
 <script>
-    console.log("EJS variables available at build time", <%- JSON.stringify(locals) %>);
+    <% if (!locals) { %>
+        console.log("Footer - no variables passed");
+    <% } else { %>
+        console.log("Footer - locals ", <%- JSON.stringify(locals) %>);
+    <% } %>    
 </script>
 
 </body>

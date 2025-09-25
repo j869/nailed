@@ -1,4 +1,5 @@
-<%- include('partials/header') %>
+<%- include('partials/header', { user: locals.user }) %>
+<%- include('partials/expandableMenu') %>
 
 <!-- Full-width overlay container -->
 <div style="position: relative; width: 100vw; left: 50%; margin-left: -50vw; margin-top: 80px;">
@@ -173,3 +174,4 @@
 <!-- End full-width overlay -->
 
 <%- include('partials/footer') %>
+managementReport.ejs

@@ -2,6 +2,13 @@
 <html lang="en" dir="ltr">
 
 <head>
+  <script>
+    <% if (!locals) { %>
+        console.log("Header - no variables passed");
+    <% } else { %>
+        console.log("Header - locals ", <%- JSON.stringify(locals) %>);
+    <% } %>    
+  </script>
   <meta charset="utf-8">
   <title>Tracker</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"  integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -14,7 +21,6 @@
  
  
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha256-4+XzXVhsDmqanXGHaHvgh1gMQKX40OUvDEBTu8JcmNs=" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/css/bootstrap-slider.css" integrity="sha512-SZgE3m1he0aEF3tIxxnz/3mXu/u/wlMNxQSnE0Cni9j/O8Gs+TjM9tm1NX34nRQ7GiLwUEzwuE3Wv2FLz2667w==" crossorigin="anonymous" />
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/11.0.2/bootstrap-slider.min.js" integrity="sha512-f0VlzJbcEB6KiW8ZVtL+5HWPDyW1+nJEjguZ5IVnSQkvZbwBt2RfCBY0CBO1PsMAqxxrG4Di6TfsCPP3ZRwKpA==" crossorigin="anonymous"></script>
@@ -56,49 +62,68 @@
   }
 </style>
 
-<div class="fixed-header">
-  <header class="d-flex justify-content-between align-items-center py-3">
-    <ul class="nav nav-pills d-flex">
-      <li class="nav-item"><a href="/" class="nav-link link-light">Day Task List</a></li>
-      <li class="nav-item"><a href="/customers" class="nav-link link-light">Editor</a></li>
-      <li class="nav-item"><a href="/customer/0" class="nav-link link-light">New Customer</a></li>
-      <li class="nav-item"><a href="/2/customers" class="nav-link link-light">List view</a></li>
-      <li class="nav-item"><a href="/management-report" class="nav-link link-light">Management Report</a></li>
-      <% if (locals.user && locals.user.roles && locals.user.roles.includes('sysadmin')) { %>
-        <li class="nav-item"><a href="/admin/wf-rule-report-server" class="nav-link link-light">WF Rule Report</a></li>
-        <li class="nav-item"><a href="/admin/job-templates" class="nav-link link-light">Job Templates</a></li>
-        <li class="nav-item"><a href="/admin/customers/import" class="nav-link link-light">Customer Import</a></li>
-        <li class="nav-item"><a href="/admin/users" class="nav-link link-light">Manage Users</a></li>
-        <li class="nav-item"><a href="/admin/rule-builder" class="nav-link link-light" style="color: #28a745 !important;"><i class="fas fa-cogs"></i> Rule Builder</a></li>
-        <li class="nav-item"><a href="/admin/demo/rules" class="nav-link link-light" style="color: #ffc107 !important;">🧪 Rule Engine Demo</a></li>
-        <li class="nav-item"><a href="/admin/home" class="nav-link link-light" style="color: #ffc107 !important;">Admin</a></li>
-      <% } %>
-      <li class="nav-item"><a href="/logout" class="nav-link link-light">Log Out</a></li>
-    </ul>
 
+<style>
+  .fixed-header {
+    height: 56px;
+    background-color: #1d351d;
+    padding-left: 50px;
+    padding-right: 50px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+  }
+</style>
 
-    <% if (locals.user) { %>
-      <div class="d-flex align-items-center">
-        <select name="roles" id="roles" class="bg-dark" style="color: white; margin-right: 10px;">
-          <% if (!locals.user.roles) { %>
-            <!-- Default values -->
-            <option value="admin">Admin</option>
-            <option value="manager">Manager</option>
-            <option value="sales">Sales</option>
-            <option value="construction">Construction</option>
-            <option value="permits">Permits</option>
-          <% } else { %>
-            <%= locals.user.roles %>
-            <% locals.user.roles.split(',').forEach(function(role) { %>
-              <option value="<%= role.trim() %>"><%= role.trim().charAt(0).toUpperCase() + role.trim().slice(1) %></option>
-            <% }); %>
-          <% } %>
-        </select>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-header">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Tracker</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a href="/" class="nav-link">Day Task List</a></li>
+        <li class="nav-item"><a href="/customers" class="nav-link">Editor</a></li>
+        <li class="nav-item"><a href="/customer/0" class="nav-link">New Customer</a></li>
+        <li class="nav-item"><a href="/2/customers" class="nav-link">List view</a></li>
+        <li class="nav-item"><a href="/management-report" class="nav-link">Management Report</a></li>
+        <% if (locals.user && locals.user.roles && locals.user.roles.includes('sysadmin')) { %>
+          <li class="nav-item"><a href="/admin/wf-rule-report-server" class="nav-link">WF Rule Report</a></li>
+          <li class="nav-item"><a href="/admin/job-templates" class="nav-link">Job Templates</a></li>
+          <li class="nav-item"><a href="/admin/customers/import" class="nav-link">Customer Import</a></li>
+          <li class="nav-item"><a href="/admin/users" class="nav-link">Manage Users</a></li>
+          <li class="nav-item"><a href="/admin/rule-builder" class="nav-link"><i class="fas fa-cogs"></i> Rule Builder</a></li>
+          <li class="nav-item"><a href="/admin/demo/rules" class="nav-link">🧪 Rule Engine Demo</a></li>
+          <li class="nav-item"><a href="/admin/home" class="nav-link">Admin</a></li>
+        <% } %>
+        <li class="nav-item"><a href="/logout" class="nav-link">Log Out</a></li>
+      </ul>
+      <% if (locals.user) { %>
+        <div class="dropdown d-inline-block me-3">
+          <button class="btn btn-dark dropdown-toggle" type="button" id="roleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <%= locals.user.roles ? locals.user.roles.split(',')[0].charAt(0).toUpperCase() + locals.user.roles.split(',')[0].slice(1) : 'Select Role' %>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="roleDropdown">
+            <% if (!locals.user.roles) { %>
+              <li><a class="dropdown-item" href="#" data-role="admin">Admin</a></li>
+              <li><a class="dropdown-item" href="#" data-role="manager">Manager</a></li>
+              <li><a class="dropdown-item" href="#" data-role="sales">Sales</a></li>
+              <li><a class="dropdown-item" href="#" data-role="construction">Construction</a></li>
+              <li><a class="dropdown-item" href="#" data-role="permits">Permits</a></li>
+            <% } else { %>
+              <% locals.user.roles.split(',').forEach(function(role) { %>
+                <li><a class="dropdown-item" href="#" data-role="<%= role.trim() %>"><%= role.trim().charAt(0).toUpperCase() + role.trim().slice(1) %></a></li>
+              <% }); %>
+            <% } %>
+          </ul>
+        </div>
         <span class="text-white">Welcome, <%= locals.user.display_name %></span>
-      </div>
-    <% } %>
-  </header>
-</div>
+      <% } %>
+    </div>
+  </div>
+</nav>
 
 
 
@@ -123,7 +148,7 @@
 
   
   <script>
-    console.log('ha1      ');
+    console.log('ha1     Header is loading ');
 
     document.addEventListener('DOMContentLoaded', function() {
       const roleDropdown = document.getElementById('roles');

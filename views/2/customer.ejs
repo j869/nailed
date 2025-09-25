@@ -80,6 +80,7 @@
 </head>
 <body>
 
+<%- include('../partials/expandableMenu') %>
 <br><br><br>
 <!-- Floating Options Bar -->
 <style>
@@ -764,7 +765,7 @@
 <script>
 
 
-    console.log("locals ", <%- JSON.stringify(locals) %>);
+    console.log("customer.ejs locals ", <%- JSON.stringify(locals) %>);
 
     //---  add listener to all EDITABLE fields.  When field changes, notify the database
     const baseUrl = "<%= locals.baseUrl %>";
