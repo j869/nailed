@@ -162,6 +162,13 @@
         }
       }
 
+      // If user variable is null, set it to 'permits'
+      if (!locals.user) {
+        if (roleDropdown) {
+          roleDropdown.value = 'permits';
+        }
+      }
+
       roleDropdown.addEventListener('change', toggleEditorNavItem);
       toggleEditorNavItem(); // Initial check on page load
 

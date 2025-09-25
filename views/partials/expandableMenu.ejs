@@ -86,15 +86,12 @@
     </div>
     </div>
     <div class="menu-content" style="display: none;">
-        <div style="display: none;" class="menu-item">Future Feature 1</div>
-        <div style="display: none;" class="menu-item">Future Feature 2</div>
-        <% if (locals.customer_id) { %>
-            <div class="menu-item">Customer Inbox</div>
-        <% } %>
+    <div id="emailMenuContainer"></div>
     </div>
 </div>
 
 <script>
+
 
 
 const menu = document.getElementById('expandableMenu');
@@ -103,6 +100,41 @@ const icon = document.getElementById('expandIcon');
 const menuContent = menu.querySelector('.menu-content');
 const wideBtn = document.getElementById('expandWideBtn');
 const wideIcon = document.getElementById('expandWideIcon');
+const emailMenuContainer = document.getElementById('emailMenuContainer');
+
+function loadEmailMenu() {
+  // Load Quill assets if not present
+  if (!window.Quill) {
+    if (!document.getElementById('quillScript')) {
+      const quillScript = document.createElement('script');
+      quillScript.id = 'quillScript';
+      quillScript.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
+      document.body.appendChild(quillScript);
+    }
+    if (!document.getElementById('quillCss')) {
+      const quillCss = document.createElement('link');
+      quillCss.id = 'quillCss';
+      quillCss.rel = 'stylesheet';
+      quillCss.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+      document.head.appendChild(quillCss);
+    }
+  }
+  // Load emailMenu.js if not present
+  if (!window.renderEmailMenu) {
+    if (!document.getElementById('emailMenuScript')) {
+      const script = document.createElement('script');
+      script.id = 'emailMenuScript';
+      script.src = '/js/emailMenu.js';
+      script.type = 'module';
+      script.onload = () => {
+        window.renderEmailMenu && window.renderEmailMenu('emailMenuContainer');
+      };
+      document.body.appendChild(script);
+    }
+  } else {
+    window.renderEmailMenu('emailMenuContainer');
+  }
+}
 
 btn.addEventListener('click', function() {
   if (menu.classList.contains('open')) {
@@ -114,12 +146,26 @@ btn.addEventListener('click', function() {
     menu.style.width = '';
     wideBtn.title = 'Expand to wide menu';
     wideIcon.innerHTML = '\u21F2';
+    emailMenuContainer.innerHTML = '';
   } else {
     menu.classList.add('open');
     menuContent.style.display = 'block';
     icon.innerHTML = '&lt;';
     btn.title = 'Collapse menu';
     wideBtn.style.display = 'inline-block';
+    wideBtn.title = 'Expand to wide menu';
+    wideIcon.innerHTML = '\u21F2';
+    loadEmailMenu();
+  }
+});
+
+wideBtn.addEventListener('click', function() {
+  if (menu.style.width !== '65vw') {
+    menu.style.width = '65vw';
+    wideBtn.title = 'Contract to normal menu';
+    wideIcon.innerHTML = '\u21F1';
+  } else {
+    menu.style.width = '';
     wideBtn.title = 'Expand to wide menu';
     wideIcon.innerHTML = '\u21F2';
   }
