@@ -80,7 +80,7 @@
 </head>
 <body>
 
-<%- include('../partials/expandableMenu') %>
+<%- include('../partials/expandableMenu2', { user: locals.user }) %>
 <br><br><br>
 <!-- Floating Options Bar -->
 <style>
@@ -331,12 +331,12 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                     <td style="text-align: left;">
-                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
-                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
-                                                                                                                                        </span>
                                                                                                                                         <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
                                                                                                                                             <i class="fas fa-upload" style="color: #007bff; margin-left: 12px;" title="Upload"></i>
                                                                                                                                         </button>
+                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
+                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
+                                                                                                                                        </span>
                                                                                                                                         <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
                                                                                                                                         <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                     </td>

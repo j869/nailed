@@ -1,0 +1,310 @@
+<!-- NOTE: this old version is deprecated -->
+<!-- Expandable left-side menu partial -->
+
+<style>
+#expandableMenu {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  height: calc(100vh - 56px);
+  width: 48px; /* Always visible slim sidebar */
+}
+#expandableMenu.open {
+  width: 260px;
+}
+#expandableMenu.super-expanded {
+  width: 80vw;
+}
+
+@media (max-width: 600px) {
+  #expandableMenu.open {
+    width: 80vw;
+  }
+  #expandableMenu.super-expanded {
+    width: 100vw;
+  }
+  .menu-label {
+    font-size: 1em;
+  }
+}
+
+@media (min-width: 1200px) {
+  #expandableMenu.open {
+    width: 320px;
+  }
+  .menu-label {
+    font-size: 1.3em;
+  }
+}
+  background: #1d351d;
+  color: #fff;
+  overflow-x: hidden;
+  transition: width 0.3s ease;
+  z-index: 1200;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+}
+#expandableMenu.open {
+  width: 260px;
+}
+#expandableMenu .menu-header {
+  padding: 18px 24px;
+  font-size: 1.3em;
+  background: #184218;
+  border-bottom: 1px solid #2c4c2c;
+}
+#expandableMenu .menu-content {
+  padding: 18px 24px;
+}
+#expandableMenu .menu-item {
+  padding: 12px 0;
+  cursor: pointer;
+  border-bottom: 1px solid #2c4c2c;
+  font-size: 1.1em;
+}
+#expandableMenu .menu-item:hover {
+  background: #236423;
+}
+#expandableMenu .close-btn {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  font-size: 1.5em;
+  color: #fff;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+#expandMenuBtn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  transform: none;
+  background: #184218;
+  color: #fff;
+  border: 1.5px solid #2c4c2c;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1.6em;
+  cursor: pointer;
+  z-index: 2;
+}
+.sidebar-icons {
+  margin-top: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+</style>
+
+    <style>
+      /* Slimline menu: only icons visible */
+      #expandableMenu:not(.open) .menu-label {
+        display: none;
+      }
+      /* Open menu: show labels */
+      #expandableMenu.open .menu-label {
+        display: inline;
+      }
+      /* Super-expanded menu: hide sidebar-icons entirely */
+      #expandableMenu.super-expanded .sidebar-icons {
+        display: none !important;
+      }
+      #expandableMenu.super-expanded .menu-label {
+        display: inline;
+        font-size: 1.2em;
+        font-weight: 500;
+      }
+      #expandableMenu.super-expanded .sidebar-icons i,
+      #expandableMenu.super-expanded .sidebar-icons .menu-label {
+        font-size: 1.6em;
+      }
+    </style>    
+    <style>
+      /* Slimline menu: only icons visible */
+      #expandableMenu:not(.open) .menu-label {
+        display: none;
+      }
+      /* Open menu: show labels */
+      #expandableMenu.open .menu-label {
+        display: inline;
+      }
+      /* Expanded menu: even wider, labels larger */
+      #expandableMenu[style*="80vw"] .menu-label {
+        display: inline;
+        font-size: 1.2em;
+        font-weight: 500;
+      }
+      #expandableMenu[style*="80vw"] .sidebar-icons i,
+      #expandableMenu[style*="80vw"] .sidebar-icons .menu-label {
+        font-size: 1.6em;
+      }
+    </style>
+
+
+
+<!-- Expandable menu -->
+<div id="expandableMenu">
+  <div class="menu-header" style="padding: 8px 0; position: relative;">
+    <!-- Expand/collapse button absolutely positioned at top -->
+    <button id="expandMenuBtn" title="Expand menu">
+      <span id="expandIcon">&gt;</span>
+    </button>
+    <button id="expandWideBtn" title="Expand to wide menu" style="position: absolute; top: 8px; left: 48px; display: none; background: #184218; color: #fff; border: 1.5px solid #2c4c2c; border-radius: 6px; padding: 2px 10px; font-size: 1.2em; cursor: pointer; z-index: 2;">
+      <span id="expandWideIcon">&#x21F2;</span>
+    </button>
+    <div class="sidebar-icons">
+  <i class="fas fa-home" style="font-size: 1.4em;"></i>
+  <i class="fas fa-cog" style="font-size: 1.4em;"></i>
+  <i class="fas fa-user" style="font-size: 1.4em;"></i>
+    </div>
+  </div>
+
+  <!-- -----------------------------------------------------
+  -- Emails ----------------------------------------------
+  ----------------------------------------------------- -->
+  <div class="menu-content" style="display: none;">
+    <div class="accordion" id="emailAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingEmails">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEmails" aria-expanded="false" aria-controls="collapseEmails">
+            Emails
+          </button>
+        </h2>
+        <div id="collapseEmails" class="accordion-collapse collapse" aria-labelledby="headingEmails" data-bs-parent="#emailAccordion">
+          <div class="accordion-body">
+            <div id="emailMenuContainer"></div>
+            <div id="emailEditor" class="form-control" style="height: 200px; margin-top: 8px; overflow-y: auto; background: #fff; display: none;"></div>
+            <!-- Quill editor will be initialized here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- -----------------------------------------------------
+  -- Reports ---------------------------------------------
+  ----------------------------------------------------- -->
+    <!-- Reports (sidebar icons) -->
+    <div class="sidebar-icons">
+      <a href="/" class="nav-link report-icon" title="Home">
+      <i class="fas fa-home" style="font-size: 1.4em;"></i>
+      <span class="menu-label">Home</span>
+      </a>
+      <a href="/admin/wf-rule-report-server" class="nav-link report-icon" title="WF Rule Report">
+      <i class="fas fa-file-alt" style="font-size: 1.4em;"></i>
+      <span class="menu-label">WF Rule Report</span>
+      </a>
+      <a href="/profile" class="nav-link report-icon" title="User">
+      <i class="fas fa-user" style="font-size: 1.4em;"></i>
+      <span class="menu-label">User</span>
+      </a>
+    </div>
+
+      <!-- Slimline menu: only icons, no text -->
+      <a href="/admin/wf-rule-report-server" class="nav-link report-icon" title="WF Rule Report">
+        <i class="fas fa-file-alt" style="font-size: 1.4em;"></i>
+        <span class="menu-label" style="display: none; margin-left: 8px;">WF Rule Report</span>
+      </a>
+      <li class="nav-item"><a href="/admin/job-templates" class="nav-link">Job Templates</a></li>
+      <a href="/admin/job-templates" class="nav-link report-icon" title="Job Templates">
+        <i class="fas fa-file-alt" style="font-size: 1.4em;"></i>
+        <span class="menu-label" style="display: none; margin-left: 8px;">Job Templates</span>
+      </a>
+    </div>
+
+  <div class="position-fixed bottom-0 start-0 small ps-3">expandableMenu.ejs</div>
+</div>
+
+
+
+<!-- ----------------------------
+ -------  Scripts   ---------------
+--------------------- -->
+<script>
+
+
+
+const menu = document.getElementById('expandableMenu');
+const btn = document.getElementById('expandMenuBtn');
+const icon = document.getElementById('expandIcon');
+const menuContent = menu.querySelector('.menu-content');
+const wideBtn = document.getElementById('expandWideBtn');
+const wideIcon = document.getElementById('expandWideIcon');
+const emailMenuContainer = document.getElementById('emailMenuContainer');
+
+function loadEmailMenu() {
+  // Load Quill assets if not present
+  if (!window.Quill) {
+    if (!document.getElementById('quillScript')) {
+      const quillScript = document.createElement('script');
+      quillScript.id = 'quillScript';
+      quillScript.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
+      document.body.appendChild(quillScript);
+    }
+    if (!document.getElementById('quillCss')) {
+      const quillCss = document.createElement('link');
+      quillCss.id = 'quillCss';
+      quillCss.rel = 'stylesheet';
+      quillCss.href = 'https://cdn.quilljs.com/1.3.6/quill.snow.css';
+      document.head.appendChild(quillCss);
+    }
+  }
+  // Load emailMenu.js if not present
+  if (!window.renderEmailMenu) {
+    if (!document.getElementById('emailMenuScript')) {
+      const script = document.createElement('script');
+      script.id = 'emailMenuScript';
+      script.src = '/js/emailMenu.js';
+      script.type = 'module';
+      script.onload = () => {
+        window.renderEmailMenu && window.renderEmailMenu('emailMenuContainer');
+      };
+      document.body.appendChild(script);
+    }
+  } else {
+    window.renderEmailMenu('emailMenuContainer');
+  }
+}
+
+btn.addEventListener('click', function() {
+  if (menu.classList.contains('open')) {
+    menu.classList.remove('open');
+    menuContent.style.display = 'none';
+    icon.innerHTML = '&gt;';
+    btn.title = 'Expand menu';
+    wideBtn.style.display = 'none';
+    menu.style.width = '';
+    wideBtn.title = 'Expand to wide menu';
+    wideIcon.innerHTML = '\u21F2';
+    emailMenuContainer.innerHTML = '';
+  } else {
+    menu.classList.add('open');
+    menuContent.style.display = 'block';
+    icon.innerHTML = '&lt;';
+    btn.title = 'Collapse menu';
+    wideBtn.style.display = 'inline-block';
+    wideBtn.title = 'Expand to wide menu';
+    wideIcon.innerHTML = '\u21F2';
+    loadEmailMenu();
+  }
+});
+
+wideBtn.addEventListener('click', function() {
+  if (menu.style.width <= '50vw') {
+    console.log('mi3       open very large menu');
+    menu.style.width = '80vw';
+    // menu.style.setProperty('width', '80vw', 'important');
+    // FIXME: above line does not update menu width
+    wideBtn.title = 'Contract to normal menu';
+    wideIcon.innerHTML = '\u21F1';
+  } else {
+    console.log('mi2       contract to normal menu');
+    menu.style.width = '260px';
+    wideBtn.title = 'Expand to wide menu';
+    wideIcon.innerHTML = '\u21F2';
+  }
+});
+
+
+</script>

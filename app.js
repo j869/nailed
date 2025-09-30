@@ -334,9 +334,20 @@ app.get("/checkemail", async (req, res) => {
 
     //connect to email server and check for new emails
     // pass userID and custID to the email server to check for new emails
-    const emailResult = await axios.get(`${API_URL}/email/${customerID}/${req.user.id}`);
-    //const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
-    console.log("ce2    ", emailResult.data);
+    let emailResult = { data: { success: false, message: 'Email check failed', build_id: null } };
+    try {
+      emailResult = await axios.get(`${API_URL}/email/${customerID}/${req.user.id}`);
+      console.log("ce2    ", emailResult.data);
+    } catch (error) {
+      console.error("ce3    Error checking emails:", error.message);
+      emailResult.data = { success: false, message: 'Error connecting to email server', build_id: null };
+    }
+
+    if (emailResult.data.success) {
+      console.log("ce9    ", emailResult.data.message);
+    } else {
+      console.log("ce4    No new emails (or) problem reading emails for customer("+ customerID +") ");
+    }
     if (emailResult.data.success) {
       console.log("ce9    ", emailResult.data.message);
     } else {

@@ -7,7 +7,8 @@ import env from "dotenv";
 import multer from "multer";
 import cors from "cors";
 import nodemailer from "nodemailer";
-import { ImapFlow } from 'imapflow';
+import Imap from 'imap';
+import { simpleParser } from 'mailparser';
 import crypto from 'crypto';   //const crypto = require('crypto');
 import axios from "axios";
 import path from "path";
@@ -42,7 +43,9 @@ function encrypt(text, key) {
     console.error("ey2    Encryption failed: text is not a string");
     return null; // Return null or handle the error as needed
   }
-  const cipher = crypto.createCipher('aes-256-cbc', key);
+  const keyBuffer = crypto.createHash('sha256').update(key).digest(); // Derive 32-byte key
+  const iv = Buffer.alloc(16, 0); // Use zero IV for compatibility
+  const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return encrypted;
@@ -65,12 +68,14 @@ function decrypt(encryptedText, key) {
   console.log("de1    decrypting: ", encryptedText);
   let decrypted = "";
   try {
-    const decipher = crypto.createDecipher('aes-256-cbc', key);
+    const keyBuffer = crypto.createHash('sha256').update(key).digest(); // Derive 32-byte key
+    const iv = Buffer.alloc(16, 0); // Use zero IV for compatibility
+    const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
     decrypted = decipher.update(encryptedText, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
   } catch (error) {
     console.error("de2    Decryption failed:", error);
-    decrypted = "null"; // Set decrypted to null if decryption fails
+    return null; // Return null on failure
   }
   return decrypted;
 }
@@ -461,29 +466,28 @@ app.get("/testSMTP/:user_id", async (req, res) => {
     console.log("gx2    SMTP connection details: ", smtp_host, email, decryptedPassword);
 
     const imapConfig = {
-      host: smtp_host,     //smtpHost,
+      user: email,
+      password: decryptedPassword,
+      host: smtp_host,
       port: 993,
-      secure: true,
-      auth: {
-        user: email,
-        pass: decryptedPassword
-      },
-      logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+      tls: true
     };
-    let countInserted = 0;
-    const client = new ImapFlow(imapConfig);
+    const imap = new Imap(imapConfig);
     console.log("gx4    Connecting to IMAP server...");
-    await client.connect();
-    console.log("gx4a   Connected to IMAP server.");
-    //check if connection is ok
-    if (!client.authenticated) {
-      console.error("gx83    Failed to connect to IMAP server.");
-      return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
-    } else {
-      console.log("gx83    Successfully connected to IMAP server.", client.authenticated);
-      await client.logout();
-      return res.json({ success: true, message: "Email connected successfully!" });
-    }
+    await new Promise((resolve, reject) => {
+      imap.once('ready', () => {
+        console.log("gx4a   Connected to IMAP server.");
+        resolve();
+      });
+      imap.once('error', (err) => {
+        console.error("gx83    Failed to connect to IMAP server:", err);
+        reject(err);
+      });
+      imap.connect();
+    });
+    console.log("gx83    Successfully connected to IMAP server.");
+    imap.end();
+    return res.json({ success: true, message: "Email connected successfully!" });
   } catch (error) {
     console.error("gx8    Error connecting to email server:", error);
     return res.status(500).json({ success: false, message: "Error connecting to email server: " + error });
@@ -496,108 +500,188 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
   const customerID = parseInt(req.params.cust_id);
   const userID = parseInt(req.params.user_id);
   let lock;
-  let client;
+  let client = null;
   let countInserted = 0;
+  let imap;
 
   try {
-    // Look up the customerID in the database
+    // Step 1: Retrieve the customer's primary email from the database
     const result = await pool.query("SELECT primary_email FROM customers WHERE id = $1", [customerID]);
     if (result.rows.length === 0) {
       console.error("ge18  No email found for customerID:", customerID);
       return res.status(404).json({ success: false, message: "Email not found" });
     }
     const email = result.rows[0].primary_email;
-    // console.log("ge2    Looking up user:", userID);
+    
+    // Step 2: Retrieve the user's SMTP connection details from the database
     const userResult = await pool.query("SELECT id, smtp_host, email, smtp_password FROM users WHERE id = $1", [userID]);
-    // console.log("ge2a   ", userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
-    let smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+    let smtpPassword;
+    try {
+      smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+    } catch (decryptErr) {
+      console.error("ge2    Decryption failed for user SMTP password:", decryptErr.message);
+      return res.status(500).json({ success: false, message: "Failed to decrypt SMTP password" });
+    }
     let smtpEmail = userResult.rows[0].email;
     let smtpHost = userResult.rows[0].smtp_host;
-    console.log("ge3    SMTP connection details: ", smtpHost, smtpEmail, smtpPassword);
+    console.log("ge3    SMTP connection details: ", smtpHost, smtpEmail, smtpPassword ? "****" : "null");
+
+    if (!smtpPassword) {
+      console.error("ge3a   SMTP password is null, cannot connect");
+      return res.status(500).json({ success: false, message: "SMTP password not available" });
+    }
+
+    // Step 3: Configure IMAP connection using the user's SMTP details
     const imapConfig = {
-      host: smtpHost,       //"mail.privateemail.com",     //smtpHost,
+      user: smtpEmail,
+      password: smtpPassword,
+      host: smtpHost,
       port: 993,
-      secure: true,
-      auth: {
-        user: smtpEmail,
-        pass: smtpPassword
-      },
-      logger: false  //  Only logs in development    process.env.NODE_ENV === 'development' ? console : false  
+      tls: true
     };
-    countInserted = 0;
-    client = new ImapFlow(imapConfig);
+    imap = new Imap(imapConfig);
     console.log("ge4    Connecting to IMAP server...");
-    await client.connect();
-    console.log("ge4a   Connected to IMAP server.");
-    //check if connection is ok
-    if (!client.authenticated) {
-      console.error("ge83    Failed to connect to IMAP server.");
-      return res.status(500).json({ success: false, message: "Failed to connect to IMAP server" });
-    }
-    lock = await client.getMailboxLock('INBOX');
-    console.log("ge4b   Lock acquired for mailbox INBOX.");
-    //check if mailbox is ok
-    if (!lock) {
-      console.error("ge84    Failed to lock mailbox.");
-      return res.status(500).json({ success: false, message: "Failed to lock mailbox" });
-    }
+    await new Promise((resolve, reject) => {
+      imap.once('ready', () => {
+        console.log("ge4a   Connected to IMAP server.");
+        resolve();
+      });
+      imap.once('error', reject);
+      imap.connect();
+    });
+
+    await new Promise((resolve, reject) => {
+      imap.openBox('INBOX', true, (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+
     console.log("ge5    Fetching emails from INBOX where sender = " + email);
 
-    // replace all conversations for this customerID
+    // Step 6: Delete existing conversations for this customer to replace with fresh data
     await pool.query("DELETE FROM conversations where person_id = $1", [customerID]);
-    for await (const message of client.fetch(
-      {
-        or: [
-          { from: email },
-          { to: email }
-        ]
-      },
-      {
-        envelope: true,
-        bodyParts: true,
-        bodyStructure: true
-      })) {
 
-      //if (message.envelope.from.some(sender => sender.address === email)) {
-      let display_name = message.envelope.from[0].name;
-      if (display_name.length > 15) { display_name = display_name.substring(0, 12) + "..."; }
-      let msgDate = message.envelope.date || new Date();
-      let msgSubject = message.envelope.subject || 'unknown';
-      await pool.query(`
+    // Step 7: Search for emails
+    const results = await new Promise((resolve, reject) => {
+      imap.search([['OR', ['FROM', email], ['TO', email]]], (err, results) => {
+        if (err) reject(err); else resolve(results);
+      });
+    });
+
+    if (results.length === 0) {
+      console.log("ge6    No emails found for " + email);
+    } else {
+      console.log("ge6    Found " + results.length + " emails for " + email);
+      const messagePromises = [];
+      const fetch = imap.fetch(results, { bodies: '', struct: true, envelope: true });
+
+      fetch.on('message', (msg, seqno) => {
+        const messagePromise = new Promise(async (resolve) => {
+          const messageData = { seqno };
+          const bodyPromise = new Promise((resolveBody) => {
+            msg.on('body', (stream) => {
+              let buffer = '';
+              stream.on('data', (chunk) => buffer += chunk.toString('utf8'));
+              stream.once('end', async () => {
+                try {
+                  const parsed = await simpleParser(buffer);
+                  resolveBody(parsed.text || parsed.html || '');
+                } catch (e) {
+                  resolveBody('');
+                }
+              });
+            });
+          });
+          msg.once('attributes', (attrs) => {
+            messageData.envelope = attrs.envelope;
+          });
+          msg.once('end', async () => {
+            messageData.body = await bodyPromise;
+            resolve(messageData);
+          });
+        });
+        messagePromises.push(messagePromise);
+      });
+
+      await new Promise((resolve, reject) => {
+        fetch.once('end', resolve);
+        fetch.once('error', reject);
+      });
+
+      const messages = await Promise.all(messagePromises);
+
+      console.log('ge7    Messages collected:', messages.length);
+
+      for (const messageData of messages) {
+        const envelope = messageData.envelope;
+        if (!envelope) {
+          console.log('ge8    Skipping message without envelope');
+          continue;
+        }
+        console.log('ge8    Processing message:', envelope.subject, 'body length:', messageData.body.length);
+        let display_name = envelope.from[0].name || 'Unknown';
+        if (display_name.length > 15) { display_name = display_name.substring(0, 12) + "..."; }
+        let msgDate = envelope.date || new Date();
+        let msgSubject = envelope.subject || 'unknown';
+        let msgBody = messageData.body;
+
+        console.log(`ge6    Processing email from: ${display_name}, Subject: ${msgSubject}, Body: ${msgBody}`);
+
+        // Step 8: Insert the email into the conversations table
+        await pool.query(`
           INSERT INTO public.conversations (
-            display_name, person_id, message_text, 
-            has_attachment, visibility, job_id, post_date
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-          display_name,
-          customerID,
-          msgSubject,
-          null,
-          'public',
-          null,
-          msgDate
-        ]
-      );
-      countInserted++;
-      // } else {
-      //   console.log("ge7m    Email not inserted: ", message.envelope.subject);
-      // }
-
+            display_name, person_id, subject,  
+            has_attachment, visibility, job_id, post_date, message_text
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            display_name,
+            customerID,
+            msgSubject,
+            null,
+            'public',
+            null,
+            msgDate,
+            msgBody
+          ]
+        );
+        countInserted++;
+      }
     }
   } catch (err) {
     console.error("ge8    Error processing emails:", err);
     return res.status(500).json({ success: false, message: "Error processing emails: " + err.response });
   } finally {
-    lock.release();
-    await client.logout();
+    // Step 9: Clean up resources
+    if (lock) lock.release();
+    if (imap) imap.end();
     console.log("ge9    finished inserting (" + countInserted + ") emails to database");
-    let build = await pool.query("SELECT id FROM builds WHERE customer_id = $1", [customerID]);
-    return res.json({ success: true, message: "Email processed successfully!", build_id: build.rows[0].id });
+    if (!res.headersSent) {
+      let build = await pool.query("SELECT id FROM builds WHERE customer_id = $1", [customerID]);
+      return res.json({ success: true, message: "Email processed successfully!", build_id: build.rows[0].id });
+    }
   }
 
 });
 
+app.get('/api/user-smtp', async (req, res) => {
+  const userId = parseInt(req.query.id);
+  if (!userId) return res.status(400).json({ error: 'Missing user id' });
 
+  try {
+    const result = await pool.query(
+      'SELECT id, email, smtp_host, smtp_password FROM users WHERE id = $1',
+      [userId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+    // Optionally decrypt smtp_password here if needed
+    // const decryptedPassword = decrypt(result.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Database error' });
+  }
+});
 
 
 app.get("/jobs/:id", async (req, res) => {

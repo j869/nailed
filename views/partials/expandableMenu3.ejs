@@ -1,0 +1,176 @@
+<!-- Modern Expandable Sidebar Menu v3 (Responsive, Clean CSS, Inbox) -->
+<style>
+#expandableMenu {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  height: calc(100vh - 156px);
+  width: 48px;
+  background: #1d351d;
+  color: #fff;
+  overflow-x: hidden;
+  transition: width 0.3s ease;
+  z-index: 1200;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+}
+#expandableMenu.open { width: 260px; }
+#expandableMenu.super-expanded { width: 80vw; }
+@media (max-width: 600px) {
+  #expandableMenu.open { width: 80vw; }
+  #expandableMenu.super-expanded { width: 100vw; }
+  .menu-label { font-size: 1em; }
+}
+@media (min-width: 1200px) {
+  #expandableMenu.open { width: 320px; }
+  .menu-label { font-size: 1.3em; }
+}
+#expandableMenu:not(.open) .menu-label { display: none; }
+#expandableMenu.open .menu-label { display: inline; }
+#expandableMenu.super-expanded .sidebar-icons { display: none !important; }
+#expandableMenu.super-expanded .menu-label {
+  display: inline;
+  font-size: 1.2em;
+  font-weight: 500;
+}
+#expandableMenu.super-expanded .sidebar-icons i,
+#expandableMenu.super-expanded .sidebar-icons .menu-label {
+  font-size: 1.6em;
+}
+#expandableMenu .menu-fixed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 100%;
+  background: #184218;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  z-index: 1300;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.12);
+}
+.sidebar-icons {
+  margin-top: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+#expandMenuBtn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: #184218;
+  color: #fff;
+  border: 1.5px solid #2c4c2c;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1.6em;
+  cursor: pointer;
+  z-index: 2;
+}
+#expandWideBtn {
+  position: absolute;
+  top: 8px;
+  left: 48px;
+  background: #184218;
+  color: #fff;
+  border: 1.5px solid #2c4c2c;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1.2em;
+  cursor: pointer;
+  z-index: 2;
+  display: none;
+}
+</style>
+<div id="expandableMenu">
+  <div class="menu-fixed">
+    <a href="/" class="nav-link report-icon" title="Home">
+      <i class="fas fa-home"></i>
+      <span class="menu-label">Home</span>
+    </a>
+    <a href="/profile" class="nav-link report-icon" title="User">
+      <i class="fas fa-user"></i>
+      <span class="menu-label">User</span>
+    </a>
+  </div>
+  <div class="menu-header" style="padding: 8px 0; position: relative;">
+    <button id="expandMenuBtn" title="Expand menu">
+      <span id="expandIcon">&gt;</span>
+    </button>
+    <button id="expandWideBtn" title="Expand to wide menu">
+      <span id="expandWideIcon">&#x21F2;</span>
+    </button>
+    <div class="sidebar-icons">
+      <a href="/2/customers" class="nav-link report-icon" title="List view">
+        <i class="fas fa-list"></i>
+        <span class="menu-label">List view</span>
+      </a>
+      <a href="/management-report" class="nav-link report-icon" title="Management Report">
+        <i class="fas fa-chart-bar"></i>
+        <span class="menu-label">Management Report</span>
+      </a>
+      <a href="#" class="nav-link report-icon" title="Inbox" id="inboxMenuBtn">
+        <i class="fas fa-inbox"></i>
+        <span class="menu-label">Inbox</span>
+      </a>
+      <% if (locals.user && locals.user.roles && locals.user.roles.includes('sysadmin')) { %>
+        <a href="/admin/wf-rule-report-server" class="nav-link report-icon" title="WF Rule Report">
+          <i class="fas fa-file-alt"></i>
+          <span class="menu-label">WF Rule Report</span>
+        </a>
+        <a href="/admin/job-templates" class="nav-link report-icon" title="Job Templates">
+          <i class="fas fa-briefcase"></i>
+          <span class="menu-label">Job Templates</span>
+        </a>
+        <a href="/admin/customers/import" class="nav-link report-icon" title="Customer Import">
+          <i class="fas fa-user-plus"></i>
+          <span class="menu-label">Customer Import</span>
+        </a>
+        <a href="/admin/users" class="nav-link report-icon" title="Manage Users">
+          <i class="fas fa-users-cog"></i>
+          <span class="menu-label">Manage Users</span>
+        </a>
+        <a href="/admin/rule-builder" class="nav-link report-icon" title="Rule Builder">
+          <i class="fas fa-cogs"></i>
+          <span class="menu-label">Rule Builder</span>
+        </a>
+        <a href="/admin/demo/rules" class="nav-link report-icon" title="Rule Engine Demo">
+          <span style="font-size:1.4em;">🧪</span>
+          <span class="menu-label">Rule Engine Demo</span>
+        </a>
+        <a href="/admin/home" class="nav-link report-icon" title="Admin">
+          <i class="fas fa-user-shield"></i>
+          <span class="menu-label">Admin</span>
+        </a>
+      <% } %>
+    </div>
+  </div>
+  <div class="menu-content" style="display: none;">
+    <div class="accordion" id="inboxAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="headingInbox">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseInbox" aria-expanded="false" aria-controls="collapseInbox">
+            Inbox
+          </button>
+        </h2>
+        <div id="collapseInbox" class="accordion-collapse collapse" aria-labelledby="headingInbox" data-bs-parent="#inboxAccordion">
+          <div class="accordion-body">
+            <div id="inboxMenuContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/src/email/expandableMenu3.js"></script>
+<script>
+    <% if (!locals) { %>
+        console.log("Sidemenu - no variables passed");
+    <% } else { %>
+        console.log("Sidemenu - locals ", <%- JSON.stringify(locals) %>);
+    <% } %>    
+
+</script>
