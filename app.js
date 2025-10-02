@@ -1917,44 +1917,46 @@ app.post("/addCustomer", async (req, res) => {
     const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
     
     //check if the customer name already exists
+    console.log("n71   checking if name already exists: ", req.body.fullName);
     if (req.body.fullName) {
-      const existingCustomer = await db.query(`SELECT * FROM customers c WHERE LOWER(c.full_name) = LOWER($1) AND (${processedSecurityClause})`, [req.body.fullName]);
+      const existingCustomer = await db.query(`SELECT * FROM customers c WHERE LOWER(c.full_name) = LOWER($1) `, [req.body.fullName]);
       if (existingCustomer.rows.length > 0) {
         console.log("n81         Customer already exists: ", req.body.fullName);
         res.redirect("/customer/" + existingCustomer.rows[0].id); // Redirect to the existing customer's page
         return;
       }
     }
-    //check if email already exists
+    
+    console.log("72    check if email already exists", req.body.primaryEmail);
     if (req.body.primaryEmail) {
-      const existingEmail = await db.query(`SELECT * FROM customers c WHERE c.primary_email = $1 AND (${processedSecurityClause})`, [req.body.primaryEmail]);
+      const existingEmail = await db.query(`SELECT * FROM customers c WHERE c.primary_email = $1 `, [req.body.primaryEmail]);
       if (existingEmail.rows.length > 0) {
         console.log("n82         Email already exists: ", req.body.primaryEmail);
         res.redirect("/customer/"+existingEmail.rows[0].id); // Redirect to the existing customer's page
         return;
       }
     }
-    //check if phone number already exists
+    console.log("73    check if phone number already exists", req.body.primaryPhone);
     if (req.body.primaryPhone) {
-      const existingPhone = await db.query(`SELECT * FROM customers c WHERE c.primary_phone = $1 AND (${processedSecurityClause})`, [req.body.primaryPhone]);
+      const existingPhone = await db.query(`SELECT * FROM customers c WHERE c.primary_phone = $1 `, [req.body.primaryPhone]);
       if (existingPhone.rows.length > 0) {
         console.log("n83         Phone number already exists: ", req.body.primaryPhone);
         res.redirect("/customer/"+existingPhone.rows[0].id); // Redirect to the existing customer's page
         return;
       }
     }
-    //check if address already exists
+    console.log("74    check if address already exists", req.body.homeAddress);
     if (req.body.homeAddress) {
-      const existingAddress = await db.query(`SELECT * FROM customers c WHERE c.home_address = $1 AND (${processedSecurityClause})`, [req.body.homeAddress]);
+      const existingAddress = await db.query(`SELECT * FROM customers c WHERE c.home_address = $1 `, [req.body.homeAddress]);
       if (existingAddress.rows.length > 0) {
         console.log("n84         Address already exists: ", req.body.homeAddress);
         res.redirect("/customer/"+existingAddress.rows[0].id); // Redirect to the existing customer's page
         return;
       }
     }
-    //check if other contact already exists
+    console.log("75    check if other contact already exists", req.body.contactOther);
     if (req.body.contactOther) {
-      const existingContact = await db.query(`SELECT * FROM customers c WHERE c.contact_other = $1 AND (${processedSecurityClause})`, [req.body.contactOther]);
+      const existingContact = await db.query(`SELECT * FROM customers c WHERE c.contact_other = $1 `, [req.body.contactOther]);
       if (existingContact.rows.length > 0) {
         console.log("n85         Other contact already exists: ", req.body.contactOther);
         res.redirect("/customer/"+existingContact.rows[0].id); // Redirect to the existing customer's page
@@ -1979,8 +1981,8 @@ app.post("/addCustomer", async (req, res) => {
       const q = await db.query("UPDATE builds SET job_id = $1 WHERE id = $2 RETURNING 1", [response.data.id, buildID ])
 
       console.log("n4       job added to build: ", response.data.id, " for buildID: ", buildID);
-      console.log("n5       updating the build("+ buildID +") with user_id: ", req.user.id);
       const q2 = await db.query("UPDATE jobs SET user_id = $1 WHERE build_id = $2 RETURNING 1", [req.user.id, buildID ])
+      console.log("n555       updated count(" + q2.rowCount + ") build("+ buildID +") with user_id: ", req.user.id);
           
       return res.redirect("/2/build/" + buildID);          
             

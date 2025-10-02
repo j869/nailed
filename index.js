@@ -7,8 +7,12 @@ import env from "dotenv";
 import multer from "multer";
 import cors from "cors";
 import nodemailer from "nodemailer";
+<<<<<<< HEAD
 import imap from 'imap';
 import { simpleParser } from 'mailparser';
+=======
+// import { ImapFlow } from 'imapflow';
+>>>>>>> master
 import crypto from 'crypto';   //const crypto = require('crypto');
 import axios from "axios";
 import path from "path";
