@@ -241,10 +241,16 @@
                                                                                                         <td style="display: none;"><%= job.job_template_id %></td>
                                                                                                         <td style="background-color:#77DD77;">
                                                                                                             <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= jobID %>" onclick="event.stopPropagation()">
-                                                                                                            <option value="" <% if (!job.user_id) { %> selected <% } %>>Unspecified</option>
-                                                                                                            <option value="12" <% if (job.user_id === 12) { %> selected <% } %>>Bryan</option>
-                                                                                                            <option value="13" <% if (job.user_id === 13) { %> selected <% } %>>VPA</option>
-                                                                                                            <option value="1" <% if (job.user_id === 1) { %> selected <% } %>>John</option>
+                                                                                                            <option value=""></option>
+<% 
+if (Array.isArray(locals.resources)) {
+    locals.resources.forEach(function(resource) {
+%>
+                                                                                                            <option value="<%= resource.id %>"><%= resource.id %> <%= resource.full_name %></option>
+<% 
+    });
+}
+%>
                                                                                                             </select>
                                                                                                         </td>
                                                                                                         <td style="background-color:#77DD77;"><%= job.role_id %></td>
@@ -330,14 +336,15 @@
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                     <td style="text-align: left;">
-                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
-                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
-                                                                                                                                        </span>
                                                                                                                                         <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
                                                                                                                                             <i class="fas fa-upload" style="color: #007bff; margin-left: 12px;" title="Upload"></i>
                                                                                                                                         </button>
                                                                                                                                         <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
                                                                                                                                         <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
+                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
+                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
+                                                                                                                                        </span>
+                                                                                                                                        
                                                                                                                                     </td>
                                                                                                                                     <td>
                                                                                                                                         <div style="display: flex; flex-direction: column; align-items: flex-start;">
