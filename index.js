@@ -7,12 +7,8 @@ import env from "dotenv";
 import multer from "multer";
 import cors from "cors";
 import nodemailer from "nodemailer";
-<<<<<<< HEAD
 import imap from 'imap';
 import { simpleParser } from 'mailparser';
-=======
-// import { ImapFlow } from 'imapflow';
->>>>>>> master
 import crypto from 'crypto';   //const crypto = require('crypto');
 import axios from "axios";
 import path from "path";
@@ -555,6 +551,9 @@ app.get("/testSMTP/:user_id", async (req, res) => {
   }
 });
 
+
+
+
 app.get("/email/:cust_id/:user_id", async (req, res) => {
   console.log("ge1    fetching emails for CustID(" + req.params.cust_id + ") UserID(" + req.params.user_id + ")");
   const customerID = parseInt(req.params.cust_id);
@@ -607,7 +606,7 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
             return reject(res.status(500).json({ success: false, message: "Error opening inbox" }));
           }
 
-          console.log("ge6    Searching for emails...");
+          console.log("ge6    Searching mailbox for ", email);
           // Search for emails that touch the customer in any way
           // IMAP OR requires exactly 2 arguments, so we need to nest them
           imapClient.search([

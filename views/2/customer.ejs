@@ -336,7 +336,6 @@ if (Array.isArray(locals.resources)) {
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
                                                                                                                                     <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
                                                                                                                                     <td style="text-align: left;">
-<<<<<<< HEAD
                                                                                                                                         <div style="display: flex; align-items: flex-start; gap: 8px;">
                                                                                                                                             <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                                                                                                                                                 <button class="btn btn-link p-0" title="Add Attachment" onclick="showAttachmentInput('<%= taskID %>')">
@@ -349,12 +348,6 @@ if (Array.isArray(locals.resources)) {
                                                                                                                                             </span>
                                                                                                                                             
                                                                                                                                         </div>
-=======
-                                                                                                                                        <button class="btn btn-link p-0" title="Add Attachment" style="vertical-align: middle; margin-left: 4px;" onclick="showAttachmentInput('<%= taskID %>')">
-                                                                                                                                            <i class="fas fa-upload" style="color: #007bff; margin-left: 12px;" title="Upload"></i>
-                                                                                                                                        </button>
-                                                                                                                                        <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true" style="vertical-align: middle;"></span>
->>>>>>> master
                                                                                                                                         <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                         <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
                                                                                                                                             <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>

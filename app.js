@@ -16,6 +16,7 @@ import e from "express";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import nodemailer from 'nodemailer';
 
 // Decryption function
 function decrypt(encryptedText, key) {
@@ -361,20 +362,24 @@ app.post("/send-email", async (req, res) => {
   if (req.isAuthenticated()) {
     console.log("se1    Sending email for user:", req.user.id);
     const { customerId, toEmail, subject, message } = req.body;
+    console.log("se1a   Email details - customerId:", customerId, "toEmail:", toEmail, "subject:", subject, "message length:", message?.length);
     
     try {
       // Get user's SMTP settings
+      console.log("se1b   Fetching SMTP settings for user:", req.user.id);
       const userResult = await db.query("SELECT email, smtp_host, smtp_password FROM users WHERE id = $1", [req.user.id]);
       if (userResult.rows.length === 0) {
+        console.log("se1c   No SMTP settings found for user:", req.user.id);
         return res.status(400).json({ success: false, message: "User SMTP settings not found" });
       }
       
       const smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
       const smtpEmail = userResult.rows[0].email;
       const smtpHost = userResult.rows[0].smtp_host;
+      console.log("se1d   SMTP settings - email:", smtpEmail, "host:", smtpHost, "password decrypted:", !!smtpPassword);
       
       // Create transporter
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: 587, // or 465 for SSL
         secure: false, // true for 465, false for other ports
@@ -383,6 +388,7 @@ app.post("/send-email", async (req, res) => {
           pass: smtpPassword
         }
       });
+      console.log("se1e   Nodemailer transporter created successfully");
       
       // Send email
       const mailOptions = {
@@ -392,35 +398,47 @@ app.post("/send-email", async (req, res) => {
         text: message,
         html: message.replace(/\n/g, '<br>') // Simple HTML conversion
       };
+      console.log("se1f   Sending email with options:", { from: smtpEmail, to: toEmail, subject: subject });
       
       const info = await transporter.sendMail(mailOptions);
-      console.log("se2    Email sent:", info.messageId);
+      console.log("se2    Email sent successfully:", info.messageId);
       
       // Store sent email in conversations table
-      await db.query(`
+      console.log("se2a   Storing email in conversations table");
+      const insertQuery = `
         INSERT INTO public.conversations (
           display_name, person_id, subject, message_text, 
-          has_attachment, visibility, job_id, post_date, message_body
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          `Sent to ${toEmail}`,
-          customerId,
-          subject,
-          message,
-          null,
-          'public',
-          null,
-          new Date(),
-          message
-        ]
-      );
+          has_attachment, visibility, job_id, post_date
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`;
+      const insertParams = [
+        `Sent to ${toEmail}`.substring(0, 15), // Truncate to fit varchar(15)
+        customerId,
+        subject,
+        message,
+        null,
+        'public',
+        null,
+        new Date()
+      ];
+      console.log("se2b   Insert query:", insertQuery);
+      console.log("se2c   Insert params:", insertParams.map((p, i) => `${i+1}: ${typeof p === 'string' ? p.substring(0, 50) + '...' : p}`));
+      
+      await db.query(insertQuery, insertParams);
+      console.log("se2d   Email stored in database successfully");
       
       res.json({ success: true, message: "Email sent successfully" });
     } catch (error) {
       console.error("se3    Error sending email:", error);
+      console.error("se3a   Error details:", {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        position: error.position
+      });
       res.status(500).json({ success: false, message: "Failed to send email: " + error.message });
     }
   } else {
+    console.log("se4    User not authenticated");
     res.status(401).json({ success: false, message: "Not authenticated" });
   }
 });
