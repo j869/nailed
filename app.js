@@ -15,8 +15,39 @@ import moment from 'moment';
 import e from "express";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
+// Decryption function
+function decrypt(encryptedText, key) {
+  console.log("de1    decrypting: ", encryptedText ? encryptedText.substring(0, 10) + "..." : "null");
+  if (!encryptedText || encryptedText === "null") {
+    console.error("de2    No encrypted text provided");
+    return null;
+  }
 
+  try {
+    // Check if this is new format (IV prepended)
+    if (encryptedText.length > 32) { // IV is 32 hex chars
+      const iv = Buffer.from(encryptedText.substring(0, 32), 'hex');
+      const encryptedData = encryptedText.substring(32);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'base64'), iv);
+      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      console.log("de3    Decryption successful with new method");
+      return decrypted;
+    } else {
+      // Try old method for backward compatibility
+      const decipher = crypto.createDecipher('aes-256-cbc', key);
+      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      console.log("de4    Decryption successful with old method");
+      return decrypted;
+    }
+  } catch (error) {
+    console.error("de5    Decryption failed:", error.message);
+    return null;
+  }
+}
 
 const app = express();
 // Set view engine
@@ -326,6 +357,74 @@ app.post("/updateSMTP", async (req, res) => {
 });
   
 
+app.post("/send-email", async (req, res) => {
+  if (req.isAuthenticated()) {
+    console.log("se1    Sending email for user:", req.user.id);
+    const { customerId, toEmail, subject, message } = req.body;
+    
+    try {
+      // Get user's SMTP settings
+      const userResult = await db.query("SELECT email, smtp_host, smtp_password FROM users WHERE id = $1", [req.user.id]);
+      if (userResult.rows.length === 0) {
+        return res.status(400).json({ success: false, message: "User SMTP settings not found" });
+      }
+      
+      const smtpPassword = decrypt(userResult.rows[0].smtp_password, process.env.SMTP_ENCRYPTION_KEY);
+      const smtpEmail = userResult.rows[0].email;
+      const smtpHost = userResult.rows[0].smtp_host;
+      
+      // Create transporter
+      const transporter = nodemailer.createTransporter({
+        host: smtpHost,
+        port: 587, // or 465 for SSL
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: smtpEmail,
+          pass: smtpPassword
+        }
+      });
+      
+      // Send email
+      const mailOptions = {
+        from: smtpEmail,
+        to: toEmail,
+        subject: subject,
+        text: message,
+        html: message.replace(/\n/g, '<br>') // Simple HTML conversion
+      };
+      
+      const info = await transporter.sendMail(mailOptions);
+      console.log("se2    Email sent:", info.messageId);
+      
+      // Store sent email in conversations table
+      await db.query(`
+        INSERT INTO public.conversations (
+          display_name, person_id, subject, message_text, 
+          has_attachment, visibility, job_id, post_date, message_body
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          `Sent to ${toEmail}`,
+          customerId,
+          subject,
+          message,
+          null,
+          'public',
+          null,
+          new Date(),
+          message
+        ]
+      );
+      
+      res.json({ success: true, message: "Email sent successfully" });
+    } catch (error) {
+      console.error("se3    Error sending email:", error);
+      res.status(500).json({ success: false, message: "Failed to send email: " + error.message });
+    }
+  } else {
+    res.status(401).json({ success: false, message: "Not authenticated" });
+  }
+});
+
 app.get("/checkemail", async (req, res) => {
   if (req.isAuthenticated()) {
     //<a href= "/checkemail?btn=103d&customer_id=<%= customer.id %>&returnto=customer/<%= customer.id %>" class="btn btn-primary">check for new emails</a>
@@ -334,26 +433,40 @@ app.get("/checkemail", async (req, res) => {
 
     //connect to email server and check for new emails
     // pass userID and custID to the email server to check for new emails
-    const emailResult = await axios.get(`${API_URL}/email/${customerID}/${req.user.id}`);
+    let emailResult;
+    try {
+      emailResult = await axios.get(`${API_URL}/email/${customerID}/${req.user.id}`);
+    } catch (error) {
+      console.error("ce2a    Error checking email:", error.message);
+      emailResult = { data: { success: false, message: error.message } };
+    }
     //const emailResult = await axios.get(`${API_URL}/email/${customerID}`);  
     console.log("ce2    ", emailResult.data);
+    let emailMessage = "";
     if (emailResult.data.success) {
       console.log("ce9    ", emailResult.data.message);
+      emailMessage = emailResult.data.message;
     } else {
       console.log("ce4    No new emails (or) problem reading emails for customer("+ customerID +") ");
+      emailMessage = emailResult.data.message || "No new emails or problem reading emails.";
     }
+    res.locals.emailMessage = emailMessage;
+    console.log("ce51    emailMessage: ", res.locals.emailMessage);
     
     //redirect to customer page
     console.log("ce5    redirecting to customer page ", req.query.returnto);
+    const success = emailResult.data.success ? '1' : '0';
+    const message = encodeURIComponent(emailMessage);
+    
     if (req.query.returnto.search("build") > -1) {
       // res.redirect("/builds/", req.query.returnto);
       // res.redirect("2/build/" + emailResult.data.build_id);
       console.log("ce6    redirecting to build page ", req.query.returnto);
-      res.redirect(""+ req.query.returnto);
+      res.redirect(`${req.query.returnto}?email_check=${success}&email_message=${message}`);
     } else {
       // res.redirect("/2/build/264"); 
       console.log("ce6    redirecting to customer page ", req.query.returnto);
-      res.redirect(""+ req.query.returnto);
+      res.redirect(`${req.query.returnto}?email_check=${success}&email_message=${message}`);
     }
     // res.redirect("/customer/" + customerID); ;
   }
@@ -1134,11 +1247,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
 
     // 4. Get emails
     const emailsResult = await db.query(`
-      SELECT 
-        id, display_name, person_id, message_text, 
-        has_attachment, visibility, job_id, post_date 
-      FROM conversations 
-      WHERE person_id = $1
+      SELECT * FROM conversations WHERE person_id = $1
     `, [customerID]);
 
     // 5. Get all top-level jobs for this build
@@ -1664,7 +1773,7 @@ app.get("/customer/:id", async (req, res) => {
       let products = qryProducts.rows;
 
       //read emails for the customer (customer access already verified)
-      const qryEmails = await db.query("SELECT id, display_name, person_id, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
+      const qryEmails = await db.query("SELECT id, display_name, person_id, subject, message_text, has_attachment, visibility, job_id, post_date FROM conversations WHERE person_id = $1", [custID]);
       let emails = qryEmails.rows;
 
       // Render the search results page or handle them as needed

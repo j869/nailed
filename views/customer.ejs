@@ -279,7 +279,7 @@
                                 <th>ID</th>
                                 <th>From</th>
                                 <th>Subject</th>
-                                <th>Created Date</th>
+                                <th>Body</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -288,8 +288,8 @@
                                     <tr class="email-row">
                                         <td><%= emails[i].id %></td>
                                         <td><%= emails[i].display_name %></td>
-                                        <td><%= emails[i].message_text %></td>
-                                        <td><%= emails[i].post_date %></td>
+                                        <td><%= emails[i].subject %></td>
+                                        <td><%- emails[i].message_text.replace(/\n/g, '<br>') %></td>
                                     </tr>
                                 <% } %>   
                             <% } %>
