@@ -242,15 +242,15 @@
                                                                                                         <td style="background-color:#77DD77;">
                                                                                                             <select class="editable" contenteditable="true" id="jobOwner" data-record-id="<%= jobID %>" onclick="event.stopPropagation()">
                                                                                                             <option value=""></option>
-<% 
-if (Array.isArray(locals.resources)) {
-    locals.resources.forEach(function(resource) {
-%>
-                                                                                                            <option value="<%= resource.id %>"><%= resource.id %> <%= resource.full_name %></option>
-<% 
-    });
-}
-%>
+                                                                                                                <% 
+                                                                                                                if (Array.isArray(locals.resources)) {
+                                                                                                                    locals.resources.forEach(function(resource) {
+                                                                                                                %>
+                                                                                                                                                                                                                            <option value="<%= resource.id %>"><%= resource.id %> <%= resource.full_name %></option>
+                                                                                                                <% 
+                                                                                                                    });
+                                                                                                                }
+                                                                                                                %>
                                                                                                             </select>
                                                                                                         </td>
                                                                                                         <td style="background-color:#77DD77;"><%= job.role_id %></td>
@@ -351,6 +351,7 @@ if (Array.isArray(locals.resources)) {
                                                                                                                                         <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                         <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
                                                                                                                                             <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
+     
                                                                                                                                         </span>
                                                                                                                                         
                                                                                                                                     </td>
