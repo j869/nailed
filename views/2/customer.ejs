@@ -169,7 +169,7 @@
                                                 <!-- -------------------------------------------------------------------------- -->
                                                 <!-- ---  sites                                                                -->
                                                 <!-- -------------------------------------------------------------------------- -->
-                                                <div class="accordian-body collapse show " id="collapseCust<%= customer.id %>">
+                                                <div class="accordion-body collapse show " id="collapseCust<%= customer.id %>">
                                                     <table class="table nested-table">
                                                         <thead>
                                                             <tr class="table-secondary">
@@ -207,7 +207,7 @@
                                                                             <!-- ---  jobs                                                                  -->
                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                             
-                                                                                <div class="accordian-body collapse show " id="collapseBuild<%= site.id %>">
+                                                                                <div class="accordion-body collapse show " id="collapseBuild<%= site.id %>">
                                                                                     <table id="jobsTable" class="table nested-table">
                                                                                         <thead>
                                                                                             <tr class="table-info">
@@ -285,7 +285,7 @@
                                                                                                             <!-- -------------------------------------------------------------------------- -->
                                                                                                             <!-- ---  tasks                                                                 -->
                                                                                                             <!-- -------------------------------------------------------------------------- -->
-                                                                                                            <div class="accordian-body collapse" id="collapseJob<%= jobID %>">
+                                                                                                            <div class="accordion-body collapse" id="collapseJob<%= jobID %>">
                                                                                                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                                                                                                     <div style="margin-right: auto;">   
                                                                                                                         <% if (true) { %>
@@ -349,10 +349,6 @@
                                                                                                                                             
                                                                                                                                         </div>
                                                                                                                                         <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
-                                                                                                                                        <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word;">
-                                                                                                                                            <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
-     
-                                                                                                                                        </span>
                                                                                                                                         
                                                                                                                                     </td>
                                                                                                                                     <td>
@@ -416,7 +412,7 @@
                                                                                                                                         <!-- -------------------------------------------------------------------------- -->
                                                                                                                                         <!-- ---  reminders                                                             -->
                                                                                                                                         <!-- -------------------------------------------------------------------------- -->
-                                                                                                                                        <div class="accordian-body collapse" id="xxcollapseTask<%= taskID %>">
+                                                                                                                                        <div class="accordion-body collapse" id="xxcollapseTask<%= taskID %>">
                                                                                                                                             
                                                                                                                                             <table class="table nested-table">
                                                                                                                                                 <thead>
@@ -456,7 +452,7 @@
                                                                                                                                                                     <!-- -------------------------------------------------------------------------- -->
                                                                                                                                                                     <!-- ---  unused accordian div                                                  -->
                                                                                                                                                                     <!-- -------------------------------------------------------------------------- -->
-                                                                                                                                                                    <div class="accordian-body collapse" id="collapseReminder<%= reminder.id %>">
+                                                                                                                                                                    <div class="accordion-body collapse" id="collapseReminder<%= reminder.id %>">
                                                                                                                                                                         
                                                                                                                                                                         unused <%= reminder.id %>
                                                                                                                                                                     </div>

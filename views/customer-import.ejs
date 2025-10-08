@@ -116,7 +116,29 @@
         </div>
       </div>
     </div>
+
+
+   
+
+
+  <form id="importEmailContacts" action="/admin/customers/import/email-contacts" method="POST" class="mt-4">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0">📧 Email Contacts Import</h6>
+          <p class="text-muted mb-0">Reads your mailbox and creates contacts based on unrecognised email addresses.</p>
+        </div>
+        <div class="card-body">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-upload"></i> Import Email Contacts
+          </button>
+        </div>
+      </div>
+    </form>
+
   </div>
+
+
+
 </div>
 
 <script>
@@ -201,3 +223,5 @@ document.getElementById('importForm').onsubmit = async function(e) {
 </script>
 
 <%- include('partials/footer') %>
+views/customer-import.ejs
+

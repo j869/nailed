@@ -552,7 +552,151 @@ app.get("/testSMTP/:user_id", async (req, res) => {
 });
 
 
+app.get("/importSMTPcontacts/:user_id", async (req,res) => {
+  console.log(`agu1     backend processing requested`);
+  const userID = parseInt(req.params.user_id);
+  console.log(`agu1b        - email contacts export for ${userID}`)
 
+  try {
+    //connect to user mailbox
+    let imapConnection;
+    try {
+      imapConnection = await pool.query(`SELECT email, smtp_host, smtp_password from users where id = $1`, [userID]);
+    } catch (err) {
+      console.error("agu2     Error fetching IMAP connection:", err);
+      return res.status(500).json({ error: "Error fetching IMAP connection" });
+    }
+    const userEmail = imapConnection.rows[0].email;
+    const smtpHost = imapConnection.rows[0].smtp_host;
+    const smtpPassword = imapConnection.rows[0].smtp_password;
+
+    console.log("agu3     IMAP connection details fetched for user:", smtpHost);
+
+    if (!userEmail || !smtpHost || !smtpPassword) {
+      console.error("agu4     Incomplete email configuration for user:", userID);
+      return res.status(400).json({ error: "Incomplete email configuration" });
+    }
+
+    // Read mailbox - return all mails
+    // Decrypt password if needed
+    const decryptedPassword = decrypt(smtpPassword, process.env.SMTP_ENCRYPTION_KEY);
+
+    // Create IMAP config
+    // const imapConfig = {
+    //   user: userEmail,
+    //   password: decryptedPassword,
+    //   host: smtpHost,
+    //   port: 993,
+    //   tls: true
+    // };
+
+    const imapClient = new imap({
+      user: userEmail,
+      password: decryptedPassword,
+      host: smtpHost,
+      port: 993,
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
+    });
+
+    function openInbox(cb) {
+      imapClient.openBox('INBOX', true, cb);
+    }
+
+    imapClient.once('ready', function() {
+      console.log('agu5     IMAP connection established');
+      // search all mail for contacts in  from field
+      openInbox((err, box) => {
+        if (err) {
+          console.error('agu5a    Error opening inbox:', err);
+          return res.status(500).json({ error: "Error opening inbox" });
+        }
+
+        // Search for all emails in the inbox
+        console.log('agu5b    Starting IMAP search for all emails...');
+        imapClient.search([['TO', userEmail]], (err, results) => {
+          if (err) {
+            console.error('agu5b    Error searching emails:', err);
+            return res.status(500).json({ error: "Error searching emails" });
+          }
+          console.log('agu5b    Search completed. Results:', results ? results.length : 0);
+
+          if (!results || results.length === 0) {
+            console.log('agu5c    No emails found.');
+            return res.json({ contacts: [] });
+          }
+
+          const contactsSet = new Set();
+          const f = imapClient.fetch(results, { bodies: '' });
+
+            f.on('message', (msg, seqno) => {
+            console.log(`agu5d    Reviewing email #${seqno}`);
+            msg.on('body', (stream, info) => {
+              simpleParser(stream, (err, parsed) => {
+              if (parsed && parsed.subject) {
+                console.log(`agu5d    Email subject: ${parsed.subject}`);
+              }
+              if (parsed && parsed.from && parsed.from.text) {
+                console.log(`agu5d    Email from: ${parsed.from.text}`);
+              }if (err) {
+                  console.error('agu5d    Error parsing email:', err);
+                  return;
+                }
+                // Collect contacts from From, To, CC, BCC fields
+                ['from', 'to', 'cc', 'bcc'].forEach(field => {
+                  if (parsed[field]) {
+                    parsed[field].value.forEach(contact => {
+                      if (contact.address) {
+                        contactsSet.add(contact.address);
+                      }
+                    });
+                  }
+                });
+              });
+            });
+          });
+
+          f.once('end', async () => {
+            // Convert Set to Array
+            const contacts = Array.from(contactsSet);
+            console.log('agu5e    Found contacts:', contacts.length);
+            res.json({ contacts });
+          });
+
+          f.once('error', (err) => {
+            console.error('agu5f    Fetch error:', err);
+            res.status(500).json({ error: "Error fetching emails" });
+          });
+        });
+      });
+
+
+      imapClient.end();
+    });
+
+    imapClient.once('error', function(err) {
+      console.error('agu6     IMAP connection error:', err);
+    });
+
+    imapClient.once('end', function() {
+      console.log('agu6b    IMAP connection closed');
+    });
+
+    imapClient.connect();
+    
+
+    console.log(`agu7     Fetched (unknown) contacts for user: ${userEmail}`);
+    
+    //FIXME: read all mails in database and identrify which contacts dont exist in our database
+    
+
+  } catch (error) {
+    console.error("agu8    Error fetching user data:", error);
+    return res.status(500).json({ error: "Error fetching user data" });
+  }
+
+
+});
 
 app.get("/email/:cust_id/:user_id", async (req, res) => {
   console.log("ge1    fetching emails for CustID(" + req.params.cust_id + ") UserID(" + req.params.user_id + ")");

@@ -1070,6 +1070,24 @@ app.post("/admin/customers/import/revert/:filename/execute", async (req, res) =>
 });
 
 
+app.post("/admin/customers/import/email-contacts", async (req, res) => {
+  // if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
+  //   return res.status(403).json({ error: "Access denied" });
+  // }
+  const userID =  2;     //req.user.id ||
+
+  console.log(`ayu1     USER(${userID}) requested email contacts export`);
+  
+  try {
+    const response = await axios.get(`${API_URL}/importSMTPcontacts/${userID}`);
+    console.log(`ayu9     USER(${userID}) requested email contacts export`);
+  } catch (error) {
+    // console.log(`ayu8     Error calling workflow API `);
+    console.log(`ayu80    Error details:`, error?.message || error);
+    return res.status(500).json({ error: "Error calling workflow API" });
+  }
+});
+
 //#endregion
 
 
