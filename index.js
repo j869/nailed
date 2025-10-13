@@ -1019,14 +1019,14 @@ app.get("/update", async (req, res) => {
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [value, id]);
     // console.log("ud3    UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";  updated(" + q.rowCount + ") records");
 
-    if (table === "jobs") {
-      // console.log("ud55    updating table 'jobs' and column: " + column);
-      if (column === "display_text") {
-        // console.log("ud69  sdf")
-        const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);
-        console.log("ud7     ...we also modified the template to reflect this change. ");
-      }
-    }
+    // if (table === "jobs") {
+    //   // console.log("ud55    updating table 'jobs' and column: " + column);
+    //   if (column === "display_text") {
+    //     // console.log("ud69  sdf")
+    //     const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);
+    //     console.log("ud7     ...we also modified the template to reflect this change. ");
+    //   }
+    // }
 
     if (q.rowCount == 1) {
       console.log("ud9    records succesfully modified in " + table + " table: 1");
@@ -1235,6 +1235,10 @@ app.get("/addjob", async (req, res) => {
         "SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL",
         [buildID]
       );
+      if (q.rows.length === 0) {
+        console.error("a811     No templates found for this product.");
+        return res.status(500).json({ error: 'No templates found for this product' });
+      }
       let firstTemplateID = q.rows[0].id;
       console.log("a81    USER added a new workflow(" + productID + ") for build(" + buildID + "). Beginner template is " + firstTemplateID);
 

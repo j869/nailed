@@ -14,3 +14,9 @@ ALTER TABLE jobs ADD COLUMN uploaded_docs JSONB;
 
 
 ALTER TABLE conversations ADD COLUMN subject VARCHAR(255);
+
+
+
+
+ALTER TABLE worksheets ADD COLUMN stalled_for VARCHAR(30);
+COMMENT ON COLUMN worksheets.stalled_for IS 'Indicates how long the worksheet has been unactioned. Values represent time periods like "3 days", "2 weeks", etc. Used to visually prioritize older items in the todo list.';

@@ -155,7 +155,7 @@ app.post("/", async (req, res) => {
     "task_status": null
   }
 
-  const q2 = await db.query("INSERT INTO worksheets (title, description, user_id, date) VALUES ($1, $2, $3, $4) RETURNING id", [title, null, person, date]);
+  const q2 = await db.query("INSERT INTO worksheets (title, description, user_id, date, stalled_for) VALUES ($1, $2, $3, $4, $5) RETURNING id", [title, null, person, date, null]);
   // console.log("wb7    ", q2.data);
 
   res.redirect("/");
@@ -169,9 +169,9 @@ app.get("/", async (req, res) => {
     let q1SQL = "";
     let q1Params = [req.user.id];
     if (iViewDay == 0) {
-      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date <= NOW()::date ORDER BY id";
+      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date <= NOW()::date ORDER BY stalled_for, id";
     } else {
-      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date = (NOW()::date + $2 * INTERVAL '1 day') ORDER BY id"
+      q1SQL = "SELECT *, to_char(date, 'DD-Mon-YY') AS formatted_date  FROM worksheets WHERE user_id = $1 AND date = (NOW()::date + $2 * INTERVAL '1 day') ORDER BY stalled_for, id"
       q1Params.push(iViewDay);
     }
     const q1 = await db.query(q1SQL, q1Params);
@@ -3183,22 +3183,22 @@ app.get("/update", async (req,res) => {
               console.log("ufg438     update "+ table + " set "+ columnName + " = " + value);          
               let q1 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
               
-              // Execute q2 to retrieve the task_id
-              let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
-              let task_id = 0;
-              if (q2.rows.length > 0) {
-                  const description = q2.rows[0].description;
-                  const parsedDescription = JSON.parse(description);
-                  task_id = parsedDescription.task_id;
-                  console.log("ufg439     Task ID:", task_id);
-              }
+              // // Execute q2 to retrieve the task_id
+              // let q2 = await db.query("SELECT description FROM worksheets WHERE id = $1", [rowID]);
+              // let task_id = 0;
+              // if (q2.rows.length > 0) {
+              //     const description = q2.rows[0].description;
+              //     const parsedDescription = JSON.parse(description);
+              //     task_id = parsedDescription.task_id;
+              //     console.log("ufg439     Task ID:", task_id);
+              // }
               
-              table = "tasks";
-              columnName = "owned_by";
-              value = "" + newValue + "";
-              // console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
-              console.log("ufg440     update "+ table + " set "+ columnName + " = " + value);          
-              let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              // table = "tasks";
+              // columnName = "owned_by";
+              // value = "" + newValue + "";
+              // // console.log(`ufg79   ${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
+              // console.log("ufg440     update "+ table + " set "+ columnName + " = " + value);          
+              // let q3 = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${task_id}`);
               
               await db.query('COMMIT'); // Commit transaction
       
@@ -3318,6 +3318,28 @@ app.get("/update", async (req,res) => {
         console.log("ufg450     update "+ table + " set "+ columnName + " = " + value );          
         q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
         
+        //update the customer record as recently processed
+        let q3 = await db.query("select customer_id from builds where id = (select build_id from jobs where id = $1)", [rowID]);
+        if (q3.rows.length > 0) {
+          const customerID = q3.rows[0].customer_id;
+          if (customerID) {
+            columnName = "date_last_actioned";
+            const dateObj = new Date();
+            value = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+            console.log("ufg451     update customers set "+ columnName + " = " + value + " for customerID: " + customerID );          
+            try {
+              q = await axios.get(`${API_URL}/update?table=customers&column=${columnName}&value=${value}&id=${customerID}`);
+            } catch (error) {
+              console.error("ufg4518     Error updating customer last action date:", error);
+            }
+          } else {
+            console.log("ufg452     No customerID found for jobID: " + rowID);
+          }
+        } else {
+          console.log("ufg453     No build found for jobID: " + rowID);
+        }
+
+
         //#endregion
         //#region --- VALIDATIONS ---
         console.log("ufg4610     no validations for job status change");
