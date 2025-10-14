@@ -727,14 +727,14 @@ app.post("/admin/customers/import", upload.single("customerFile"), async (req, r
               // Insert new customer
               const result = await db.query(`
                 INSERT INTO customers (
-                  id, full_name, primary_phone, home_address, job_no, site_location, building_type,
+                  full_name, primary_phone, home_address, job_no, site_location, building_type,
                   permit_type, slab_size, council_responsible, owner_builder_permit, current_status,
                   date_ordered, date_bp_applied, date_bp_issued, quoted_estimate, fees_paid_out,
                   job_earnings, next_action_description, follow_up
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, CURRENT_DATE + INTERVAL '21 days')
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_DATE + INTERVAL '21 days')
                 RETURNING id
               `, [
-                customer.id, customer.full_name, customer.primary_phone, customer.home_address, customer.job_no,
+                customer.full_name, customer.primary_phone, customer.home_address, customer.job_no,
                 customer.site_location, customer.building_type, customer.permit_type, customer.slab_size,
                 customer.council_responsible, customer.owner_builder_permit, customer.current_status,
                 customer.date_ordered, customer.date_bp_applied, customer.date_bp_issued,
