@@ -1464,7 +1464,7 @@ app.get("/2/customers", async (req, res) => {
             products p ON b.product_id = p.id
           WHERE (${processedSecurityClause})
           ORDER BY 
-            c.contact_other ASC;
+            c.id ASC;
         `);
 
         // Format follow_up value and structure the data

@@ -95,7 +95,7 @@
                                         <% locals.tableData.forEach(function(data) { %>
                                             <% if (data.customer.current_status == status) { %>
                                                 <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= data.customer.id %>">
-                                                    <td style="background-color:#77DD77;" class="editable" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.contact_other %></td>
+                                                    <td style="background-color:#77DD77;" class="editable" id="otherContact" data-record-id="<%= data.customer.id %>"><%= data.customer.id %></td>
                                                     <td style="background-color:#77DD77;" class="editable" id="contactName" data-record-id="<%= data.customer.id %>"><%= data.customer.full_name %></td>
                                                     <td style="background-color:#77DD77;" class="editable" id="contactAddress" data-record-id="<%= data.customer.id %>"><%= data.customer.home_address %></td>
                                                     <td style="background-color:#77DD77;" class="editable" id="contactPhone" data-record-id="<%= data.customer.id %>"><%= data.customer.primary_phone %></td>
