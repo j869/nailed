@@ -605,6 +605,8 @@ app.post("/admin/customers/import", upload.single("customerFile"), async (req, r
         if (colA || colB) {
           const jobNo = `${colA || ''}${colB || ''}`.trim();
           if (jobNo) {
+            const parsedId = colB ? parseInt(colB, 10) : null;
+            rowData["id"] = isNaN(parsedId) ? null : parsedId;
             rowData["Job No"] = jobNo;
             hasRealData = true;
           }
@@ -623,6 +625,7 @@ app.post("/admin/customers/import", upload.single("customerFile"), async (req, r
         try {
           // Map Excel columns to database fields
           const customer = {
+            id: row["id"] || null,
             full_name: row["Customer Name"] || "",
             primary_phone: row["Phone #"] || "",
             home_address: row["Address"] || row["Site Location"] || "",
