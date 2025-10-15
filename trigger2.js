@@ -15,6 +15,8 @@ const pool = new Pool({
 
 console.log("re1     STARTING on DB ", process.env.PG_DATABASE);
 
+let lastExecutionDate = null;
+
 
 async function handleTrigger(triggerData) {
     const { table, column, value, modifier } = triggerData;
@@ -310,11 +312,45 @@ async function updateJobsAt6pm() {
     }, millisecondsUntil6PM);
 }
 
+async function updateJobsEvery7Min() {
+    const now = new Date();
+    const options = {
+        timeZone: 'Australia/Melbourne',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    const formatter = new Intl.DateTimeFormat('en-AU', options);
+    const melbourneTime = formatter.format(now);
 
+    // Parse the Melbourne time to get hours, minutes, and seconds
+    const [time, period] = melbourneTime.split(' ');
+    let [hours, minutes, seconds] = time.split(':').map(Number);
 
+    // Convert to 24-hour format if necessary
+    if (period === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    const today = now.toISOString().split('T')[0];
+
+    console.log(`time is now ${melbourneTime} - waiting for 6pm`);
+
+    if (hours === 18 && lastExecutionDate !== today) {
+        await getNextTasks2();
+        console.log("Task executed at 6 PM. Scheduling for the next day...");
+        lastExecutionDate = today;
+    }
+
+    setTimeout(updateJobsEvery7Min, 7 * 60 * 1000);
+}
 
   export { main }; // Exporting `main` as a named export
 
 
   
-  updateJobsAt6pm();
+  // updateJobsAt6pm();
+  updateJobsEvery7Min();
