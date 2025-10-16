@@ -337,7 +337,7 @@ async function updateJobsEvery7Min() {
 
     const today = now.toISOString().split('T')[0];
 
-    console.log(`time is now ${melbourneTime} - waiting for 6pm`);
+    console.log(`dd91   day_task trigger > time is now ${melbourneTime} - waiting for 6pm`);
 
     if (hours === 18 && lastExecutionDate !== today) {
         await getNextTasks2();

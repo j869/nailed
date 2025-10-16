@@ -2766,7 +2766,11 @@ app.get("/executeJobAction", async (req, res) => {
               }
               console.log(`ja4409           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
               q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [jobRec.rows[0].job_template_id, jobRec.rows[0].build_id]);
-              console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobRec.rows[0].job_template_id})`);
+              if (q1.rows.length === 0) {
+                console.log(`ja43060           ...no jobs found with the same template_id(${jobRec.rows[0].job_template_id})`);
+              } else {
+                console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobRec.rows[0].job_template_id})`);
+              }
 
             } else if (action.log_trigger) {
               //{"log_trigger":"log comment here"}

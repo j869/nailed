@@ -238,6 +238,8 @@ let draggedElement = null;
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {
         // console.log("cud1   " )
+        return;   //has bugs causes system to crash. add feedback loop and notify when error occurs
+        
         const editableElements = document.querySelectorAll('.editable');
         editableElements.forEach(function(element) {
             element.addEventListener('dblclick', function(event) {
