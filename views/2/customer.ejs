@@ -151,7 +151,7 @@
                                 <% locals.tableData.forEach(function(customer) { %>
                                     <% if (customer) { %>
                                         <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#xxxcollapseCust<%= customer.id %>" >
-                                            <td><%= customer.id %></td>
+                                            <td><label class="editable" id="customCustomerCode" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.custom_id ? customer.custom_id : '&nbsp; &nbsp;' %></label></td>
                                             <td><label class="editable" id="contactName" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.full_name ? customer.full_name : '&nbsp; &nbsp;' %></label></td>
                                             <td><label class="editable" id="contactAddress" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.home_address ? customer.home_address : '&nbsp; &nbsp;' %></label></td>
                                             <td><label class="editable" id="contactPhone" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_phone ? customer.primary_phone : '&nbsp; &nbsp;' %></label></td>

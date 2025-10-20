@@ -20,3 +20,7 @@ ALTER TABLE conversations ADD COLUMN subject VARCHAR(255);
 
 ALTER TABLE worksheets ADD COLUMN stalled_for VARCHAR(30);
 COMMENT ON COLUMN worksheets.stalled_for IS 'Indicates how long the worksheet has been unactioned. Values represent time periods like "3 days", "2 weeks", etc. Used to visually prioritize older items in the todo list.';
+
+
+ALTER TABLE customers 
+ADD COLUMN sort_order VARCHAR(50);

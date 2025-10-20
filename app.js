@@ -388,6 +388,8 @@ app.get("/admin/customers/import", (req, res) => {
   const userId = req.user?.id || 'unknown';
   console.log(`ci1     [${sessionId}] USER(${userId}) navigated to Customer Import page`);
 
+  //FIX: first two columns job_id jmust read into the new customers.sort_order column
+
   if (!req.user || !req.user.roles || !req.user.roles.includes("sysadmin")) {
     console.log(`ci2     [${sessionId}] Access denied - USER(${userId}) does not have sysadmin role`);
     return res.status(403).send("Access denied");
@@ -1137,7 +1139,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
     // 2. Get customer information (already verified access above)
     const customerResult = await db.query(`
       SELECT 
-        id, full_name, home_address, primary_phone, primary_email, 
+        id, sort_order, full_name, home_address, primary_phone, primary_email, 
         contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
       FROM customers 
       WHERE id = $1
@@ -1232,6 +1234,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
     // 7. Build the final structure
     const allCustomers = customerResult.rows.map(customer => ({
       id: customer.id,
+      custom_id: customer.sort_order,
       full_name: customer.full_name,
       home_address: customer.home_address,
       primary_phone: customer.primary_phone,
@@ -1303,7 +1306,7 @@ app.get("/2/build/:id", async (req, res) => {
         console.log("b3   ");
         // If there's no search term, fetch all customers and their builds with security filtering
         const customersResult = await db.query(`
-          SELECT id, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
+          SELECT id, sort_order, full_name, home_address, primary_phone, primary_email, contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
           FROM customers c
           WHERE (${processedSecurityClause})
         `);
@@ -1382,6 +1385,7 @@ app.get("/2/customers", async (req, res) => {
         const customersQuery = `
           SELECT 
             c.id, 
+            c.sort_order,
             c.full_name, 
             c.home_address, 
             c.primary_phone, 
@@ -1465,6 +1469,7 @@ app.get("/2/customers", async (req, res) => {
         const customersResult = await db.query(`
           SELECT 
             c.id, 
+            c.sort_order,
             c.full_name, 
             c.home_address, 
             c.primary_phone, 
@@ -1497,6 +1502,7 @@ app.get("/2/customers", async (req, res) => {
             customer = {
               customer: {
                 id: row.id,
+                custom_id: row.sort_order,
                 full_name: row.full_name,
                 home_address: row.home_address,
                 primary_phone: row.primary_phone,
@@ -1775,7 +1781,7 @@ app.get("/management-report", async (req, res) => {
       // Enhanced query with security filtering
       const customersQuery = `
         SELECT 
-          c.id, c.job_no, c.full_name, c.primary_phone, c.current_status, c.invoices_collected,
+          c.id, c.sort_order, c.job_no, c.full_name, c.primary_phone, c.current_status, c.invoices_collected,
           c.site_location, c.slab_size, c.building_type,
           TO_CHAR(c.date_ordered, 'DD-Mon-YY') AS date_ordered,
           TO_CHAR(c.date_bp_applied, 'DD-Mon-YY') AS date_bp_applied,
@@ -1870,19 +1876,19 @@ app.post("/addCustomer", async (req, res) => {
           return;
         }
       }
-      console.log("75    check if other contact already exists", req.body.contactOther);
+      console.log("75    check if custom ID already exists", req.body.contactOther);
       if (req.body.contactOther) {
-        const existingContact = await db.query(`SELECT * FROM customers c WHERE c.contact_other = $1 `, [req.body.contactOther]);
+        const existingContact = await db.query(`SELECT * FROM customers c WHERE c.sort_order = $1 `, [req.body.contactOther]);
         if (existingContact.rows.length > 0) {
-          console.log("n85         Other contact already exists: ", req.body.contactOther);
+          console.log("n85         customerID already exists: ", req.body.contactOther);
           res.redirect("/customer/" + existingContact.rows[0].id); // Redirect to the existing customer's page
           return;
         }
       }
       // Insert the new customer into the database
       const result = await db.query(
-        "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, contact_other, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-        [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.contactOther, "Initial enquiry", currentTime]
+        "INSERT INTO customers (full_name, home_address, primary_phone, primary_email, sort_order, current_status, follow_up) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        [req.body.fullName, req.body.homeAddress, req.body.primaryPhone, req.body.primaryEmail, req.body.customID, "Initial enquiry", currentTime]
       );
       const newCustomer = result.rows[0];
 
@@ -1956,6 +1962,7 @@ app.post("/updateCustomer/:id", async (req, res) => {
                 job_earnings = $22,
                 next_action_description = $23,
                 follow_up = $24,
+                sort_order = $26,
                 date_last_actioned = CURRENT_TIMESTAMP
               WHERE id = $25 
               RETURNING *`;
@@ -1985,7 +1992,8 @@ app.post("/updateCustomer/:id", async (req, res) => {
           req.body.jobEarnings || null,
           req.body.nextActionDescription,
           req.body.followUp || null,
-          userID
+          userID,
+          req.body.customID || null,
         ];
 
         try {
@@ -2187,12 +2195,13 @@ app.post("/updateBuild/:id", async (req, res) => {
   const buildID = parseInt(req.params.id);
   console.log("f1      navigate to EDIT(JOB) page for build/:" + buildID);
   const action = req.body.action;     // did the user click delete, update, view, or
-  console.log("f2       action: ", action);
+  console.log("f2       action: ", action, req.body);
   if (req.isAuthenticated()) {
 
     // Get user security clause for build access control
     const userSecurityClause = await getUserSecurityClause(req.user.id);
     const processedSecurityClause = userSecurityClause.replace(/\$USER_ID/g, req.user.id);
+    let enquiryDate = req.body.enquiry_date = '' ? null : req.body.enquiry_date;
 
     switch (action) {
       case "update":
@@ -2817,6 +2826,19 @@ app.get("/update", async (req, res) => {
             res.status(500).send("Error updating " + fieldID);
           }
           break;
+        case "customCustomerCode":
+          table = "customers"
+          columnName = "sort_order"
+          value = newValue;
+          console.log("ufg410     update " + table + " set " + columnName + " = " + value);
+          q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
+          if (q && q.status === 201) {
+            res.status(200).send("Update successful");
+          }
+          else {
+            res.status(500).send("Error updating " + fieldID);
+          }
+          break;          
         case "jobTargetDate":
           console.log("ufg411     [" + newValue + "] ")
           table = "jobs"
