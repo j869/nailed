@@ -154,7 +154,7 @@ async function handleTrigger(triggerData) {
           stalled_for = null;
         }
 
-        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id, stalled_for) VALUES ($1, $2, $3, $4, $5, $6);`, [title, desc, user_id, targetDate, buildID, stalled_for]);
+        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id, stalled_for, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [title, desc, user_id, targetDate, buildID, stalled_for, job.id]);
         console.log("gnf9                ", q2.rowCount, " rows inserted. ");
       } catch {
         console.log("gnf8    failed on job(" + job.id + ")")
