@@ -261,6 +261,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const attachmentUpload = multer({ dest: uploadDir });
 
 app.post("/fileUpload", attachmentUpload.single("file"), async (req, res) => {
+  let newFilename;
   try {
     const { task_id } = req.body;
     const file = req.file;
@@ -269,7 +270,7 @@ app.post("/fileUpload", attachmentUpload.single("file"), async (req, res) => {
     try {
       // Rename file for uniqueness
       const ext = path.extname(file.originalname);
-      const newFilename = `${Date.now()}_${file.originalname}`;
+      newFilename = `${Date.now()}_${file.originalname}`;
       const newPath = path.join(uploadDir, newFilename);
       fs.renameSync(file.path, newPath);
       console.log("fu1    File saved to disk:", newPath);

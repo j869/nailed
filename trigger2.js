@@ -109,6 +109,8 @@ async function handleTrigger(triggerData) {
     for (const job of pendingJobs.rows) {
       try {
         console.log("gnf2   processing build("+job.build_id+") - adding "+job.current_status+" job(" + job.id + ") to user("+ job.user_id +") dayTask list:", job.display_text, )
+        const jobId = job.id;
+        console.log("gnf21    ...jobID is ", jobId);
         let writeRecord = true;
         const title = job.display_text;
         const buildID = job.build_id || 0; // 0 is an error case - if this column is null then it is a user defined task and never updated
@@ -153,7 +155,7 @@ async function handleTrigger(triggerData) {
         } else {
           stalled_for = null;
         }
-
+        console.log("gnf73    job.id is ", job.id, " jobID is ", jobId);
         const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id, stalled_for, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [title, desc, user_id, targetDate, buildID, stalled_for, job.id]);
         console.log("gnf9                ", q2.rowCount, " rows inserted. ");
       } catch {
