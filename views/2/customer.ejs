@@ -1180,8 +1180,35 @@ async function uploadJobAttachment(event, taskID) {
                 jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
                 //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
 
+
+                // try {
+                //     const response = await fetch(`/update?fieldID=jobDesc&newValue=${encodeURIComponent(jobDesc.innerHTML)}&whereID=${taskID}`);
+                //     console.log("id45     ", response.status, response.statusText);
+                //     if (!response.ok) {
+                //         if (response.status === 400) {
+                //             const errorData = await response;
+                //             console.log('id48    Validation error:', errorData);
+                //             showNotification('Validation error! ' );
+                //             throw new Error('Validation error');
+                //         } else {
+                //             showNotification('Server error: ' );
+                //             console.log('id58    Error:', response.status);
+                //             throw new Error(`HTTP error! status: ${response.status}`);
+                //         }
+                //     } else {
+                //         console.log('id5    response OK');
+                //         showNotification(`Update successful! jobDesc(${taskID})=${jobDesc.innerHTML}`, false);
+                //         // element.contentEditable = true;
+                //     }
+                //     console.log('id9    Update successful');
+                // } catch (error) {
+                //     console.error('id8     Update failed:', error, 'reset value', event.target);
+                //     showNotification('Validation failed');
+                // }
+
                 // Trigger blur event to save changes
-                jobDesc.dispatchEvent(new Event('input', { bubbles: true }));
+                jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
+
 
                 jobDesc.focus();
                 console.log("ua9   Added attachment", newFileName, "to task", taskID);
