@@ -618,6 +618,7 @@ app.get("/jobs/:id", async (req, res) => {
     let data = {};
     let result = {};
     let vSQL = "";
+    let productId;
 
     try {
       try {
@@ -636,7 +637,7 @@ app.get("/jobs/:id", async (req, res) => {
       const jobName = result.rows[0].display_text;
       const jobText = result.rows[0].free_text;
       const jobTemplateId = result.rows[0].job_template_id;
-      const productId = result.rows[0].product_id;
+      productId = result.rows[0].product_id;
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
@@ -646,7 +647,6 @@ app.get("/jobs/:id", async (req, res) => {
       const build_id = result.rows[0].build_id
       const changeArray = result.rows[0].change_array;
       const jobStatus = result.rows[0].current_status;
-
 
       vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier > " + tier + " ORDER BY tier ASC;";
       result = await pool.query(vSQL);
@@ -705,7 +705,7 @@ app.get("/jobs/:id", async (req, res) => {
         vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
         result = await pool.query(vSQL);
         const customerId = result.rows[0].customer_id
-        const productId = result.rows[0].product_id
+        productId = result.rows[0].product_id
         vSQL = "select * from customers where id = " + customerId + ";";
         result = await pool.query(vSQL);
         const customerName = result.rows[0].full_name
