@@ -1216,6 +1216,7 @@ app.get("/addjob", async (req, res) => {
       console.log("a800     ", templateSQL);
       template = await pool.query(templateSQL);
       productID = template.rows[0].product_id;
+      console.log("a801     Adding job from template(", templateId, ") for product(", productID, ")");
 
       const q1 = await pool.query("SELECT build_id FROM jobs WHERE id = $1", [jobID]);
       buildID = q1.rows[0].build_id;
@@ -1234,10 +1235,11 @@ app.get("/addjob", async (req, res) => {
     if (precedence == "origin") {
       buildID = req.query.id;
       // Get product for build
-      let productID;
+      // let productID;
       try {
         const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]);
         productID = product.rows[0].product_id;
+        console.log("a810     Adding origin job for build(", buildID, ") and product(", productID, ")");
       } catch (error) {
         console.error("a811     Error fetching product for build:", error);
         return res.status(500).json({ error: 'Error fetching product for build' });
