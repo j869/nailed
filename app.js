@@ -3293,12 +3293,13 @@ app.get("/update", async (req, res) => {
               console.error("ufg4428  Invalid date value:", value);
               return res.status(400).send("Invalid date value");
             }
-            const a4 = await db.query("BEGIN;"); // Start transaction
+            // const a4 = await db.query("BEGIN;"); // Start transaction
             console.log("ufg4421     ...update worksheetID(" + rowID + ") set target date = " + value);
             const a1 = await db.query("UPDATE worksheets SET date = $1 WHERE id = $2;", [value, rowID]);
             // console.log('ufg00077');
             const a2 = await db.query("SELECT job_id FROM worksheets WHERE id = $1;", [rowID]);
             let taskID = a2.rows[0].job_id;
+            console.log("ufg4423     ...found taskID: " + taskID);
             if (taskID) {
               // const descriptionJson = JSON.parse(a2.rows[0].description);
               // const taskId = descriptionJson.task_id;
@@ -3306,7 +3307,7 @@ app.get("/update", async (req, res) => {
               const a3 = await db.query("UPDATE jobs SET target_date = $1 WHERE id = $2;", [value, taskID]);
               // console.log('ufg443');
             }
-            const a5 = await db.query("COMMIT;"); // Commit transaction
+            // const a5 = await db.query("COMMIT;"); // Commit transaction
           } catch (error) {
             console.error("ufg442  Error updating date:", error);
             res.status(500).send("Error updating date");
