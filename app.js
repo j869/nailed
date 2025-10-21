@@ -2859,6 +2859,9 @@ app.get("/update", async (req, res) => {
           else {
             res.status(500).send("Error updating " + fieldID);
           }
+          console.log("ufg4112     updating worksheet date", value, rowID);
+          let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
+          console.log("ufg4113     worksheet update result", q1.rowCount);
           break;
         case "taskTargetDate":
           // console.log("ufg412     [" + newValue + "] ")

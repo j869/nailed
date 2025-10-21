@@ -59,10 +59,10 @@ home.ejs
                     </form>
                 </td>
                 <td><%= item.id %></td>
-                <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= item.id %>"><%= item.title %></td>
+                <td  id="daytaskTitle" data-record-id="<%= item.id %>"><%= item.title %></td>
                 <td><%= item.description %></td>
-                <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= item.id %>"><%= item.user_id %></td>
-                <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= item.id %>"><%= item.formatted_date %></td>
+                <td  id="daytaskPerson" data-record-id="<%= item.id %>"><%= item.user_id %></td>
+                <td  id="daytaskDate" data-record-id="<%= item.id %>"><%= item.formatted_date %></td>
                 <td>
                   <% if (item.customer_name == null) { %>
                     <label><input type="checkbox" id="doneCheckbox" data-record-id="<%= item.id %>" onchange="handleCheckboxChange(this)"> Done</label>
