@@ -125,6 +125,11 @@ home.ejs
                     ">
                     <i class="bi bi-trash"></i> +7
                   </button>
+
+                  <button class="btn btn-sm btn-outline-danger" onclick="addDays(<%= item.id %>, 14)">
+                    <i class="bi bi-trash"></i> +14
+                  </button>
+
                 </td>
             </tr>
             <% }); %>
