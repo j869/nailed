@@ -59,10 +59,10 @@ home.ejs
                     </form>
                 </td>
                 <td><%= item.id %></td>
-                <td  id="daytaskTitle" data-record-id="<%= item.id %>"><%= item.title %></td>
+                <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= item.id %>"><%= item.title %></td>
                 <td><%= item.description %></td>
-                <td  id="daytaskPerson" data-record-id="<%= item.id %>"><%= item.user_id %></td>
-                <td  id="daytaskDate" data-record-id="<%= item.id %>"><%= item.formatted_date %></td>
+                <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= item.id %>"><%= item.user_id %></td>
+                <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= item.id %>"><%= item.formatted_date %></td>
                 <td>
                   <% if (item.customer_name == null) { %>
                     <label><input type="checkbox" id="doneCheckbox" data-record-id="<%= item.id %>" onchange="handleCheckboxChange(this)"> Done</label>
@@ -78,23 +78,53 @@ home.ejs
                   <% } %>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 1)">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_1&whereID=<%= item.id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
                     <i class="bi bi-trash"></i> +1
                   </button>
                   
-                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 3)">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= item.id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
                     <i class="bi bi-trash"></i> +3
                   </button>
 
-                                    
-                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 7)">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_7&whereID=<%= item.id %>`)
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Database updated successfully.');
+                        } else {
+                            throw new Error('Failed to update database.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                    window.location.reload();
+                    ">
                     <i class="bi bi-trash"></i> +7
                   </button>
-
-                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 14)">
-                    <i class="bi bi-trash"></i> +14
-                  </button>
-
                 </td>
             </tr>
             <% }); %>
@@ -163,23 +193,6 @@ home.ejs
     tomorrow.setDate(tomorrow.getDate() + forward);
     document.getElementById('taskDate').value = tomorrow.toISOString().split('T')[0];
 
-
-    function addDays(id, days) {
-        fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_${days}&whereID=${id}`)
-            .then(response => {
-                if (response.ok) {
-                    console.log('Database updated successfully.');
-                } else {
-                    throw new Error('Failed to update database.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                window.location.reload();
-            });
-    }
 
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {

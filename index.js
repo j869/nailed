@@ -381,6 +381,62 @@ app.delete("/fileDelete/:UUID", async (req, res) => {
   }
 });
 
+
+app.get("/getTemplate/:templateName", async (req, res) => {
+  const { templateName } = req.params;
+  let templateHtml;
+  console.log("pw1      Template download request for: ", templateName);
+  try {
+    // const result = await pool.query("SELECT content FROM email_templates WHERE name = $1", [templateName]);
+    // if (result.rows.length === 0) {
+    //   return res.status(404).send("File not found");
+    // }
+    templateHtml = `
+    
+<p>Hi ___!</p>
+
+<p>Thank you for your time on the phone this afternoon! It was lovely to hear from you.</p>
+
+<p>I've attached an invoice for your Deposit to get started, there's some forms to sign and return on here as well.</p>
+
+<p>If you have a Building Surveyor in mind, please respond to this email naming them, otherwise, we have a close working relationship with <strong>Axedale Building Consulting</strong>, you may appoint them if you're happy to do so. Axedale's fees are included in our quoted building permit price.</p>
+
+<p>If you haven't already, you should start thinking about who your builder will be.</p>
+
+<p>Your potential options are:</p>
+
+<ol>
+    <li>Be an <strong>"Owner builder"</strong> and build the shed yourself.</li>
+    <li>Be an <strong>"Owner Builder"</strong> and hire tradies to build the shed on your behalf.</li>
+    <li>Engage a <strong>Licensed Registered Builder</strong> to handle your whole project for you.</li>
+</ol>
+
+<p>Please let me know your preference and complete the builder section on your forms, so we can check your eligibility and prepare your permit for the correct processing path.</p>
+
+<p>If you have any questions, please feel free to contact us, we're happy to help!</p>
+
+<div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 15px 0;">
+    <p style="margin: 0; font-weight: bold;">⚠️ Important Notice:</p>
+    <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+        <li>Please do not start any construction related works on the property until the Building Permit has been approved.</li>
+        <li>Please do not make bookings for construction works until the Building Permit has been approved.</li>
+        <li>Costs accrued due to pre-emptive bookings or works are the responsibility of the land owner.</li>
+    </ul>
+</div>
+
+<p>Kind regards,</p>
+
+| Business Hours |Mon-Fri | 8:30am-4:30pm |
+
+    
+    `;
+    res.status(200).send(templateHtml);
+  } catch (err) {
+    console.error("pw8      Template download error: ", err);
+    res.status(500).send("Error retrieving template");
+  }
+});
+
 app.get("/fileDownload/:filename", (req, res) => {
   console.log("fd1      Download request for file: ", req.params);
   const { filename } = req.params;
@@ -717,6 +773,9 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
     if (result.rows.length === 0) {
       console.error("ge18  No email found for customerID:", customerID);
       return res.status(404).json({ success: false, message: "Email not found" });
+    } else if (!result.rows[0].primary_email || result.rows[0].primary_email.trim() === "") {
+      console.error("ge19  Empty email for customerID:", customerID);
+      return res.status(404).json({ success: false, message: "Email is empty" });
     }
     const email = result.rows[0].primary_email;
 

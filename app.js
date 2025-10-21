@@ -17,40 +17,8 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import nodemailer from 'nodemailer';
-
-// Decryption function
-function decrypt(encryptedText, key) {
-  console.log("de1    decrypting: ", encryptedText ? encryptedText.substring(0, 10) + "..." : "null");
-  if (!encryptedText || encryptedText === "null") {
-    console.error("de2    No encrypted text provided");
-    return null;
-  }
-  import { logUserActivity } from './src/logging.js';
-  import { getMelbourneTime } from './src/datetime.js';
-
-  try {
-    // Check if this is new format (IV prepended)
-    if (encryptedText.length > 32) { // IV is 32 hex chars
-      const iv = Buffer.from(encryptedText.substring(0, 32), 'hex');
-      const encryptedData = encryptedText.substring(32);
-      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'base64'), iv);
-      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      console.log("de3    Decryption successful with new method");
-      return decrypted;
-    } else {
-      // Try old method for backward compatibility
-      const decipher = crypto.createDecipher('aes-256-cbc', key);
-      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      console.log("de4    Decryption successful with old method");
-      return decrypted;
-    }
-  } catch (error) {
-    console.error("de5    Decryption failed:", error.message);
-    return null;
-  }
-}
+import { logUserActivity } from './src/logging.js';
+import { getMelbourneTime } from './src/datetime.js';
 
 const app = express();
 // Set view engine
@@ -166,6 +134,38 @@ app.use('/admin', adminRoutes);
 //#endregion
 
 
+
+// Decryption function
+function decrypt(encryptedText, key) {
+  console.log("de1    decrypting: ", encryptedText ? encryptedText.substring(0, 10) + "..." : "null");
+  if (!encryptedText || encryptedText === "null") {
+    console.error("de2    No encrypted text provided");
+    return null;
+  }
+
+  try {
+    // Check if this is new format (IV prepended)
+    if (encryptedText.length > 32) { // IV is 32 hex chars
+      const iv = Buffer.from(encryptedText.substring(0, 32), 'hex');
+      const encryptedData = encryptedText.substring(32);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'base64'), iv);
+      let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      console.log("de3    Decryption successful with new method");
+      return decrypted;
+    } else {
+      // Try old method for backward compatibility
+      const decipher = crypto.createDecipher('aes-256-cbc', key);
+      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      console.log("de4    Decryption successful with old method");
+      return decrypted;
+    }
+  } catch (error) {
+    console.error("de5    Decryption failed:", error.message);
+    return null;
+  }
+}
 
 
 // Helper function to get user's security clause
