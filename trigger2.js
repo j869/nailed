@@ -15,6 +15,8 @@ const pool = new Pool({
 
 console.log("re1     STARTING on DB ", process.env.PG_DATABASE);
 
+let lastExecutionDate = null;
+
 
 async function handleTrigger(triggerData) {
     const { table, column, value, modifier } = triggerData;
@@ -107,6 +109,8 @@ async function handleTrigger(triggerData) {
     for (const job of pendingJobs.rows) {
       try {
         console.log("gnf2   processing build("+job.build_id+") - adding "+job.current_status+" job(" + job.id + ") to user("+ job.user_id +") dayTask list:", job.display_text, )
+        const jobId = job.id;
+        console.log("gnf21    ...jobID is ", jobId);
         let writeRecord = true;
         const title = job.display_text;
         const buildID = job.build_id || 0; // 0 is an error case - if this column is null then it is a user defined task and never updated
@@ -118,7 +122,41 @@ async function handleTrigger(triggerData) {
         let user_id = job.user_id || 1; // Default to system admin if no user_id is provided
         let targetDate = job.target_date || new Date(); // Default to current date if no target_date is provided
 
-        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id) VALUES ($1, $2, $3, $4, $5);`, [title, desc, user_id, targetDate, buildID]);
+        //find stalled_for value by comparing date_last_actioned in customers table and target_date in jobs table
+        let diffDays = 0;
+        if (buildID !== 0) {
+          const custQuery2 = await pool.query("select date_last_actioned from customers where id = (select customer_id from builds where id = $1);", [job.build_id]);
+          const dateLastActioned = custQuery2.rows[0].date_last_actioned;
+          if (dateLastActioned && job.target_date) {
+            const tla = new Date(dateLastActioned);
+            const td = new Date(job.target_date);
+            const diffTime = Math.abs(td - tla);
+            diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (td < tla) {
+              console.log("gnf6    job is stalled by ", diffDays, " days");
+              // desc = desc + " -- STALLED for " + diffDays + " days";
+              // targetDate = tla; //reset target date to date last actioned
+            }
+          }
+        }
+
+        //format stalled_by as a string in weeks stalled - 2 weeks, 3 weeks, etc
+        let stalled_for = null;
+        console.log("gnf7    diffDays is ", diffDays);
+        if (diffDays > 7) {
+          const weeksStalled = Math.floor(diffDays / 7);
+          stalled_for = weeksStalled + (weeksStalled === 1 ? " week" : " weeks");
+          // desc = desc + " -- STALLED for " + stalled_for;
+          console.log("gnf71    job is stalled for ", stalled_for);
+        } else if (diffDays <= 7 && diffDays >= 0) {
+          stalled_for = "0 weeks";
+          // desc = desc + " -- " + stalled_for;
+          console.log("gnf72    job is stalled for ", stalled_for);
+        } else {
+          stalled_for = null;
+        }
+        console.log("gnf73    job.id is ", job.id, " jobID is ", jobId);
+        const q2 = await pool.query(`INSERT INTO worksheets (title, description, user_id, date, build_id, stalled_for, job_id) VALUES ($1, $2, $3, $4, $5, $6, $7);`, [title, desc, user_id, targetDate, buildID, stalled_for, job.id]);
         console.log("gnf9                ", q2.rowCount, " rows inserted. ");
       } catch {
         console.log("gnf8    failed on job(" + job.id + ")")
@@ -128,6 +166,7 @@ async function handleTrigger(triggerData) {
   }
 
   async function getNextTasks() {
+    // not used any more - see getNextTasks2()
     try {
         console.log("gnt1    STARTING on DB ", process.env.PG_DATABASE);
         //rebuild user_id = 1 worksheet
@@ -275,11 +314,45 @@ async function updateJobsAt6pm() {
     }, millisecondsUntil6PM);
 }
 
+async function updateJobsEvery7Min() {
+    const now = new Date();
+    const options = {
+        timeZone: 'Australia/Melbourne',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+    const formatter = new Intl.DateTimeFormat('en-AU', options);
+    const melbourneTime = formatter.format(now);
 
+    // Parse the Melbourne time to get hours, minutes, and seconds
+    const [time, period] = melbourneTime.split(' ');
+    let [hours, minutes, seconds] = time.split(':').map(Number);
 
+    // Convert to 24-hour format if necessary
+    if (period === 'PM' && hours !== 12) {
+        hours += 12;
+    } else if (period === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    const today = now.toISOString().split('T')[0];
+
+    console.log(`dd91   day_task trigger > time is now ${melbourneTime} - waiting for 6pm`);
+
+    if (hours === 18 && lastExecutionDate !== today) {
+        await getNextTasks2();
+        console.log("Task executed at 6 PM. Scheduling for the next day...");
+        lastExecutionDate = today;
+    }
+
+    setTimeout(updateJobsEvery7Min, 7 * 60 * 1000);
+}
 
   export { main }; // Exporting `main` as a named export
 
 
   
-  updateJobsAt6pm();
+  // updateJobsAt6pm();
+  updateJobsEvery7Min();

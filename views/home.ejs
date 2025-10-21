@@ -16,88 +16,91 @@ home.ejs
       <button onclick="updateView(1)">Tomorrow</button>
 
     <div class="container">
-      <table class="table">
-
-        <tbody>
-            <% for (let i in data) { %>
+      <% 
+        // Group data by stalled_for
+        let groupedData = {};
+        data.forEach(item => {
+          let key = item.stalled_for || 'No stall info';
+          if (!groupedData[key]) {
+            groupedData[key] = [];
+          }
+          groupedData[key].push(item);
+        });
+        
+        // Sort groups by age (older first) - extract number from "X weeks" format
+        let sortedGroups = Object.keys(groupedData).sort((a, b) => {
+          let aWeeks = a.includes('weeks') ? parseInt(a.split(' ')[0]) : (a.includes('week') ? 1 : -1);
+          let bWeeks = b.includes('weeks') ? parseInt(b.split(' ')[0]) : (b.includes('week') ? 1 : -1);
+          return bWeeks - aWeeks; // Descending order (older first)
+        });
+      %>
+      
+      <% sortedGroups.forEach(group => { %>
+        <h3 class="mt-4"><%= group %></h3>
+        <table class="table table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th>View</th>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Assigned To</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% groupedData[group].forEach(item => { %>
             <tr>
                 <td>
-                    <form class="item" method="get" action="/2/build/<%= data[i].build_id %>">
-                        <button class="update btn btn-primary" type="submit" name="action" value="view" <%= data[i].build_id ? "" : "disabled" %>>View</button>
+                    <form class="item" method="get" action="/2/build/<%= item.build_id %>">
+                        <button class="update btn btn-primary" type="submit" name="action" value="view" <%= item.build_id ? "" : "disabled" %>>View</button>
                     </form>
                 </td>
-                <td><%= data[i].id %></td>
-                <td class="editable"  contenteditable="true" id="daytaskTitle" data-record-id="<%= data[i].id %>"><%= data[i].title %></td>
-                <td><%= data[i].description %></td>
-                <td class="editable"  contenteditable="true" id="daytaskPerson" data-record-id="<%= data[i].id %>"><%= data[i].user_id %></td>
-                <td class="editable"  contenteditable="true" id="daytaskDate" data-record-id="<%= data[i].id %>"><%= data[i].formatted_date %></td>
+                <td><%= item.id %></td>
+                <td  id="daytaskTitle" data-record-id="<%= item.id %>"><%= item.title %></td>
+                <td><%= item.description %></td>
+                <td  id="daytaskPerson" data-record-id="<%= item.id %>"><%= item.user_id %></td>
+                <td  id="daytaskDate" data-record-id="<%= item.id %>"><%= item.formatted_date %></td>
                 <td>
-                  <% if (data[i].customer_name == null) { %>
-                    <label><input type="checkbox" id="doneCheckbox" data-record-id="<%= data[i].id %>" onchange="handleCheckboxChange(this)"> Done</label>
+                  <% if (item.customer_name == null) { %>
+                    <label><input type="checkbox" id="doneCheckbox" data-record-id="<%= item.id %>" onchange="handleCheckboxChange(this)"> Done</label>
                   <% } else { %>
                     <% let task_id = 55; %>
                     <% let task_current_status = 'pending'; %>
                       <div class="form-check">
-                      <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= data[i].task_id %>" data-task-id="<%= data[i].task_id %>" 
-                        <% if (data[i].task_status === 'complete') { %> checked <% } %>
+                      <input class="form-check-input task-checkbox" type="checkbox" id="taskComplete<%= item.task_id %>" data-task-id="<%= item.task_id %>" 
+                        <% if (item.task_status === 'complete') { %> checked <% } %>
                       > 
-                      <label class="form-check-label" for="taskComplete<%= data[i].task_id %>">Done</label>
+                      <label class="form-check-label" for="taskComplete<%= item.task_id %>">Done</label>
                     </div>
                   <% } %>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_1&whereID=<%= data[i].id %>`)
-                    .then(response => {
-                        if (response.ok) {
-                            console.log('Database updated successfully.');
-                        } else {
-                            throw new Error('Failed to update database.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
-                    window.location.reload();
-                    ">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 1)">
                     <i class="bi bi-trash"></i> +1
                   </button>
                   
-                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_3&whereID=<%= data[i].id %>`)
-                    .then(response => {
-                        if (response.ok) {
-                            console.log('Database updated successfully.');
-                        } else {
-                            throw new Error('Failed to update database.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
-                    window.location.reload();
-                    ">
+                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 3)">
                     <i class="bi bi-trash"></i> +3
                   </button>
 
-                  <button class="btn btn-sm btn-outline-secondary" onclick="fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_7&whereID=<%= data[i].id %>`)
-                    .then(response => {
-                        if (response.ok) {
-                            console.log('Database updated successfully.');
-                        } else {
-                            throw new Error('Failed to update database.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                    });
-                    window.location.reload();
-                    ">
+                                    
+                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 7)">
                     <i class="bi bi-trash"></i> +7
                   </button>
+
+                  <button class="btn btn-sm btn-outline-secondary" onclick="addDays(<%= item.id %>, 14)">
+                    <i class="bi bi-trash"></i> +14
+                  </button>
+
                 </td>
             </tr>
-            <% } %>
-        </tbody>
-    </table>
+            <% }); %>
+          </tbody>
+        </table>
+      <% }); %>
     </div>
 
     
@@ -160,6 +163,23 @@ home.ejs
     tomorrow.setDate(tomorrow.getDate() + forward);
     document.getElementById('taskDate').value = tomorrow.toISOString().split('T')[0];
 
+
+    function addDays(id, days) {
+        fetch(`/update?btn=104a&fieldID=daytaskDate&newValue=add_${days}&whereID=${id}`)
+            .then(response => {
+                if (response.ok) {
+                    console.log('Database updated successfully.');
+                } else {
+                    throw new Error('Failed to update database.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                window.location.reload();
+            });
+    }
 
     //add listener to all editable fields.  When field changes, notify the database
     document.addEventListener('DOMContentLoaded', function() {

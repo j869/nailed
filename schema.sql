@@ -1014,7 +1014,7 @@ CREATE TRIGGER trigger_update_last_payment
 
 
 
--- Add column comments for documentation
+-- Add column comments * from financials;for documentation
 COMMENT ON COLUMN public.customers.id IS 'Unique customer identifier';
 COMMENT ON COLUMN public.customers.full_name IS 'Customer full name';
 COMMENT ON COLUMN public.customers.home_address IS 'Customer mailing/billing address';

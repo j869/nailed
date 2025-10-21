@@ -13,6 +13,7 @@ import crypto from 'crypto';   //const crypto = require('crypto');
 import axios from "axios";
 import path from "path";
 import fs from "fs";
+import checkDiskSpace from 'check-disk-space';
 
 
 
@@ -319,16 +320,23 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const attachmentUpload = multer({ dest: uploadDir });
 
 app.post("/fileUpload", attachmentUpload.single("file"), async (req, res) => {
+  let newFilename;
   try {
     const { task_id } = req.body;
     const file = req.file;
     if (!file || !task_id) return res.status(400).json({ error: "Missing file or task_id" });
 
-    // Rename file for uniqueness
-    const ext = path.extname(file.originalname);
-    const newFilename = `${Date.now()}_${file.originalname}`;
-    const newPath = path.join(uploadDir, newFilename);
-    fs.renameSync(file.path, newPath);
+    try {
+      // Rename file for uniqueness
+      const ext = path.extname(file.originalname);
+      newFilename = `${Date.now()}_${file.originalname}`;
+      const newPath = path.join(uploadDir, newFilename);
+      fs.renameSync(file.path, newPath);
+      console.log("fu1    File saved to disk:", newPath);
+    } catch (err) {
+      console.error("fu81    File save error:", err);
+      return res.status(500).json({ error: "File save failed" });
+    }
 
     // Update jobs.uploaded_docs JSONB (append new file info)
     await pool.query(
@@ -903,6 +911,7 @@ app.get("/jobs/:id", async (req, res) => {
     let data = {};
     let result = {};
     let vSQL = "";
+    let productId;
 
     try {
       try {
@@ -921,7 +930,7 @@ app.get("/jobs/:id", async (req, res) => {
       const jobName = result.rows[0].display_text;
       const jobText = result.rows[0].free_text;
       const jobTemplateId = result.rows[0].job_template_id;
-      const productId = result.rows[0].product_id;
+      productId = result.rows[0].product_id;
       const targetDate = result.rows[0].target_date;
       const jobUser = "" + result.rows[0].user_id + ""
 
@@ -931,7 +940,6 @@ app.get("/jobs/:id", async (req, res) => {
       const build_id = result.rows[0].build_id
       const changeArray = result.rows[0].change_array;
       const jobStatus = result.rows[0].current_status;
-
 
       vSQL = "SELECT tier from jobs WHERE build_id = " + build_id + " and tier > " + tier + " ORDER BY tier ASC;";
       result = await pool.query(vSQL);
@@ -990,7 +998,7 @@ app.get("/jobs/:id", async (req, res) => {
         vSQL = "select customer_id, product_id from builds where id = " + buildId + ";";
         result = await pool.query(vSQL);
         const customerId = result.rows[0].customer_id
-        const productId = result.rows[0].product_id
+        productId = result.rows[0].product_id
         vSQL = "select * from customers where id = " + customerId + ";";
         result = await pool.query(vSQL);
         const customerName = result.rows[0].full_name
@@ -1311,14 +1319,14 @@ app.get("/update", async (req, res) => {
     const q = await pool.query("UPDATE " + table + " SET " + column + " = $1 WHERE id = $2;", [value, id]);
     // console.log("ud3    UPDATE " + table + " SET " + column + " = " + value + " WHERE id = " + id + ";  updated(" + q.rowCount + ") records");
 
-    if (table === "jobs") {
-      // console.log("ud55    updating table 'jobs' and column: " + column);
-      if (column === "display_text") {
-        // console.log("ud69  sdf")
-        const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);
-        console.log("ud7     ...we also modified the template to reflect this change. ");
-      }
-    }
+    // if (table === "jobs") {
+    //   // console.log("ud55    updating table 'jobs' and column: " + column);
+    //   if (column === "display_text") {
+    //     // console.log("ud69  sdf")
+    //     const q2 = await pool.query("UPDATE job_templates SET display_text = $1 WHERE id = (SELECT job_template_id FROM jobs WHERE id = $2);", [value, id]);
+    //     console.log("ud7     ...we also modified the template to reflect this change. ");
+    //   }
+    // }
 
     if (q.rowCount == 1) {
       console.log("ud9    records succesfully modified in " + table + " table: 1");
@@ -1501,6 +1509,7 @@ app.get("/addjob", async (req, res) => {
       console.log("a800     ", templateSQL);
       template = await pool.query(templateSQL);
       productID = template.rows[0].product_id;
+      console.log("a801     Adding job from template(", templateId, ") for product(", productID, ")");
 
       const q1 = await pool.query("SELECT build_id FROM jobs WHERE id = $1", [jobID]);
       buildID = q1.rows[0].build_id;
@@ -1519,14 +1528,25 @@ app.get("/addjob", async (req, res) => {
     if (precedence == "origin") {
       buildID = req.query.id;
       // Get product for build
-      const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]);
-      productID = product.rows[0].product_id;
+      // let productID;
+      try {
+        const product = await pool.query("SELECT product_id FROM builds WHERE builds.id = $1", [buildID]);
+        productID = product.rows[0].product_id;
+        console.log("a810     Adding origin job for build(", buildID, ") and product(", productID, ")");
+      } catch (error) {
+        console.error("a811     Error fetching product for build:", error);
+        return res.status(500).json({ error: 'Error fetching product for build' });
+      }
 
       // Get first template for product
       const q = await pool.query(
         "SELECT b.id as build_id, m.id as temp_id, m.product_id, m.display_text, sort_order, tier FROM job_templates m INNER JOIN builds b ON m.product_id = b.product_id WHERE b.id = $1 AND m.antecedent_array IS NULL",
         [buildID]
       );
+      if (q.rows.length === 0) {
+        console.error("a811     No templates found for this product.");
+        return res.status(500).json({ error: 'No templates found for this product' });
+      }
       let firstTemplateID = q.rows[0].id;
       console.log("a81    USER added a new workflow(" + productID + ") for build(" + buildID + "). Beginner template is " + firstTemplateID);
 
@@ -2864,13 +2884,7 @@ app.get("/executeJobAction", async (req, res) => {
       console.error("ja300     Job not found for job_id:", parentID);
       return res.status(404).json({ success: false, message: "Job not found" });
     }
-    const jobNext = await pool.query("SELECT id, current_status, user_id, tier FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
-    if (jobNext.rows.length === 0) {
-      console.log("ja302     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier, 'parentID:'+ parentID]);
-      console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
-    }
-    
-    const childID = jobNext.rows[0].id || null;
+    let childID = null;
     const parentStatus = jobRec.rows[0].current_status;
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
@@ -2888,6 +2902,13 @@ app.get("/executeJobAction", async (req, res) => {
             if (action.status) {
               console.log(`ja4101         setting status`, action);
               //{"status": "pending@520"}
+              const jobNext = await pool.query("SELECT id, current_status, user_id, tier FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
+              if (jobNext.rows.length === 0) {
+                console.log("ja302     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier, 'parentID:'+ parentID]);
+                console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
+              } else {
+                childID = jobNext.rows[0].id;
+              }
               jobID = action.status.split("@")[1];
               if (jobID === 'next') { jobID = childID }
               value = action.status.split("@")[0];
@@ -2907,6 +2928,13 @@ app.get("/executeJobAction", async (req, res) => {
             } else if (action.target) {
               //{"target": "today_1@next"}
               console.log(`ja4201         setting target date`, action);
+              const jobNext = await pool.query("SELECT id, current_status, user_id, tier FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier]);
+              if (jobNext.rows.length === 0) {
+                console.log("ja302     SELECT id, current_status, user_id FROM jobs WHERE tier = $3 and build_id = $1 AND sort_order > (SELECT sort_order FROM jobs WHERE id = $2) ORDER BY sort_order ASC LIMIT 1;", [jobRec.rows[0].build_id, parentID, jobRec.rows[0].tier, 'parentID:'+ parentID]);
+                console.log("ja301     No next job found for job_id:\n", `SELECT id, current_status, user_id FROM jobs WHERE build_id = ${jobRec.rows[0].build_id} AND sort_order > (SELECT sort_order FROM jobs WHERE id = ${parentID}) ORDER BY sort_order ASC LIMIT 1;`);
+              } else {
+                childID = jobNext.rows[0].id;
+              }              
               jobID = action.target.split("@")[1];
               if (jobID === 'next') { jobID = childID }
               value = action.target.split("@")[0];
@@ -3054,7 +3082,11 @@ app.get("/executeJobAction", async (req, res) => {
               }
               console.log(`ja4409           ...completed processing ${q.rows.length} reminders for job_template_id:`, job_template_ID, " build_id:", buildID);
               q1 = await pool.query("SELECT id FROM jobs WHERE job_template_id = $1 and build_id = $2", [jobRec.rows[0].job_template_id, jobRec.rows[0].build_id]);
-              console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobRec.rows[0].job_template_id})`);
+              if (q1.rows.length === 0) {
+                console.log(`ja43060           ...no jobs found with the same template_id(${jobRec.rows[0].job_template_id})`);
+              } else {
+                console.log(`ja43060           ...found ${q1.rows.length} jobs with the same template_id(${jobRec.rows[0].job_template_id})`);
+              }
 
             } else if (action.log_trigger) {
               //{"log_trigger":"log comment here"}
@@ -3169,8 +3201,20 @@ app.get("/executeJobAction", async (req, res) => {
 
 
 
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log(`rd9     STARTED running on port ${port}`);
+  
+  // Check disk space on startup
+  try {
+    const diskSpace = await checkDiskSpace('/');
+    const freeGB = (diskSpace.free / (1024 ** 3)).toFixed(2);
+    console.log(`dw1     Disk space check: ${freeGB} GB free`);
+    if (diskSpace.free < 1024 * 1024 * 1024) { // Less than 1GB
+      console.warn('dw99     \x1b[31m WARNING: Available disk space is less than 1GB!\x1b[0m');
+    }
+  } catch (error) {
+    console.error('dw88     Error checking disk space:', error);
+  }
 });
 
 

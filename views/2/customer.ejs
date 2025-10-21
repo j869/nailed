@@ -150,15 +150,19 @@
                             <% if (locals.tableData && Array.isArray(locals.tableData)) { %>
                                 <% locals.tableData.forEach(function(customer) { %>
                                     <% if (customer) { %>
-                                        <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#collapseCust<%= customer.id %>" >
-                                            <td><%= customer.id %></td>
-                                            <td><%= customer.full_name %></td>
-                                            <td><%= customer.home_address %></td>
-                                            <td><%= customer.primary_phone %></td>
-                                            <td><%= customer.primary_email %></td>
-                                            <td><%= customer.contact_other %></td>
-                                            <td><%= customer.current_status %></td>
-                                            <td class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>"><%= customer.follow_up %></td>
+                                        <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#xxxcollapseCust<%= customer.id %>" >
+                                            <td><label class="editable" id="customCustomerCode" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.custom_id ? customer.custom_id : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="contactName" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.full_name ? customer.full_name : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="contactAddress" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.home_address ? customer.home_address : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="contactPhone" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_phone ? customer.primary_phone : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="contactEmail" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_email ? customer.primary_email : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="otherContact" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.contact_other ? customer.contact_other : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable" id="contactStatus" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.current_status ? customer.current_status : '&nbsp; &nbsp;' %></label></td>
+                                            <td>
+                                                <label title="the next time this will appear on your day task list" class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.follow_up ? customer.follow_up : '&nbsp; &nbsp;' %></label>
+                                                <br>
+                                                <label title="the last time some change was made to this customer" style="font-size: small; color: grey;">for:<%= customer.date_last_actioned %></label>
+                                            </td>
                                             <td id="actions" >
                                                 <a href="/customer/<%= customer.id %>" class="btn btn-green-slim"><i class="fas fa-edit"></i> </a>
                                             </td>                                            
@@ -185,13 +189,13 @@
                                                         <tbody>
                                                             <% customer.builds.forEach(function(site) { %>
                                                                 <% if (site) { %>
-                                                                    <tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#collapseBuild<%= site.id %>">
+                                                                    <tr class="accordion-toggle table-secondary" data-toggle="collapse" data-target="#xxcollapseBuild<%= site.id %>">
                                                                         <td><%= site.id %></td>
                                                                         <td><%= site.customer_id %></td>
                                                                         <td><%= site.product_id %></td>
                                                                         <td><%= site.product_description %></td>
-                                                                        <td><%= site.enquiry_date %></td>
-                                                                        <td class="editable" id="nextJob" data-record-id="<%= site.id %>"><%= site.job_id %></td>
+                                                                        <td><label class="editable" id="siteEnquiryDate" data-record-id="<%= site.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- site.enquiry_date ? site.enquiry_date : '&nbsp;' %></label></td>
+                                                                        <td><label class="editable" id="nextJob" data-record-id="<%= site.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- site.job_id ? site.job_id : '&nbsp;' %></label></td>
                                                                         <td>  
                                                                             <div class="form-check">
                                                                                 <input class="form-check-input build-checkbox" type="checkbox" id="buildComplete<%= site.id %>" data-build-id="<%= site.id %>" <% if (site.current_status === 'complete') { %> checked <% } %>> 
@@ -333,31 +337,38 @@
                                                                                                                                 <% let taskID = task.id.substring(1) %>
                                                                                                                                 <tr class="accordion-toggle " data-toggle="collapse" data-target="#collapseTask<%= taskID %>" data-row-id="<%= taskID %>" data-parent-id="<%= jobID %>" data-parent-sort-order="<%= job.sort_order %>" draggable="true" data-sort-order="<%= task.sort_order %>">
                                                                                                                                     <td class="drag-handle" data-record-id="<%= taskID %>" data-sort-order="<%= task.sort_order %>">⋮⋮</td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
-                                                                                                                                    <td class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
-                                                                                                                                    <td style="text-align: left;">
-                                                                                                                                        <div style="display: flex; align-items: flex-start; gap: 8px;">
-                                                                                                                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobOrder' : 'taskOrder' %>" data-record-id="<%= taskID %>"><%= task.sort_order %></td>
+                                                                                                                                    <td class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTitle' : 'taskTitle' %>" data-record-id="<%= taskID %>" style="width: 25%;"><%= task.display_text %></td>
+                                                                                                                                    
+                                                                                                                                    <td>
+                                                                                                                                        <div style="text-align: left; display: flex; align-items: flex-start;">
+                                                                                                                                            <div style="display: flex; flex-direction: column; align-items: flex-start;">
                                                                                                                                                 <button class="btn btn-link p-0" title="Add Attachment" onclick="showAttachmentInput('<%= taskID %>')">
                                                                                                                                                     <i class="fas fa-upload" style="color: #007bff;" title="Upload"></i>
                                                                                                                                                 </button>
-                                                                                                                                                <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary d-none" role="status" aria-hidden="true"></span>
+                                                                                                                                                <span id="attachmentSpinner_<%= taskID %>" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status" aria-hidden="true"></span>
+                                                                                                                                                <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
                                                                                                                                             </div>
-                                                                                                                                            <span class="editable" contenteditable="true" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="flex: 1; min-width: 0; word-break: break-word;">
+                                                                                                                                            <span class="editable" id="<%= task.precedence === 'jobflow' ? 'jobDesc' : 'taskDesc' %>" data-record-id="<%= taskID %>" style="display: inline-block; word-break: break-word; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;" >
                                                                                                                                                 <%- task.free_text ? task.free_text : '&nbsp; &nbsp;' %>
                                                                                                                                             </span>
-                                                                                                                                            
                                                                                                                                         </div>
-                                                                                                                                        <input type="file" id="attachmentInput_<%= taskID %>" style="display:none;" onchange="uploadJobAttachment(event, '<%= taskID %>')">
-                                                                                                                                        
                                                                                                                                     </td>
+                                                                                                                                        
+                                                                                                                                   
                                                                                                                                     <td>
                                                                                                                                         <div style="display: flex; flex-direction: column; align-items: flex-start;">
                                                                                                                                             <% if (task.current_status === 'complete') { %>
                                                                                                                                                 <span style="font-size: 1em; color: #28a745; font-weight: 500;"><%= task.current_status + ':' %><br> <%= task.completed_date ? task.completed_date : '' %></span>
                                                                                                                                             <% } else { %>
-                                                                                                                                                <span class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>" style="font-size: 1em; color: #007bff; font-weight: 500;">
-                                                                                                                                                    <%= task.current_status ? task.current_status + ':' : '' %><br> <%= task.target_date ? task.target_date : '' %>
+                                                                                                                                                <span  style="font-size: 1em; color: #007bff; font-weight: 500;">
+                                                                                                                                                    <% if (task.current_status) { %>
+                                                                                                                                                        <label class="editable" id="<%= task.precedence === 'jobflow' ? 'jobStatus' : 'taskStatus' %>" data-record-id="<%= taskID %>"><%= task.current_status %></label>
+                                                                                                                                                        <br>
+                                                                                                                                                        <label class="editable" id="<%= task.precedence === 'jobflow' ? 'jobTargetDate' : 'taskTargetDate' %>" data-record-id="<%= taskID %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- task.target_date ? task.target_date : '&nbsp; &nbsp;' %></label>
+                                                                                                                                                    <% } else { %>
+                                                                                                                                                        &nbsp; 
+                                                                                                                                                    <% } %>
                                                                                                                                                 </span>
                                                                                                                                             <% } %>
                                                                                                                                         </div>
@@ -635,6 +646,9 @@
 
 
     document.addEventListener('DOMContentLoaded', function() {
+        // now working - dont run this exit the function now
+        return;
+
         var table = document.getElementById('jobsTable');
         var headerRow = table.querySelector('thead tr'); // Select the header row
         var rows = table.querySelectorAll('tbody tr');
@@ -1227,8 +1241,35 @@ async function uploadJobAttachment(event, taskID) {
                 jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
                 //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
 
+
+                // try {
+                //     const response = await fetch(`/update?fieldID=jobDesc&newValue=${encodeURIComponent(jobDesc.innerHTML)}&whereID=${taskID}`);
+                //     console.log("id45     ", response.status, response.statusText);
+                //     if (!response.ok) {
+                //         if (response.status === 400) {
+                //             const errorData = await response;
+                //             console.log('id48    Validation error:', errorData);
+                //             showNotification('Validation error! ' );
+                //             throw new Error('Validation error');
+                //         } else {
+                //             showNotification('Server error: ' );
+                //             console.log('id58    Error:', response.status);
+                //             throw new Error(`HTTP error! status: ${response.status}`);
+                //         }
+                //     } else {
+                //         console.log('id5    response OK');
+                //         showNotification(`Update successful! jobDesc(${taskID})=${jobDesc.innerHTML}`, false);
+                //         // element.contentEditable = true;
+                //     }
+                //     console.log('id9    Update successful');
+                // } catch (error) {
+                //     console.error('id8     Update failed:', error, 'reset value', event.target);
+                //     showNotification('Validation failed');
+                // }
+
                 // Trigger blur event to save changes
-                jobDesc.dispatchEvent(new Event('input', { bubbles: true }));
+                jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
+
 
                 jobDesc.focus();
                 console.log("ua9   Added attachment", newFileName, "to task", taskID);
@@ -1283,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const parentTr = handle.closest('tr');
         const sortOrder = parentTr.getAttribute('data-sort-order');
         const parentId = parentTr.getAttribute('data-parent-id');     // this task is a child of this job
-        // console.log("dr3    drag-handle (parent sort-order:", sortOrder + ")");
+        console.log("dr3    drag-handle (parent sort-order:", sortOrder + ")");
         
         handle.addEventListener('mousedown', (e) => {
             table = document.getElementById('job' + parentId + 'tasks');
@@ -1300,8 +1341,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle drag start (required for draggable elements)
         table.addEventListener('dragstart', (e) => {
+            console.log("dr4    Drag started on handle");
             if (e.target.classList.contains('drag-handle')) {
-                console.log("dr4    Drag started on handle");
+                
             e.dataTransfer.setData('text/plain', ''); // Required for Firefox
             e.target.style.cursor = 'grabbing';
             }
@@ -1310,9 +1352,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handle drag over and drop
         table.addEventListener('dragover', (e) => {
             e.preventDefault();
+            console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
             const targetRow = e.target.closest('tr');
             if (targetRow && targetRow !== draggedRow) {
-                // console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
+                
             const rect = targetRow.getBoundingClientRect();
             const mid = rect.top + rect.height / 2;
             if (e.clientY < mid) {
@@ -1325,8 +1368,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Handle drag end
         table.addEventListener('dragend', () => {
+            console.log("dr6    Drag ended on row (sort-order:", draggedRow.dataset.sortOrder + ")");
             if (draggedRow) {
-                // console.log("dr6    Drag ended on row (sort-order:", draggedRow.dataset.sortOrder + ")");
+                
             draggedRow.classList.remove('dragging');
             updateSortOrder(); // Update sort_order values
             draggedRow = null;
