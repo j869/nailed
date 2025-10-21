@@ -819,40 +819,8 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
 
           console.log("ge6    Searching mailbox for ", email);
           // Search for emails that touch the customer in any way
-          // IMAP OR requires exactly 2 arguments, so we need to nest them
-          imapClient.search([
-            ['OR',
-              ['OR',
-                ['OR', ['FROM', email], ['TO', email]],
-                ['OR', ['CC', email], ['BCC', email]]
-              ],
-              ['OR',
-                ['OR',
-                  ['HEADER', 'Reply-To', email],
-                  ['HEADER', 'Return-Path', email]
-                ],
-                ['OR',
-                  ['SUBJECT', email],  // Customer email in subject
-                  ['BODY', email]      // Customer email in body
-                ]
-              ]
-            ]
-          ], (err, results) => {
-            if (err) {
-              console.error("ge7    Search error:", err);
-              imapClient.end();
-              return reject(res.status(500).json({ success: false, message: "Search error" }));
-            }
-
-            if (!results || results.length === 0) {
-              console.log("ge8    No emails found.");
-              imapClient.end();
-              pool.query("SELECT id FROM builds WHERE customer_id = $1", [customerID])
-                .then(build => {
-                  resolve(res.json({ success: true, message: "No emails found.", build_id: build.rows[0]?.id }));
-                });
-              return;
-            }
+          
+          const allResults = await searchMailFolders(imapClient, email);
 
             // Get all messages to/from this customer
             const messages = results;

@@ -107,3 +107,62 @@ app.get("/email/:cust_id/:user_id", async (req, res) => {
   }
 
 });
+
+
+
+async function searchMailFolders(imapClient, email) {
+  const results = [];
+  //usage   : const allResults = await searchMailFolders(imapClient, 'customer@example.com');
+  console.log(`le1      Searching all folders for emails related to: ${email}`);
+  // Get all folders
+  const boxes = await imapClient.getBoxes();
+  
+  async function searchFolder(folderPath) {
+    try {
+      await imapClient.switchFolder(folderPath);
+      
+      const searchCriteria = [
+        ['FROM', email],
+        ['TO', email],
+        ['CC', email], 
+        ['BCC', email]
+      ];
+      
+      const messageIds = await imapClient.search(searchCriteria);
+      
+      if (messageIds.length > 0) {
+        results.push({
+          folder: folderPath,
+          messageIds: messageIds
+        });
+      }
+    } catch (error) {
+      console.log(`Could not search folder ${folderPath}:`, error.message);
+    }
+  }
+  
+  // Recursive function to traverse all folders
+  async function traverseFolders(boxes, prefix = '') {
+    for (const [name, box] of Object.entries(boxes)) {
+      const folderPath = prefix ? `${prefix}/${name}` : name;
+      
+      // Skip special folders that might cause issues
+      if (box.attribs && box.attribs.includes('\\Noselect')) {
+        continue;
+      }
+      
+      // Search this folder
+      await searchFolder(folderPath);
+      
+      // Recursively search subfolders
+      if (box.children) {
+        await traverseFolders(box.children, folderPath);
+      }
+    }
+  }
+  
+  await traverseFolders(boxes);
+  return results;
+}
+
+
