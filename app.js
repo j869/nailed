@@ -1639,7 +1639,7 @@ app.get("/2/customers", async (req, res) => {
             products p ON b.product_id = p.id
           WHERE (${processedSecurityClause})
           ORDER BY 
-            c.id ASC;
+            c.sort_order ASC;
         `);
 
         // Format follow_up value and structure the data
