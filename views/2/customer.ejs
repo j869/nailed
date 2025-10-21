@@ -158,7 +158,11 @@
                                             <td><label class="editable" id="contactEmail" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_email ? customer.primary_email : '&nbsp; &nbsp;' %></label></td>
                                             <td><label class="editable" id="otherContact" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.contact_other ? customer.contact_other : '&nbsp; &nbsp;' %></label></td>
                                             <td><label class="editable" id="contactStatus" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.current_status ? customer.current_status : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.follow_up ? customer.follow_up : '&nbsp; &nbsp;' %></label></td>
+                                            <td>
+                                                <label title="the next time this will appear on your day task list" class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.follow_up ? customer.follow_up : '&nbsp; &nbsp;' %></label>
+                                                <br>
+                                                <label title="the last time some change was made to this customer" style="font-size: small; color: grey;">for:<%= customer.date_last_actioned %></label>
+                                            </td>
                                             <td id="actions" >
                                                 <a href="/customer/<%= customer.id %>" class="btn btn-green-slim"><i class="fas fa-edit"></i> </a>
                                             </td>                                            

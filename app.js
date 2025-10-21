@@ -1140,7 +1140,8 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
     const customerResult = await db.query(`
       SELECT 
         id, sort_order, full_name, home_address, primary_phone, primary_email, 
-        contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up 
+        contact_other, current_status, TO_CHAR(follow_up, 'DD-Mon-YY') AS follow_up, 
+        TO_CHAR(date_last_actioned, 'DD-Mon-YY') AS date_last_actioned
       FROM customers 
       WHERE id = $1
     `, [customerID]);
@@ -1242,6 +1243,7 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
       contact_other: customer.contact_other,
       current_status: customer.current_status,
       follow_up: customer.follow_up,
+      date_last_actioned: customer.date_last_actioned,
       builds: [{
         id: buildData.id,
         customer_id: buildData.customer_id,
