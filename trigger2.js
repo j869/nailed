@@ -161,6 +161,20 @@ async function handleTrigger(triggerData) {
       } catch {
         console.log("gnf8    failed on job(" + job.id + ")")
       }
+
+
+      try {
+        //check if job_target_date_audit table still exists
+        const q1 = await pool.query(`SELECT to_regclass('public.jobs_target_date_audit');`);
+        if (!q1.rows[0].to_regclass) {
+          console.log("gnf90    jobs_target_date_audit table does not exist");
+          return;
+        }
+        const q3 = await pool.query(`DELETE FROM jobs_target_date_audit WHERE changed_at < CURRENT_TIMESTAMP - INTERVAL '1 month';`);
+        console.log("gnf91    cleaned up jobs_target_date_audit, ", q3.rowCount, " old rows deleted.");
+      } catch {
+        console.log("gnf92    failed to clean up jobs_target_date_audit")
+      }
     }
 
   }
