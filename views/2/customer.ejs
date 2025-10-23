@@ -1482,10 +1482,10 @@ function insertTemplate(templateName) {
 
     if (templateName === 'Deposit') {
         subject.value = 'Deposit Confirmation';
-        // const response = await fetch(apiUrl + '/getTemplate/' + templateName);
+        const response = await fetch(apiUrl + '/getTemplate/' + templateName);
         if (!response.ok) throw new Error('Download failed');
 
-        // console.log("uw232    body value ", message.value);
+        console.log("uw232    body value ", response.message);
         // console.log("uw233   body textContent ", message.textContent);
         // console.log("uw234   body textContent ", message.innerHTML);
         message.innerHTML = `
