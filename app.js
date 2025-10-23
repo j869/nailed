@@ -382,7 +382,7 @@ app.post("/updateSMTP", async (req, res) => {
 
 app.post("/send-email", async (req, res) => {
   if (req.isAuthenticated()) {
-    console.log("se1    Sending email for user:", req.user.id);
+    console.log("se1    Sending email for user:", req.body);
     const { customerId, toEmail, subject, message } = req.body;
     console.log("se1a   Email details - customerId:", customerId, "toEmail:", toEmail, "subject:", subject, "message length:", message?.length);
     
