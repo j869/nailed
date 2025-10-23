@@ -1543,7 +1543,7 @@ document.getElementById('composeEmailForm').addEventListener('submit', async fun
     console.log("uw238   form data ", data);
     console.log("uw239   message ", document.getElementById('message').innerHTML);
     console.log("uw240   message_html ", document.getElementById('message_html').innerHTML);
-    
+    data.message = document.getElementById('message').innerHTML;
     const response = await fetch('/send-email', {
       method: 'POST',
       headers: {
