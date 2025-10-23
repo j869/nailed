@@ -1483,10 +1483,9 @@ function insertTemplate(templateName) {
     if (templateName === 'Deposit') {
         subject.value = 'Deposit Confirmation';
         // const response = await fetch(apiUrl + '/getTemplate/' + templateName);
-        if (!response.ok) throw new Error('Download failed');
+        //if (!response.ok) throw new Error('Download failed');
 
         // console.log("uw232    body value ", message.value);
-        // console.log("uw233   body textContent ", message.textContent);
         // console.log("uw234   body textContent ", message.innerHTML);
         message.innerHTML = `
 <p>Hi ___!</p>
@@ -1525,8 +1524,8 @@ function insertTemplate(templateName) {
 | Business Hours |Mon-Fri | 8:30am-4:30pm |
         `;
         // console.log("uw235   body textContent ", message.textContent);
-        // Also update the hidden input for form submission
-        document.getElementById('message_html').value = message.innerHTML;
+
+        document.getElementById('message_html').value = message.innerHTML;      // Also update the hidden input for form submission
         // console.log("uw237   hidden message_html ", document.getElementById('message_html').value);
     }
 }
