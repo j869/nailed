@@ -2994,7 +2994,7 @@ app.get("/update", async (req, res) => {
           value = newValue;
           if (newValue === "" || JSON.stringify(decodeURIComponent(newValue)) === "\n") {
             console.log("ufg41181      date value is null");
-            value = "";
+            value = null;
           } else if (isNaN(Date.parse(value))) {
             console.error("ufg4118  Invalid date value:", value);
             return res.status(400).send("Invalid date value");
@@ -3003,13 +3003,18 @@ app.get("/update", async (req, res) => {
           q = await axios.get(`${API_URL}/update?table=${table}&column=${columnName}&value=${value}&id=${rowID}`);
           if (q && q.status === 201) {
             res.status(200).send("Update successful");
+            console.log("ufg4112     updating worksheet date", value, rowID);
+            let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
+            try {
+              let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
+              console.log("ufg4113     daytask list was updated successfully");
+            } catch (error) {
+              console.error("ufg4114     Error updating daytask list:", error);
+            }
           }
           else {
             res.status(500).send("Error updating " + fieldID);
           }
-          console.log("ufg4112     updating worksheet date", value, rowID);
-          let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
-          console.log("ufg4113     worksheet update result", q1.rowCount);
           break;
         case "taskTargetDate":
           // console.log("ufg412     [" + newValue + "] ")
