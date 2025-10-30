@@ -2994,7 +2994,7 @@ app.get("/update", async (req, res) => {
           value = newValue;
           if (newValue === "" || JSON.stringify(decodeURIComponent(newValue)) === "\n") {
             console.log("ufg41181      date value is null");
-            value = null;
+            value = "";
           } else if (isNaN(Date.parse(value))) {
             console.error("ufg4118  Invalid date value:", value);
             return res.status(400).send("Invalid date value");
