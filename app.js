@@ -3004,7 +3004,7 @@ app.get("/update", async (req, res) => {
           if (q && q.status === 201) {
             res.status(200).send("Update successful");
             console.log("ufg4112     updating worksheet date", value, rowID);
-            let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
+            // let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
             try {
               let q1 = await db.query("update worksheets set date = $1 where job_id = $2", [value, rowID]);
               console.log("ufg4113     daytask list was updated successfully");
