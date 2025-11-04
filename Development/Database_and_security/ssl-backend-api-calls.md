@@ -52,6 +52,12 @@ This setup (Option 1A as mentioned) routes all API traffic through the secure su
 - Confirm DNS provider and add the A record (and AAAA if IPv6 is enabled on the VM).
 - For propagation testing: Once added, we can use CLI tools (e.g., `dig api.buildingbb.com.au`) or online checkers to verify (TTL typically 1-48 hours, but often faster).
 - Apache details: Share any existing config files (e.g., /etc/apache2/sites-available/) if needed for planning mods.
+- review and test .env values
+
+ssh 67.219.105.53; cat Public/nailed/.env
+john@vultr:~/Public/nailed$ cat .env
+BASE_URL="https://buildingbb.com.au"
+API_URL="http://localhost:4000"
 
 
 ## History of actions ##
@@ -59,9 +65,9 @@ This setup (Option 1A as mentioned) routes all API traffic through the secure su
 ### testing original propogation issues ###
 
 run commands,
-<code>curl -I https://buildingbb.com.au</code>
+<code>
+curl -I https://buildingbb.com.au
 dig A buildingbb.com.au @8.8.8.8
 dig AAAA buildingbb.com.au @8.8.8.8
-
-
+</code>
 
