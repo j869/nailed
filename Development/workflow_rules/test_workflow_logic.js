@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // Mock the API_URL (this would normally come from env)
-const API_URL = "http://localhost:4000"; // Replace with your actual API URL if different
+const API_URL = "/api"; // Replace with your actual API URL if different
 
 // Test function to simulate the createBuildWithWorkflow function
 async function testWorkflowCreation() {

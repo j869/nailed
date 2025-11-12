@@ -56,7 +56,7 @@ let baseURL = "";
 const saltRounds = 10;
 
 env.config();
-const API_URL = process.env.API_URL     //"http://localhost:4000";
+const API_URL = process.env.API_URL || '/api'     //"http://localhost:4000";
 
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs', 'customer_imports');
