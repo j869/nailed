@@ -56,7 +56,12 @@ let baseURL = "";
 const saltRounds = 10;
 
 env.config();
-const API_URL = process.env.API_URL || '/api'     //"http://localhost:4000";
+let API_URL = process.env.API_URL || '/api';  // From .env (full HTTPS for prod)
+
+// For server-side calls, ensure full URL (Node needs it)
+if (API_URL.startsWith('/') && !API_URL.startsWith('http')) {
+  API_URL = process.env.BASE_URL + API_URL;  // e.g., "https://buildingbb.com.au/api"
+}
 
 // Ensure logs directory exists
 const logsDir = path.join(process.cwd(), 'logs', 'customer_imports');
