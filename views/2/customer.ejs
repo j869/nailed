@@ -733,7 +733,7 @@
         console.log(`tb2    Updating task ${taskId} status to ${isChecked ? 'true' : 'false'}`);
         
         $.ajax({
-        url: '<%= locals.baseUrl %>/taskComplete',
+        url: '/taskComplete',
         method: 'POST',
         data: {
             taskId: taskId,
@@ -783,7 +783,7 @@
                 console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
                 
                 $.ajax({
-                url: '<%= locals.baseUrl %>/jobComplete',
+                url: '/jobComplete',
                 method: 'POST',
                 data: {
                     jobId: jobId,
@@ -819,7 +819,7 @@
                 console.log("c3   ", isChecked);
                 // Send API request to update build status
                 $.ajax({
-                    url: '<%= locals.baseUrl %>/buildComplete', 
+                    url: '/buildComplete', 
                     method: 'POST', 
                     data: {
                         buildId: buildId,
