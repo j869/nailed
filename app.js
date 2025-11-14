@@ -21,6 +21,7 @@ import { logUserActivity } from './src/logging.js';
 import { getMelbourneTime } from './src/datetime.js';
 
 const app = express();
+app.set('trust proxy', 1);
 // Set view engine
 app.set("view engine", "ejs");
 app.set("views", "./views");
@@ -85,7 +86,11 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false, httpOnly: true }
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', 
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
