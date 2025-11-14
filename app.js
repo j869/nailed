@@ -2420,11 +2420,17 @@ app.post("/updateBuild/:id", async (req, res) => {
 
 
 app.post("/jobComplete", async (req, res) => {
+  console.log('DEBUG /jobComplete entry - cookies:', req.headers.cookie);
+  console.log('DEBUG /jobComplete entry - sessionID:', req.sessionID);
+  console.log('DEBUG /jobComplete entry - req.user before auth check:', req.user);
   logUserActivity(req, `job_update_start: jobId=${req.body.jobId} status=${req.body.status}`);
   if (!req.isAuthenticated() || !req.user) {
+    console.log('DEBUG /jobComplete - auth failed, req.isAuthenticated():', req.isAuthenticated());
+    console.log('DEBUG /jobComplete - req.user:', req.user);
     logUserActivity(req, 'unauth_job_update_attempt');
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  console.log('DEBUG /jobComplete - auth passed, req.user.id:', req.user.id);
   try {
     const jobID = req.body.jobId;
     const status = req.body.status;    //string 'true' or 'false'
