@@ -2423,17 +2423,20 @@ app.post("/jobComplete", async (req, res) => {
   console.log('DEBUG /jobComplete entry - cookies:', req.headers.cookie);
   console.log('DEBUG /jobComplete entry - sessionID:', req.sessionID);
   console.log('DEBUG /jobComplete entry - req.user before auth check:', req.user);
-  logUserActivity(req, `job_update_start: jobId=${req.body.jobId} status=${req.body.status}`);
-  if (!req.isAuthenticated() || !req.user) {
-    console.log('DEBUG /jobComplete - auth failed, req.isAuthenticated():', req.isAuthenticated());
-    console.log('DEBUG /jobComplete - req.user:', req.user);
-    logUserActivity(req, 'unauth_job_update_attempt');
-    return res.status(401).json({ error: 'Unauthorized' });
+  const { jobId, status, userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: 'User ID required' });
   }
-  console.log('DEBUG /jobComplete - auth passed, req.user.id:', req.user.id);
+  logUserActivity(req, `job_update_start: jobId=${jobId} status=${status} userId=${userId}`);
+  // Verify ownership
+  const ownershipCheck = await db.query('SELECT user_id FROM jobs WHERE id = $1', [jobId]);
+  if (ownershipCheck.rows.length === 0 || ownershipCheck.rows[0].user_id != userId) {
+    logUserActivity(req, `unauth_job_update_attempt: jobId=${jobId} userId=${userId}`);
+    return res.status(403).json({ error: 'Unauthorized - Job not owned by user' });
+  }
   try {
-    const jobID = req.body.jobId;
-    const status = req.body.status;    //string 'true' or 'false'
+    const jobID = jobId;
+    const statusVal = status;    //string 'true' or 'false'
 
     // Fetch the current status of the job from the database
     const result = await db.query("SELECT current_status, tier FROM jobs WHERE id = $1", [jobID]);
@@ -2445,14 +2448,14 @@ app.post("/jobComplete", async (req, res) => {
     let newCompleteDate;
     let newCompleteBy;
     let newStatus;
-    if (status === 'true') {
+    if (statusVal === 'true') {
       newCompleteDate = new Date();
       newStatus = 'complete';
     } else {
       newCompleteDate = null;
       newStatus = null     //'pending';
     }
-    newCompleteBy = req.user?.id || 1;
+    newCompleteBy = userId;
 
 
     // Update the jobs table in your database
@@ -2463,15 +2466,15 @@ app.post("/jobComplete", async (req, res) => {
       // update the status of all child tasks 
       let childStatus = newStatus === 'complete' ? 'complete' : null;
       const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2 and f.tier > $3)`, [childStatus, jobID, tier]);
-      logUserActivity(req, `job_update_complete: jobId=${jobID} newStatus=${newStatus} childrenUpdated=${result2.rowCount}`);
+      logUserActivity(req, `job_update_complete: jobId=${jobID} newStatus=${newStatus} childrenUpdated=${result2.rowCount} userId=${userId}`);
       res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
 
     } else {
-      logUserActivity(req, `job_update_failed: jobId=${jobID} reason=not_found`);
+      logUserActivity(req, `job_update_failed: jobId=${jobID} reason=not_found userId=${userId}`);
       res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
   } catch (error) {
-    logUserActivity(req, `job_update_error: jobId=${req.body.jobId} error=${error.message}`);
+    logUserActivity(req, `job_update_error: jobId=${req.body.jobId} error=${error.message} userId=${userId}`);
     console.error("jb84     Error updating job status:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }

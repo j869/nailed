@@ -779,36 +779,37 @@
         console.log("jb1     DOM ready - initializing job checkboxes");
             
             // Use event delegation for dynamic elements
-            $(document).on('change', '.job-checkbox', function() {
-                const jobId = $(this).attr('data-job-id');
-                const isChecked = $(this).is(':checked');
-                
-                console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
-                
-                $.ajax({
-                url: '/jobComplete',
-                method: 'POST',
-                data: {
-                    jobId: jobId,
-                    status: isChecked ? 'true' : 'false' 
-                },
-                xhrFields: {
-                    withCredentials: true
-                },
-                success: function(response) {
-                    console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
-                    showNotification(`Job ${jobId} and all children set to ${isChecked}`, false);
-                    // Optional: Update UI based on response
-                },
-                error: function(xhr, status, error) {
-                    console.error(`jb8    Error updating job ${jobId}:`, error);
-                    showNotification(`Error updating job ${jobId}: ${error.message}`, true);
-                    // Revert checkbox if error occurs
-                    $(this).prop('checked', !isChecked);
-                }.bind(this) // Maintain checkbox context in error handler
-                });
-
+        $(document).on('change', '.job-checkbox', function() {
+            const jobId = $(this).attr('data-job-id');
+            const isChecked = $(this).is(':checked');
+            
+            console.log(`jb2    Checkbox changed for job ${jobId}, new status: ${isChecked}`);
+            
+            $.ajax({
+            url: '/jobComplete',
+            method: 'POST',
+            data: {
+                jobId: jobId,
+                status: isChecked ? 'true' : 'false',
+                userId: localStorage.getItem('userId')
+            },
+            xhrFields: {
+                withCredentials: true
+            },
+            success: function(response) {
+                console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
+                showNotification(`Job ${jobId} and all children set to ${isChecked}`, false);
+                // Optional: Update UI based on response
+            },
+            error: function(xhr, status, error) {
+                console.error(`jb8    Error updating job ${jobId}:`, error);
+                showNotification(`Error updating job ${jobId}: ${error.message}`, true);
+                // Revert checkbox if error occurs
+                $(this).prop('checked', !isChecked);
+            }.bind(this) // Maintain checkbox context in error handler
             });
+
+        });
         });
 
 

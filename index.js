@@ -2941,7 +2941,7 @@ app.get("/executeJobAction", async (req, res) => {
     const parentID = req.query.origin_job_id || null;
     const changeArrayJson = JSON.parse(req.query.changeArray);
     // DEBUG LOG 1: Log the entire changeArrayJson before processing
-    console.log("DEBUG: changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
+    console.log("ja11     changeArrayJson:", JSON.stringify(changeArrayJson, null, 2));
     console.log("ja1      executing changeArray... ");
     const jobRec = await pool.query("SELECT id, job_template_id, current_status, user_id, build_id, tier FROM jobs WHERE id = $1", [parentID]);
     if (jobRec.rows.length === 0) {
@@ -2954,7 +2954,7 @@ app.get("/executeJobAction", async (req, res) => {
     const userID = jobRec.rows[0].user_id;
     for (const scenario of changeArrayJson) {
       // DEBUG LOG 2: Log each scenario's antecedent and decendant
-      console.log(`DEBUG: scenario antecedent: ${scenario.antecedent}, decendant:`, scenario.decendant);
+      console.log(`ufg4664    scenario antecedent: ${scenario.antecedent}, decendant:`, scenario.decendant);
       // console.log("ufg4664     antecedent(" +  scenario.antecedent + ") = job_status(" + parentStatus + ")");
       console.log("ja4001     IF job(" + parentID + ") status changes too " + scenario.antecedent + " then... ");
       if (scenario.antecedent === parentStatus) {
@@ -3030,7 +3030,7 @@ app.get("/executeJobAction", async (req, res) => {
             } else if (action.insertReminder) {
               //{"insertReminder":"28_7_followup"}
               // DEBUG LOG 3: Log when insertReminder block is entered
-              // console.log("DEBUG: Entered insertReminder block for action:", action);
+              // console.log("ja4301     Entered insertReminder block for action:", action);
               console.log(`ja4301           insert reminder job `, action);
               const daysToAdd = action.insertReminder.split("_")[0];
               let daysToMin = isNaN(Number(action.insertReminder.split("_")[1])) ? 0 : Number(action.insertReminder.split("_")[1]);
