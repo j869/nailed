@@ -2850,16 +2850,19 @@ passport.serializeUser((user, cb) => {
 });
 
 passport.deserializeUser(async (id, cb) => {
+  console.log(`pp96   deserializeUser: Starting for session ID ${req.sessionID || 'unknown'}, fetching user ID ${id}`);
   try {
-    // console.log('pp96     Deserializing user ID:', id);
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
+    console.log(`pp94    deserializeUser: DB query result for ID ${id}: rows=${result.rows.length}, first row email=${result.rows[0]?.email || 'none'}`);
     if (result.rows.length > 0) {
-      cb(null, result.rows[0]); // Return fresh user data from database
+      console.log(`pp95   deserializeUser: Success for ID ${id}, user: ${result.rows[0].email}`);
+      cb(null, result.rows[0]);
     } else {
+      console.error(`pp92    deserializeUser: No user found for ID ${id} – check DB data or ID validity`);
       cb(new Error('User not found'), null);
     }
   } catch (err) {
-    console.error('pp97     Error deserializing user:', err);
+    console.error(`pp98    deserializeUser: Error for ID ${id}: ${err.message}, stack: ${err.stack}`);
     cb(err, null);
   }
 });
