@@ -3896,3 +3896,19 @@ app.listen(port, () => {
   console.log(`re9     STARTED running on port ${port}`);
   
 });
+
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('x99   \nReceived SIGINT. Shutting down...');
+  server.close(() => {
+    console.log('x991   Server closed.');
+    process.exit(0);
+  });
+  
+  // Force close after 5 seconds
+  setTimeout(() => {
+    console.log('x998    Forcing shutdown...');
+    process.exit(1);
+  }, 5000);
+});
