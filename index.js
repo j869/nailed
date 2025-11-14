@@ -136,9 +136,10 @@ function decrypt(encryptedText, key) {
 }
 
 app.use(cors({
-  origin: `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
-  methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods
-  allowedHeaders: "Content-Type"
+  origin: process.env.BASE_URL,
+  methods: "GET, POST, DELETE",
+  allowedHeaders: "Content-Type",
+  credentials: true  // Allow cookies and auth headers
 }));
 
 
@@ -3296,4 +3297,3 @@ process.on('SIGINT', () => {
     process.exit(1);
   }, 5000);
 });
-
