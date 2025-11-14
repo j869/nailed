@@ -3892,15 +3892,22 @@ app.get("/update", async (req, res) => {
 
 
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`re9     STARTED running on port ${port}`);
-  
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('x71   SIGTERM received, Production/Container initiated shutting down...');
+  server.close(() => {
+    console.log('x79      Process terminated.');
+  });
 });
 
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('x99   \nReceived SIGINT. Shutting down...');
+  console.log('x99   \nReceived SIGINT. SSH user pressed Ctrl+C. Shutting down...');
   server.close(() => {
     console.log('x991   Server closed.');
     process.exit(0);

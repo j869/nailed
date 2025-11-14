@@ -3265,7 +3265,7 @@ app.get("/executeJobAction", async (req, res) => {
 
 
 
-app.listen(port, async () => {
+const server = app.listen(port, async () => {
   console.log(`rd9     STARTED running on port ${port}`);
   
   // Check disk space on startup
