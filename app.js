@@ -73,15 +73,6 @@ if (!fs.existsSync(logsDir)) {
 // Serve static files first (no session processing needed)
 app.use(express.static("public"));
 
-app.use((req, res, next) => {
-  // console.log(`x1        NEW REQUEST ${req.method} ${req.path} from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
-  console.log(`x1        NEW REQUEST ${req.method} ${req.path} `);
-  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} `);
-  // logUserActivity(req, `x3        with SessionID: ${req.sessionID}`);
-  // logUserActivity(req, `x4        and Cookies: ${req.headers.cookie}`);
-  
-  next();
-});
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -95,11 +86,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
-  // console.log('x2       req.user:', req.user?.id || 'unset');
-  console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
-  let variables = ``;
-  
-  // Build variables string with available request data
+  const userId = req.user?.id || 'unset';
+  const sessionId = req.sessionID || 'no-session';
+  let activity = `request: ${req.method} ${req.path}`;
   const dataParts = [];
   if (Object.keys(req.params).length > 0) {
     dataParts.push(`params: ${JSON.stringify(req.params)}`);
@@ -107,15 +96,11 @@ app.use((req, res, next) => {
   if (Object.keys(req.query).length > 0) {
     dataParts.push(`query: ${JSON.stringify(req.query)}`);
   }
-  // Note: req.body won't be available here since body parsing middleware comes later
-  
   if (dataParts.length > 0) {
-    variables = dataParts.join(', ') + ', ';
+    activity += ` ${dataParts.join(', ')}`;
   }
-
-  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
-  // logUserActivity(req, `x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
-  // console.log('x6       Post-passport - sessionID:', req.sessionID);
+  logUserActivity(req, activity);
+  console.log(`x1 NEW REQUEST ${req.method} ${req.path} from USER(${userId}) SessionID: ${sessionId}`);
   next();
 });
 app.use(express.json());    //// Middleware to parse JSON bodies
@@ -1135,7 +1120,7 @@ app.post("/admin/customers/import/email-contacts", async (req, res) => {
 
 async function getJobs(parentID, parentTier, logString) {
   try {
-    console.log("bb10" + logString + "getting jobID: ", parentID);
+    // console.log("bb10" + logString + "getting jobID: ", parentID);
     let jobTier = 500;
     let jobsResult;
     let jobsArray = [];
@@ -1192,7 +1177,7 @@ async function getJobs(parentID, parentTier, logString) {
       ORDER BY sort_order
     `, [jobID, '' + (parentTier + 1)]);
 
-    console.log("bb21" + logString + " job(" + jobID + ") checking job_process_flow on tier(" + (parentTier + 1) + ") child relationships. Found: ", jobsResult.rows.length);
+    // console.log("bb21" + logString + " job(" + jobID + ") checking job_process_flow on tier(" + (parentTier + 1) + ") child relationships. Found: ", jobsResult.rows.length);
 
     if (jobsResult.rows.length > 0) {
       let daughters = jobsResult.rows;
@@ -1200,7 +1185,7 @@ async function getJobs(parentID, parentTier, logString) {
 
       // Check for pet-sister relationships
       for (const daughter of daughters) {
-        console.log("bb30" + logString + "checking daughter: ", daughter.id);
+        // console.log("bb30" + logString + "checking daughter: ", daughter.id);
         let childJobID = daughter.id.substring(1);
 
         const tier = parentTier + 1;
@@ -1244,7 +1229,7 @@ async function getJobs(parentID, parentTier, logString) {
       for (const daughter of daughters) {
         let childJobID = daughter.id;
         const tier = parentTier + 1;
-        console.log("bb5 " + logString + "diving deep to get jobID(" + childJobID + ") on tier ", tier);
+        // console.log("bb5 " + logString + "diving deep to get jobID(" + childJobID + ") on tier ", tier);
 
         const grandDaughters = await getJobs(childJobID, tier, logString + "  ");
         jobsArray.push({
@@ -1254,7 +1239,7 @@ async function getJobs(parentID, parentTier, logString) {
         });
       }
     } else {
-      console.log("bb91" + logString + " no children found for jobID: ", jobID);
+      // console.log("bb91" + logString + " no children found for jobID: ", jobID);
     }
 
     return jobsArray;
@@ -2435,13 +2420,16 @@ app.post("/updateBuild/:id", async (req, res) => {
 
 
 app.post("/jobComplete", async (req, res) => {
-  console.log("jb1      USER is updating status", req.body);
+  logUserActivity(req, `job_update_start: jobId=${req.body.jobId} status=${req.body.status}`);
+  if (!req.isAuthenticated() || !req.user) {
+    logUserActivity(req, 'unauth_job_update_attempt');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   try {
     const jobID = req.body.jobId;
     const status = req.body.status;    //string 'true' or 'false'
 
     // Fetch the current status of the job from the database
-    console.log("jb11   ", jobID, status);
     const result = await db.query("SELECT current_status, tier FROM jobs WHERE id = $1", [jobID]);
     const currentStatus = result.rows[0].current_status;
     const tier = result.rows[0].tier;
@@ -2462,26 +2450,22 @@ app.post("/jobComplete", async (req, res) => {
 
 
     // Update the jobs table in your database
-    console.log("jb2    ", newStatus, jobID);
     const updateResult = await db.query("UPDATE jobs SET current_status = $1, completed_date = $3, completed_by = $4  WHERE id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
 
     // Check if the update was successful
     if (updateResult.rowCount === 1) {
       // update the status of all child tasks 
-      console.log("jb71      ", jobID, newStatus);
-      //  const result = await db.query(`UPDATE tasks SET current_status = $2 WHERE job_id = $1`, [jobID, newStatus]);
-      //const result = await db.query("UPDATE tasks SET current_status = $1, completed_date = $3, completed_by = $4 WHERE job_id = $2", [newStatus, jobID, newCompleteDate, newCompleteBy]);
       let childStatus = newStatus === 'complete' ? 'complete' : null;
       const result2 = await db.query(`UPDATE jobs SET current_status = $1 WHERE id IN(select j.id from jobs j inner join job_process_flow f ON j.id = f.decendant_id where f.antecedent_id = $2 and f.tier > $3)`, [childStatus, jobID, tier]);
-      // console.log("jb72      ", result.rowCount);  
-      console.log(`jb9   job(${jobID}) children updated updated to ${childStatus}`);
+      logUserActivity(req, `job_update_complete: jobId=${jobID} newStatus=${newStatus} childrenUpdated=${result2.rowCount}`);
       res.status(200).json({ message: `job(${jobID}) children updated to ${childStatus}` });
 
     } else {
-      console.log(`jb8     job ${jobID} not found or status not updated`);
+      logUserActivity(req, `job_update_failed: jobId=${jobID} reason=not_found`);
       res.status(404).json({ error: `job ${jobID} not found or status not updated` });
     }
   } catch (error) {
+    logUserActivity(req, `job_update_error: jobId=${req.body.jobId} error=${error.message}`);
     console.error("jb84     Error updating job status:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -2802,9 +2786,11 @@ app.post("/register", async (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-  console.log("lz1     USER clicked logout")
+  const userId = req.user?.id || 'unknown';
+  logUserActivity(req, `logout: user(${userId}) initiated`);
   req.logout(function (err) {
     if (err) {
+      logUserActivity(req, `logout_error: user(${userId}) error=${err.message}`);
       return next(err);
     }
     res.redirect("/");
@@ -2815,7 +2801,6 @@ passport.use(
   "local",
   new Strategy(async function verify(username, password, cb) {
     try {
-      // console.log("pp1     user(" + username + ") is trying to log in on [MAC] at [SYSTIME]"  )
       const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
         username,
       ]);
@@ -2824,25 +2809,26 @@ passport.use(
         const storedHashedPassword = user.password;
         bcrypt.compare(password, storedHashedPassword, (err, valid) => {
           if (err) {
+            logUserActivity({ user: { id: 0 } }, `auth_error: password_compare_fail username=${username} error=${err.message}`);
             console.error("pp83     Error comparing passwords:", err);
             return cb(err);
           } else {
             if (valid) {
-              console.log(`pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
-              logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
+              logUserActivity(user, `auth_success: user(${user.id}) login at ${getMelbourneTime()}`);
               return cb(null, user);
             } else {
-              console.log(`pp81     user(${username}) wrong password on [MAC] at [${getMelbourneTime()}]`);
+              logUserActivity({ user: { id: 0 } }, `auth_fail: invalid_password username=${username} at ${getMelbourneTime()}`);
               return cb(null, false);
             }
           }
         });
       } else {
-        console.log("pp82     user(" + username + ") not registered on [MAC] at [SYSTIME]")
+        logUserActivity({ user: { id: 0 } }, `auth_fail: user_not_found username=${username} at ${getMelbourneTime()}`);
         return cb("Sorry, we do not recognise you as an active user of our system.");
         // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
       }
     } catch (err) {
+      logUserActivity({ user: { id: 0 } }, `auth_error: verify_fail username=${username} error=${err.message}`);
       console.error(err);
     }
   })

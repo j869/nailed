@@ -12,8 +12,8 @@ const __dirname = path.dirname(__filename);
  * @param {string} activity - Description of the activity to log.
  * 
  */
-export function logUserActivity(req, activity) {
-    console.log('og1    logUserActivity called with activity:', activity);
+export function logUserActivity(req, activity, extraContext = {}) {
+    console.log(`og1 logUserActivity called: ${activity} extra: ${JSON.stringify(extraContext)}`);
     try {
         let userId;
         let windowId = 'unknown';
@@ -21,6 +21,8 @@ export function logUserActivity(req, activity) {
         let userAgent = 'unknown';
         let referer = 'unknown';
         let sessionID = 'unknown';
+        let isAuth = false;
+        let sessionKeys = 'empty';
         
         if (typeof req === 'number') {
             // If req is a number, treat it as userId
@@ -33,14 +35,18 @@ export function logUserActivity(req, activity) {
             userAgent = req.headers['user-agent'] || 'unknown';
             sessionID = req.sessionID || 'unknown';
             referer = req.headers['referer'] || 'unknown';
+            isAuth = req.isAuthenticated ? req.isAuthenticated() : false;
+            sessionKeys = req.session ? Object.keys(req.session).join(', ') : 'empty';
         } else {
-            console.warn('og83       logUserActivity: No user ID found in req.user', req.user);
+            console.warn(`og83 logUserActivity: No user ID (req.user undefined). Activity: ${activity}. Session: ${sessionID}, Auth: ${isAuth}, SessionKeys: [${sessionKeys}]`);
             userId = 0;  // Use 0 for unauthenticated/guest users
             windowId = req?.headers['x-window-id'] || 'unknown';
             ipAddress = req?.ip || req?.connection?.remoteAddress || 'unknown';
             userAgent = req?.headers['user-agent'] || 'unknown';
             sessionID = req?.sessionID || 'unknown';
             referer = req?.headers['referer'] || 'unknown';
+            isAuth = req?.isAuthenticated ? req.isAuthenticated() : false;
+            sessionKeys = req?.session ? Object.keys(req.session).join(', ') : 'empty';
         }
 
         const logsDir = path.join(__dirname, '..', 'logs', 'user_activity');
@@ -53,7 +59,11 @@ export function logUserActivity(req, activity) {
         const logFile = path.join(logsDir, `u${userId.toString().padStart(5, '0')}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
-        const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${windowId} | ${ipAddress.toString().padStart(15, ' ')} | ${userAgent.substring(0, 30).toString().padStart(30, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
+        let logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${windowId} | ${ipAddress.toString().padStart(15, ' ')} | ${userAgent.substring(0, 30).toString().padStart(30, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity}`;
+        if (Object.keys(extraContext).length > 0) {
+            logEntry += ` | extra: ${JSON.stringify(extraContext)}`;
+        }
+        logEntry += ` | auth: ${isAuth} | keys: [${sessionKeys}] \n`;
 
         fs.appendFile(logFile, logEntry, (err) => {
             if (err) {
