@@ -57,7 +57,13 @@ let baseURL = "";
 const saltRounds = 10;
 
 env.config();
-let API_URL = process.env.API_URL || '/api';  // From .env (full HTTPS for prod)
+console.log('Env loaded - SESSION_SECRET:', process.env.SESSION_SECRET ? 'set (length: ' + process.env.SESSION_SECRET.length + ')' : 'unset');
+console.log('Env loaded - PG_USER:', process.env.PG_USER || 'unset');
+console.log('Env loaded - PG_HOST:', process.env.PG_HOST || 'unset');
+console.log('Env loaded - PG_DATABASE:', process.env.PG_DATABASE || 'unset');
+console.log('Env loaded - PG_PASSWORD:', process.env.PG_PASSWORD ? 'set' : 'unset');
+console.log('Env loaded - PG_PORT:', process.env.PG_PORT || 'unset');
+let API_URL = process.env.API_URL || '/api';  // From .env (full HTTPS for prod);
 
 // For server-side calls, ensure full URL (Node needs it)
 if (API_URL.startsWith('/') && !API_URL.startsWith('http')) {
@@ -2850,7 +2856,7 @@ passport.serializeUser((user, cb) => {
 });
 
 passport.deserializeUser(async (id, cb) => {
-  console.log(`pp96   deserializeUser: Starting for session ID ${req.sessionID || 'unknown'}, fetching user ID ${id}`);
+  console.log(`pp96   deserializeUser: Starting, fetching user ID ${id}`);
   try {
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
     console.log(`pp94    deserializeUser: DB query result for ID ${id}: rows=${result.rows.length}, first row email=${result.rows[0]?.email || 'none'}`);
@@ -2947,6 +2953,7 @@ app.get("/update", async (req, res) => {
 
 
   if (req.isAuthenticated()) {
+    console.log('ufg_deserialize_debug: req.session keys:', Object.keys(req.session || {}), 'req.user:', req.user ? `${req.user.id} (${req.user.email})` : 'undefined', 'session passport.user:', req.session?.passport?.user);
     const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;
     console.log("ufg0   Raw value:", req.query.newValue); // Might show encoded
