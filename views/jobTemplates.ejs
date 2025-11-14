@@ -142,7 +142,7 @@
 <script>
 // Get API URL (index.js server)
 const baseUrl = "<%= baseURL %>";
-const apiUrl = baseUrl ? baseUrl.replace("3000", "4000") : "http://localhost:4000";
+const apiUrl = '/api';
 console.log('Base URL:', baseUrl);
 console.log('API URL:', apiUrl);
 
@@ -196,7 +196,7 @@ async function renameProduct() {
     
     try {
         console.log('Updating product:', selectedProductId, 'with name:', newDisplayText);
-        const fullApiUrl = `${apiUrl}/api/products/${selectedProductId}`;
+        const fullApiUrl = `${apiUrl}/products/${selectedProductId}`;
         
         const response = await fetch(fullApiUrl, {
             method: 'PUT',
@@ -244,7 +244,7 @@ async function addNewJobTemplate() {
     }
     
     try {
-        const fullApiUrl = `${apiUrl}/api/job-templates`;
+        const fullApiUrl = `${apiUrl}/job-templates`;
         console.log('Attempting to create new template at URL:', fullApiUrl);
         console.log('Using product ID:', selectedProductId);
         
@@ -297,7 +297,7 @@ async function editJsonField(recordId, fieldName) {
     
     try {
         // Fetch the current data from index.js server
-        const fullApiUrl = `${apiUrl}/api/job-templates/${recordId}`;
+        const fullApiUrl = `${apiUrl}/job-templates/${recordId}`;
         console.log('Attempting to fetch from URL:', fullApiUrl);
         
         const response = await fetch(fullApiUrl);
@@ -390,7 +390,7 @@ async function deleteTemplate(id) {
     }
     
     try {
-        const fullApiUrl = `${apiUrl}/api/job-templates/${id}`;
+        const fullApiUrl = `${apiUrl}/job-templates/${id}`;
         console.log('Attempting to delete from URL:', fullApiUrl);
         
         const response = await fetch(fullApiUrl, {

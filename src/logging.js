@@ -35,7 +35,12 @@ export function logUserActivity(req, activity) {
             referer = req.headers['referer'] || 'unknown';
         } else {
             console.warn('og83       logUserActivity: No user ID found in req.user', req.user);
-            return;
+            userId = 0;  // Use 0 for unauthenticated/guest users
+            windowId = req?.headers['x-window-id'] || 'unknown';
+            ipAddress = req?.ip || req?.connection?.remoteAddress || 'unknown';
+            userAgent = req?.headers['user-agent'] || 'unknown';
+            sessionID = req?.sessionID || 'unknown';
+            referer = req?.headers['referer'] || 'unknown';
         }
 
         const logsDir = path.join(__dirname, '..', 'logs', 'user_activity');
@@ -59,6 +64,3 @@ export function logUserActivity(req, activity) {
         console.error('og82    Error logging user activity:', error);
     }
 }
-
-
-

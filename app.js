@@ -2453,7 +2453,7 @@ app.post("/jobComplete", async (req, res) => {
       newCompleteDate = null;
       newStatus = null     //'pending';
     }
-    newCompleteBy = req.user.id || 1;
+    newCompleteBy = req.user?.id || 1;
 
 
     // Update the jobs table in your database
@@ -3891,7 +3891,3 @@ app.listen(port, () => {
   console.log(`re9     STARTED running on port ${port}`);
   
 });
-
-
-
-
