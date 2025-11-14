@@ -2942,12 +2942,7 @@ app.get("/update", async (req, res) => {
     console.log("ufg_session_headers    Session object keys:", Object.keys(req.session));
   }
 
-  let table = "";
-  let columnName = "";
-  let value = "";
-  let q;
-  // console.log("ufg41")
-  try {
+
   if (req.isAuthenticated()) {
     const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;
