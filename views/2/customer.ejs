@@ -739,6 +739,9 @@
             taskId: taskId,
             status: isChecked ? 'true' : 'false'
         },
+        xhrFields: {
+            withCredentials: true
+        },
         success: function(response) {
             console.log(`tb3     Task ${taskId} updated successfully`);
             $label.text(isChecked ? 'Done' : '');
@@ -789,6 +792,9 @@
                     jobId: jobId,
                     status: isChecked ? 'true' : 'false' 
                 },
+                xhrFields: {
+                    withCredentials: true
+                },
                 success: function(response) {
                     console.log(`jb9    Success: Job ${jobId} status updated to ${isChecked}`);
                     showNotification(`Job ${jobId} and all children set to ${isChecked}`, false);
@@ -824,6 +830,9 @@
                     data: {
                         buildId: buildId,
                         status: isChecked
+                    },
+                    xhrFields: {
+                        withCredentials: true
                     },
                     success: function(response) {
                         // Handle success response if needed
