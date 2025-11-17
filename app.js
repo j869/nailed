@@ -109,6 +109,59 @@ app.use((req, res, next) => {
   console.log(`x1 NEW REQUEST ${req.method} ${req.path} from USER(${userId}) SessionID: ${sessionId}`);
   next();
 });
+
+// Standalone exploratory process for SSL logout bug debugging
+// Avoids real credentials: Uses mock session data, no DB auth
+app.get('/debug-session', (req, res) => {
+  console.log('=== DEBUG SESSION START ===');
+  console.log('Method:', req.method);
+  console.log('Path:', req.path);
+  console.log('Headers:', {
+    'cookie': req.headers.cookie,
+    'x-forwarded-proto': req.headers['x-forwarded-proto'],
+    'x-forwarded-for': req.headers['x-forwarded-for'],
+    'x-forwarded-host': req.headers['x-forwarded-host'],
+    'user-agent': req.headers['user-agent']
+  });
+  console.log('req.secure:', req.secure);
+  console.log('req.protocol:', req.protocol);
+  console.log('Session ID:', req.sessionID);
+  console.log('Full Session:', JSON.stringify(req.session, null, 2));
+  console.log('req.user:', req.user ? { id: req.user.id, email: req.user.email } : 'null');
+  console.log('isAuthenticated():', req.isAuthenticated());
+  console.log('trust proxy:', app.get('trust proxy'));
+
+  // Simulate /update-like response
+  if (req.isAuthenticated()) {
+    res.json({ success: true, message: 'Session valid', user: req.user.id });
+  } else {
+    res.status(401).json({ success: false, message: 'Session invalid - would redirect to /login' });
+  }
+  console.log('=== DEBUG SESSION END ===');
+});
+
+// Test login endpoint (mock, no real auth/credentials)
+app.post('/test-login', (req, res) => {
+  const { username, password } = req.body;
+  console.log('=== TEST LOGIN START ===');
+  console.log('POST body:', { username, password: password ? '[provided]' : 'missing' });
+  console.log('Session before:', JSON.stringify(req.session, null, 2));
+
+  // Mock user (avoid real DB/credentials)
+  const mockUser = { id: 999, email: `${username || 'test'}_mock@debug.com`, roles: ['test'] };
+  req.session.passport = { user: mockUser.id };
+  req.user = mockUser;
+  req.login(mockUser, (err) => {
+    if (err) {
+      console.error('Mock login error:', err);
+      return res.status(500).json({ error: 'Mock login failed' });
+    }
+    console.log('Mock user set:', mockUser);
+    console.log('Session after:', JSON.stringify(req.session, null, 2));
+    res.json({ success: true, message: 'Mock login successful', user: mockUser.id });
+  });
+  console.log('=== TEST LOGIN END ===');
+});
 app.use(express.json());    //// Middleware to parse JSON bodies
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -3913,6 +3966,7 @@ app.get("/update", async (req, res) => {
 
 const server = app.listen(port, () => {
   console.log(`re9     STARTED running on port ${port}`);
+  console.log('Debug endpoints added: POST /test-login (mock), GET /debug-session');
 });
 
 // Graceful shutdown

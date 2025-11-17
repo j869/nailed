@@ -241,13 +241,12 @@ home.ejs
         console.log('dtd2    ', recordId);
         console.log('dtd3    ', isChecked);
         try {
-          fetch(`/dtDone?id=${recordId}&done=${isChecked}}`)
-
-
+          await fetch(`/dtDone?id=${recordId}&done=${isChecked}`);
+          console.log('Checkbox updated successfully');
         } catch (error) {
           console.error("Error updating checkbox:", error); // Handle errors
         }
-      }
+      };
 
 
       $(document).ready(function() {
@@ -279,10 +278,91 @@ home.ejs
                     }
                 });
             });
+
+            // Debug functionality integration
+            $('#debug-toggle').click(function() {
+                $('#debug-section').toggle();
+            });
+
+            $('#mock-login-btn').click(function() {
+                const username = $('#mock-username').val();
+                const password = $('#mock-password').val();
+                if (!username || !password) {
+                    alert('Please enter username and password');
+                    return;
+                }
+                $.ajax({
+                    url: '/test-login',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ username: username, password: password }),
+                    success: function(response) {
+                        $('#debug-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                        console.log('Mock login success:', response);
+                    },
+                    error: function(xhr, status, error) {
+                        $('#debug-results').html('<pre>Error: ' + error + '\nStatus: ' + xhr.status + '\nResponse: ' + xhr.responseText + '</pre>');
+                        console.error('Mock login error:', error);
+                    }
+                });
+            });
+
+            $('#debug-session-btn').click(function() {
+                $.ajax({
+                    url: '/debug-session',
+                    method: 'GET',
+                    success: function(response) {
+                        $('#debug-results').html('<pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                        console.log('Debug session:', response);
+                    },
+                    error: function(xhr, status, error) {
+                        $('#debug-results').html('<pre>Error: ' + error + '\nStatus: ' + xhr.status + '\nResponse: ' + xhr.responseText + '</pre>');
+                        console.error('Debug session error:', error);
+                    }
+                });
+            });
         });
+    });
 
 </script>
 
 <%- include('partials/footer') %>
+
+<!-- Debug Section (SSL Logout Bug Diagnostics) -->
+<div id="debug-section" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid #ccc; background: #f9f9f9;">
+    <h4>Debug Tools (Dev Only - SSL Session Test)</h4>
+    <p>Run mock login and session checks from here. Results below.</p>
+    
+    <!-- Mock Login Form -->
+    <div class="mb-3">
+        <h5>1. Mock Login (POST /test-login)</h5>
+        <input type="text" id="mock-username" placeholder="Username (e.g., test)" class="form-control mb-2" style="width: 200px;">
+        <input type="password" id="mock-password" placeholder="Password (any)" class="form-control mb-2" style="width: 200px;">
+        <button id="mock-login-btn" class="btn btn-primary">Run Mock Login</button>
+    </div>
+    
+    <!-- Debug Session Button -->
+    <div class="mb-3">
+        <h5>2. Check Session (GET /debug-session)</h5>
+        <button id="debug-session-btn" class="btn btn-secondary">Run Debug Session</button>
+    </div>
+    
+    <!-- Toggle Button -->
+    <button id="debug-toggle" class="btn btn-sm btn-outline-info">Hide Debug</button>
+    
+    <!-- Results Display -->
+    <div class="mt-3">
+        <h5>Results:</h5>
+        <pre id="debug-results" style="background: white; padding: 10px; border: 1px solid #ddd; max-height: 300px; overflow-y: auto;">Click a button to run tests...</pre>
+    </div>
+</div>
+
+<!-- Show debug section by default on home (login screen) for easy access -->
+<% if (!locals.data) { %>
+<script>
+    $('#debug-section').show();
+    $('#debug-toggle').text('Hide Debug');
+</script>
+<% } %>
 home.ejs
 git is not updating this file properly
