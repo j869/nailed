@@ -1296,14 +1296,17 @@ async function uploadJobAttachment(event, taskID) {
 }
 
 async function downloadAttachment(fileName, originalName) {
+    console.log("da1    downloadAttachment called for file:", fileName);
     if (!fileName) return;
     try {
+        console.log("da2    Fetching file from API:", apiUrl + '/fileDownload/' + fileName);
         const response = await fetch(apiUrl + '/fileDownload/' + fileName);
-        if (!response.ok) throw new Error('Download failed');
+        if (!response.ok) throw new Error('da81     Download failed');
         const blob = await response.blob();
         // Get fileName from response headers or fallback
         let downloadName = originalName ? originalName : fileName ;
         const disposition = response.headers.get('Content-Disposition');
+        console.log("da3    Content-Disposition header:", disposition);
         if (disposition && disposition.indexOf('filename=') !== -1) {
             originalName = disposition.split('filename=')[1].replace(/"/g, '').trim();
         }
