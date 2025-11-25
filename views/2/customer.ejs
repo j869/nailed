@@ -860,7 +860,8 @@
 
     //---  add listener to all EDITABLE fields.  When field changes, notify the database
     const baseUrl = "<%= locals.baseUrl %>";
-    const apiUrl = "<%= locals.baseUrl.startsWith('https') ? 'https://buildingbb.com.au/api' : locals.baseUrl.replace('3000', '4000') %>";
+    const apiHost = window.location.host.replace(/:3000$/, '');
+    const apiUrl = `${window.location.protocol}//${apiHost}:4000`;
     console.log("lf3     apiUrl: ", apiUrl);
 
 
