@@ -1,5 +1,5 @@
 <% if (locals && locals.user && locals.user.email) { %>
-    Logged in as <%= locals.user.email %> with role <%= locals.user.roles %> | <a href="/logout">Logout</a>
+    Logged in as <%= locals.user.email %> with role <%= locals.user.roles %> | <a href="/logout">Logout</a> | <button id="verify-session-btn" class="btn btn-sm btn-outline-info">Verify Session</button>
 <% } %>
 
 </body>
@@ -10,7 +10,47 @@
 
 
 <script>
-    console.log("EJS variables available at build time", <%- JSON.stringify(locals) %>);
+    console.log("Footer variables available at build time", <%- JSON.stringify(locals) %>);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const verifyBtn = document.getElementById('verify-session-btn');
+        if (verifyBtn) {
+            verifyBtn.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('/verify-session');
+                    const data = await response.json();
+                    // Show in modal
+                    const modalHtml = `
+                        <div class="modal fade" id="sessionModal" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Session Verification</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.insertAdjacentHTML('beforeend', modalHtml);
+                    const modal = new bootstrap.Modal(document.getElementById('sessionModal'));
+                    modal.show();
+                    modal._element.addEventListener('hidden.bs.modal', function() {
+                        this.remove();
+                    });
+                } catch (error) {
+                    console.error('Session verification failed:', error);
+                    alert('Failed to verify session: ' + error.message);
+                }
+            });
+        }
+    });
 </script>
 
 </body>
