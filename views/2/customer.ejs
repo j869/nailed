@@ -514,23 +514,6 @@
 
 
 
-                <!-- -------------------------------------------------------------------------- -->
-                <!-- ---  Uploaded Files                                                        -->
-                <!-- -------------------------------------------------------------------------- -->
-                <h3 class="text-muted">Uploaded Files</h3>
-                <form id="uploadForm" class="mt-3">
-                    <div class="mb-3 d-flex w-50 align-items-center">
-                        <!-- <label for="fileInput" class="form-label">Choose a file to upload:</label> -->
-                        <input type="file" id="fileInput" name="file" class="form-control me-2" required>
-                        <button type="submit" class="btn btn-primary">Upload</button>
-                    </div>
-                </form>
-                <p id="response_message" class="mt-2"></p>
-                <div id="fileList" class="list-group"></div>
-                <br><br>
-            
-
-
 
                 <!-- -------------------------------------------------------------------------- -->
                 <!-- ---  Customer Emails                                                       -->
@@ -1048,144 +1031,144 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// Add event listener for the file upload
-document.addEventListener("DOMContentLoaded", function () {
-    console.log("uf1      DOM fully loaded and script initialized.");
+// // Add event listener for the file upload
+// document.addEventListener("DOMContentLoaded", function () {
+//     console.log("uf1      DOM fully loaded and script initialized.");
 
-    const uploadForm = document.getElementById("uploadForm");
-    const fileInput = document.getElementById("fileInput");
-    const messageBox = document.getElementById("response_message");
+//     const uploadForm = document.getElementById("uploadForm");
+//     const fileInput = document.getElementById("fileInput");
+//     const messageBox = document.getElementById("response_message");
 
-    if (!uploadForm || !fileInput || !messageBox) {
-        console.error("uf81      Error: Required form elements not found!");
-        return;
-    }
+//     if (!uploadForm || !fileInput || !messageBox) {
+//         console.error("uf81      Error: Required form elements not found!");
+//         return;
+//     }
 
-    console.log("uf2      Upload form elements found successfully.");
+//     console.log("uf2      Upload form elements found successfully.");
 
-    uploadForm.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        console.log("uf3      Upload form submitted.");
+//     uploadForm.addEventListener("submit", async (event) => {
+//         event.preventDefault();
+//         console.log("uf3      Upload form submitted.");
 
-        const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
-        const file = fileInput.files[0];
+//         const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
+//         const file = fileInput.files[0];
 
-        if (!file) {
-            console.warn("uf82      No file selected for upload.");
-            messageBox.textContent = "Please select a file.";
-            return;
-        }
+//         if (!file) {
+//             console.warn("uf82      No file selected for upload.");
+//             messageBox.textContent = "Please select a file.";
+//             return;
+//         }
 
-        console.log(`uf4      Selected file for build(${buildId}): ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
+//         console.log(`uf4      Selected file for build(${buildId}): ${file.name}, Type: ${file.type}, Size: ${file.size} bytes`);
 
-        const formData = new FormData();
-        formData.append("file", file);
+//         const formData = new FormData();
+//         formData.append("file", file);
         
-        // const jobId = <= job.job_id >;
+//         // const jobId = <= job.job_id >;
 
-        formData.append("build_id", buildId);
-        // formData.append("job_id", jobId);
+//         formData.append("build_id", buildId);
+//         // formData.append("job_id", jobId);
 
-        try {
-            console.log("uf5      Sending file to backend...");    
-            const response = await fetch(`${apiUrl}/upload`, {
-                method: "POST",
-                body: formData,
-            });
+//         try {
+//             console.log("uf5      Sending file to backend...");    
+//             const response = await fetch(`${apiUrl}/upload`, {
+//                 method: "POST",
+//                 body: formData,
+//             });
 
-            console.log(`uf6      Response received: Status ${response.status}`);
+//             console.log(`uf6      Response received: Status ${response.status}`);
 
-            if (response.ok) {
-                messageBox.textContent = "File uploaded successfully!";
-                fileInput.value = ""; // Clear input
-                console.log("uf9      File uploaded successfully.");
-                showNotification('File uploaded successfully!', false);                
-            } else {
-                messageBox.textContent = "File upload failed.";
-                console.error("uf83      File upload failed with status:", response.status);
-                showNotification('File upload failed!');
-            }
-        } catch (error) {
-            console.error("uf8      Upload error:", error);
-            messageBox.textContent = "Error uploading file.";
-            showNotification('Error uploading file!');
-        }
-    });
-});
+//             if (response.ok) {
+//                 messageBox.textContent = "File uploaded successfully!";
+//                 fileInput.value = ""; // Clear input
+//                 console.log("uf9      File uploaded successfully.");
+//                 showNotification('File uploaded successfully!', false);                
+//             } else {
+//                 messageBox.textContent = "File upload failed.";
+//                 console.error("uf83      File upload failed with status:", response.status);
+//                 showNotification('File upload failed!');
+//             }
+//         } catch (error) {
+//             console.error("uf8      Upload error:", error);
+//             messageBox.textContent = "Error uploading file.";
+//             showNotification('Error uploading file!');
+//         }
+//     });
+// });
 
 
-document.addEventListener("DOMContentLoaded", async function () {
-    console.log("lf1     Fetching uploaded files...");
-    const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
-    console.log('lf45   ' + buildId)
+// document.addEventListener("DOMContentLoaded", async function () {
+//     console.log("lf1     Fetching uploaded files...");
+//     const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
+//     console.log('lf45   ' + buildId)
 
-    const fileListContainer = document.getElementById("fileList");
+//     const fileListContainer = document.getElementById("fileList");
 
-    if (!fileListContainer) {
-        console.error("lf81     Error: fileList container not found!");
-        return;
-    }
+//     if (!fileListContainer) {
+//         console.error("lf81     Error: fileList container not found!");
+//         return;
+//     }
 
-    try {
-        const build_id = <%= locals.tableData[0].builds[0].id %>;   
-        const response = await fetch(`${apiUrl}/files?build_id=${build_id}`);
-        const files = await response.json();
+//     try {
+//         const build_id = <%= locals.tableData[0].builds[0].id %>;   
+//         const response = await fetch(`${apiUrl}/files?build_id=${build_id}`);
+//         const files = await response.json();
 
-        if (files.length === 0) {
-            fileListContainer.innerHTML = "<p>No uploaded files found.</p>";
-            console.warn("lf82     No files available for download.");
-            return;
-        }
+//         if (files.length === 0) {
+//             fileListContainer.innerHTML = "<p>No uploaded files found.</p>";
+//             console.warn("lf82     No files available for download.");
+//             return;
+//         }
 
-        console.log(`lf2     Displaying ${files.length} files.`);
+//         console.log(`lf2     Displaying ${files.length} files.`);
 
-        // Generate list of downloadable links with delete buttons
-        fileListContainer.innerHTML = files.map(file =>
-            `<li>
-                <a href="${apiUrl}/download/${file.id}" download>${file.filename}</a>
-                <button class="btn btn-link text-danger btn-sm delete-btn" data-id="${file.id}">
-                    <i class="fas fa-times"></i> 
-                </button>
+//         // Generate list of downloadable links with delete buttons
+//         fileListContainer.innerHTML = files.map(file =>
+//             `<li>
+//                 <a href="${apiUrl}/download/${file.id}" download>${file.filename}</a>
+//                 <button class="btn btn-link text-danger btn-sm delete-btn" data-id="${file.id}">
+//                     <i class="fas fa-times"></i> 
+//                 </button>
                 
-            </li>`
-        ).join("");
+//             </li>`
+//         ).join("");
 
-        console.log("lf3     File list rendered successfully.");
+//         console.log("lf3     File list rendered successfully.");
 
-        // Add event listeners to all delete buttons
-        document.querySelectorAll(".delete-btn").forEach(button => {
-            button.addEventListener("click", async function () {
-                const fileId = this.getAttribute("data-id");
-                console.log(`df4     Delete button clicked for file ID: ${fileId}`);
+//         // Add event listeners to all delete buttons
+//         document.querySelectorAll(".delete-btn").forEach(button => {
+//             button.addEventListener("click", async function () {
+//                 const fileId = this.getAttribute("data-id");
+//                 console.log(`df4     Delete button clicked for file ID: ${fileId}`);
 
-                try {
-                    console.log(`df5     Sending DELETE request for file ID: ${fileId}`);
-                    const deleteResponse = await fetch(`${apiUrl}/deletefile/${fileId}`, {
-                        method: "DELETE",
-                    });
+//                 try {
+//                     console.log(`df5     Sending DELETE request for file ID: ${fileId}`);
+//                     const deleteResponse = await fetch(`${apiUrl}/deletefile/${fileId}`, {
+//                         method: "DELETE",
+//                     });
 
-                    const result = await deleteResponse.json();
-                    console.log(`df6     Server response: ${result.message}`);
+//                     const result = await deleteResponse.json();
+//                     console.log(`df6     Server response: ${result.message}`);
 
-                    if (deleteResponse.ok) {
-                        console.log(`df9     File ID ${fileId} deleted successfully. Removing from UI.`);
-                        this.parentElement.remove();
-                    } else {
-                        console.warn(`df83     Failed to delete file ID: ${fileId}`);
-                        showNotification('Failed to delete file', false);
-                    }
-                } catch (error) {
-                    console.error("df831     Error deleting file:", error);
-                }
-            });
-        });
+//                     if (deleteResponse.ok) {
+//                         console.log(`df9     File ID ${fileId} deleted successfully. Removing from UI.`);
+//                         this.parentElement.remove();
+//                     } else {
+//                         console.warn(`df83     Failed to delete file ID: ${fileId}`);
+//                         showNotification('Failed to delete file', false);
+//                     }
+//                 } catch (error) {
+//                     console.error("df831     Error deleting file:", error);
+//                 }
+//             });
+//         });
 
-    } catch (error) {
-        console.error("df8     Error fetching file list:", error);
-        showNotification('Failed to fetch file list');
-        fileListContainer.innerHTML = "<p>Error loading files.</p>";
-    }
-});
+//     } catch (error) {
+//         console.error("df8     Error fetching file list:", error);
+//         showNotification('Failed to fetch file list');
+//         fileListContainer.innerHTML = "<p>Error loading files.</p>";
+//     }
+// });
 
 
 
