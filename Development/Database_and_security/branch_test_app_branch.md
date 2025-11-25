@@ -23,9 +23,11 @@ These issues prevented proper functionality, such as file uploads, API fetches f
      ```
    - **Updated Code**:
      ```
-     const baseUrl = "<%= locals.baseUrl %>";
-     const apiUrl = '/api';
-     console.log("lf3     apiUrl: ", apiUrl);
+    const baseUrl = "<%= locals.baseUrl %>";
+    const apiHost = window.location.host.replace(/:3000$/, '');
+    const apiPort = window.location.protocol === 'https:' ? '/api/' : ':4000';
+    const apiUrl = `${window.location.protocol}//${apiHost}${apiPort}`;
+    console.log("lf3     apiUrl: ", apiUrl);
      ```
    - **Why?**: The original logic relied on locals.baseUrl, which was HTTP-based due to proxy issues. Changing to relative '/api' ensures all fetch calls (e.g., `${apiUrl}/upload`, `${apiUrl}/files`, `${apiUrl}/fileUpload`, `${apiUrl}/fileDownload`, `${apiUrl}/deletefile`) use the same protocol as the page (HTTPS when loaded over HTTPS). This leverages the Apache proxy that redirects /api/* to localhost:4000, avoiding direct IP/port calls that cause mixed content blocks.
    - **Impact**: Resolves all API-related mixed content errors. Uploads, file lists, and deletions now work seamlessly over HTTPS without browser blocking. No more console errors like "Mixed Content: The page at 'https://...' was loaded over HTTPS, but requested an insecure resource 'http://...'".
