@@ -1135,7 +1135,7 @@ app.post("/admin/customers/import/email-contacts", async (req, res) => {
 
 async function getJobs(parentID, parentTier, logString) {
   try {
-    console.log("bb10" + logString + "getting jobID: ", parentID);
+    // console.log("bb10" + logString + "getting jobID: ", parentID);
     let jobTier = 500;
     let jobsResult;
     let jobsArray = [];
@@ -1192,7 +1192,7 @@ async function getJobs(parentID, parentTier, logString) {
       ORDER BY sort_order
     `, [jobID, '' + (parentTier + 1)]);
 
-    console.log("bb21" + logString + " job(" + jobID + ") checking job_process_flow on tier(" + (parentTier + 1) + ") child relationships. Found: ", jobsResult.rows.length);
+    // console.log("bb21" + logString + " job(" + jobID + ") checking job_process_flow on tier(" + (parentTier + 1) + ") child relationships. Found: ", jobsResult.rows.length);
 
     if (jobsResult.rows.length > 0) {
       let daughters = jobsResult.rows;
@@ -1200,7 +1200,7 @@ async function getJobs(parentID, parentTier, logString) {
 
       // Check for pet-sister relationships
       for (const daughter of daughters) {
-        console.log("bb30" + logString + "checking daughter: ", daughter.id);
+        // console.log("bb30" + logString + "checking daughter: ", daughter.id);
         let childJobID = daughter.id.substring(1);
 
         const tier = parentTier + 1;
@@ -1232,9 +1232,9 @@ async function getJobs(parentID, parentTier, logString) {
         `, [childJobID, tier]);
 
         if (jobsResult.rows.length > 0) {
-          console.log("bb31" + logString + "sisters found: ", jobsResult.rows.length);
+          // console.log("bb31" + logString + "sisters found: ", jobsResult.rows.length);
           for (const petDaughter of jobsResult.rows) {
-            console.log("bb32" + logString + "appending sister: ", petDaughter.id, petDaughter.display_text);
+            // console.log("bb32" + logString + "appending sister: ", petDaughter.id, petDaughter.display_text);
             daughters.push(petDaughter);
           }
         }
@@ -1244,7 +1244,7 @@ async function getJobs(parentID, parentTier, logString) {
       for (const daughter of daughters) {
         let childJobID = daughter.id;
         const tier = parentTier + 1;
-        console.log("bb5 " + logString + "diving deep to get jobID(" + childJobID + ") on tier ", tier);
+        // console.log("bb5 " + logString + "diving deep to get jobID(" + childJobID + ") on tier ", tier);
 
         const grandDaughters = await getJobs(childJobID, tier, logString + "  ");
         jobsArray.push({
@@ -1254,7 +1254,7 @@ async function getJobs(parentID, parentTier, logString) {
         });
       }
     } else {
-      console.log("bb91" + logString + " no children found for jobID: ", jobID);
+      // console.log("bb91" + logString + " no children found for jobID: ", jobID);
     }
 
     return jobsArray;

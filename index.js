@@ -138,6 +138,7 @@ function decrypt(encryptedText, key) {
 app.use(cors({
   origin: `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
   methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods
+  credentials: true,
   allowedHeaders: "Content-Type"
 }));
 

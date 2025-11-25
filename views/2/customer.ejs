@@ -967,24 +967,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
 //                try {
-                    const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`);
-                    console.log("id45     ", response.status, response.statusText);
-                    if (!response.ok) {
-                        if (response.status === 400) {
-                            const errorData = await response;
-                            console.log('id48    Validation error:', errorData);
-                            showNotification('Validation error! ' );
-                            throw new Error('Validation error');
-                        } else {
-                            showNotification('Server error: ' );
-                            console.log('id58    Error:', response.status);
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                    } else {
+                    try {
+                        await $.ajax({
+                            url: `/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`,
+                            method: 'GET',
+                            xhrFields: {
+                                withCredentials: true
+                            }
+                        });
                         console.log('id5    response OK');
                         showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
                         target.contentEditable = true;
+                    } catch (jqXHR) {
+                        console.log('id45     ', jqXHR.status, jqXHR.statusText);
+                        if (jqXHR.status === 400) {
+                            console.log('id48    Validation error:', jqXHR.responseText);
+                            showNotification('Validation error! ');
+                            throw new Error('Validation error');
+                        } else {
+                            // showNotification('Server error: ');
+                            showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
+                            console.log('id58    Error:', jqXHR.status);
+                            throw new Error(`HTTP error! status: ${jqXHR.status}`);
+                        }
                     }
+                    // if (!response.ok) {
+                    //     if (response.status === 400) {
+                    //         const errorData = await response;
+                    //         console.log('id48    Validation error:', errorData);
+                    //         showNotification('Validation error! ' );
+                    //         throw new Error('Validation error');
+                    //     } else {
+                    //         showNotification('Server error: ' );
+                    //         console.log('id58    Error:', response.status);
+                    //         throw new Error(`HTTP error! status: ${response.status}`);
+                    //     }
+                    // } else {
+                    //     console.log('id5    response OK');
+                    //     showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
+                    //     target.contentEditable = true;
+                    // }
   //              } catch (error) {
                  //   console.log("id38      ", error)
     //            }
@@ -1286,7 +1308,9 @@ async function downloadAttachment(fileName, originalName) {
     if (!fileName) return;
     try {
         console.log("da2    Fetching file from API:", apiUrl + '/fileDownload/' + fileName);
-        const response = await fetch(apiUrl + '/fileDownload/' + fileName);
+        const response = await fetch(apiUrl + '/fileDownload/' + fileName, {
+            credentials: 'include'
+        });
         if (!response.ok) throw new Error('da81     Download failed');
         const blob = await response.blob();
         // Get fileName from response headers or fallback
@@ -1305,6 +1329,7 @@ async function downloadAttachment(fileName, originalName) {
         a.remove();
         window.URL.revokeObjectURL(url);
     } catch (err) {
+        console.error('da8    Download error:', err);
         showNotification('Failed to download attachment');
     }
 }
@@ -1544,6 +1569,7 @@ document.getElementById('composeEmailForm').addEventListener('submit', async fun
     data.message = document.getElementById('message').innerHTML;
     const response = await fetch('/send-email', {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
