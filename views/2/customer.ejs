@@ -861,7 +861,8 @@
     //---  add listener to all EDITABLE fields.  When field changes, notify the database
     const baseUrl = "<%= locals.baseUrl %>";
     const apiHost = window.location.host.replace(/:3000$/, '');
-    const apiUrl = `${window.location.protocol}//${apiHost}:4000`;
+    const apiPort = window.location.protocol === 'https:' ? '/api/' : ':4000';
+    const apiUrl = `${window.location.protocol}//${apiHost}//${apiPort}`;
     console.log("lf3     apiUrl: ", apiUrl);
 
 
