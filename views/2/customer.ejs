@@ -1255,6 +1255,8 @@ async function uploadJobAttachment(event, taskID) {
                 // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
                 // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
                 console.log("ua72    filename", newFileName);
+                jobDesc.contentEditable = true;
+                jobDesc.focus();
                 jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
                 //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
 
@@ -1285,10 +1287,10 @@ async function uploadJobAttachment(event, taskID) {
                 // }
 
                 // Trigger blur event to save changes
-                jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
+                // jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
 
 
-                jobDesc.focus();
+                // jobDesc.focus();
                 console.log("ua9   Added attachment", newFileName, "to task", taskID);
             }
         } else {
