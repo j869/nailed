@@ -1216,7 +1216,7 @@ async function uploadJobAttachment(event, taskID) {
     formData.append('task_id', taskID);
 
     try {
-    const response = await fetch(apiUrl + '/fileUpload', {
+    const response = await fetch(apiUrl + 'fileUpload', {
             method: 'POST',
             credentials: 'include',
             body: formData
