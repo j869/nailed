@@ -1124,18 +1124,17 @@ async function uploadJobAttachment(event, taskID) {
     formData.append('task_id', taskID);
 
     try {
-        console.log("ua2    Uploading file to API:", `/api/fileUpload`);
-        const response = await fetch(`/api/fileUpload`, {
+        console.log("ua2    Uploading file to API:", `${apiUrl}/fileUpload`);
+        const response = await fetch(`${apiUrl}/fileUpload`, {
             method: 'POST',
             credentials: 'include',
             body: formData
         });
-        
+        const data = await response.json();
         if (response.ok) {
             showNotification('Attachment uploaded!', false);
-            // console.log('ua5    Attachment uploaded successfully');
-            console.log("ua3    Server response:", response);
-            const data = await response.json();
+            console.log("ua3    Server response:", data);
+            // const data = await response.json();
             const newFileName = data.filename;
             //const newFileName = response.filename;
             console.log("ua4    New file name from server:", newFileName);
@@ -1166,6 +1165,8 @@ async function uploadJobAttachment(event, taskID) {
                 // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
                 // console.log("ua72    filename", newFileName);
                 console.log("ua9   Added attachment", newFileName, "to task", taskID);
+                jobDesc.contentEditable = true;
+                jobDesc.focus();
                 jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
                 //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
 
