@@ -136,13 +136,55 @@ function decrypt(encryptedText, key) {
 }
 
 app.use(cors({
-  origin: `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
-  methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods
-  credentials: true,
-  allowedHeaders: "Content-Type"
+  origin: process.env.BASE_URL, // Allow requests from the frontend origin (e.g., http://localhost:3000)
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // Support common REST methods including updates and preflight
+  credentials: true, // Allow cookies/sessions (matches your express-session usage)
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'], // Include auth headers; X-Requested-With for AJAX detection
+  optionsSuccessStatus: 200 // Ensure preflight responses are handled correctly in older browsers
 }));
 
-
+// CORS Logging Middleware for debugging cross-origin issues
+app.use((req, res, next) => {
+  console.log('[co1] → enter CORS log middleware');
+  
+  const origin = req.headers.origin || 'unknown';
+  const referer = req.headers.referer || 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const method = req.method;
+  const path = req.path;
+  const sessionId = req.sessionID || 'no-session';
+  
+  console.log(`[co2] Request: ${method} ${path} | Origin: ${origin} | Referer: ${referer} | UA: ${userAgent.substring(0, 50)} | Session: ${sessionId}`);
+  
+  if (method === 'OPTIONS') {
+    console.log(`[co3] Preflight OPTIONS request detected for ${path} from origin ${origin}`);
+  }
+  
+  // Log if session is missing or invalid for authenticated routes
+  if (path.startsWith('/fileUpload') || path.includes('update')) {
+    console.log(`[co5] Auth check for ${path}: User ${req.user ? req.user.id : 'unauth'} | Session valid: ${!!req.session && !!req.session.user}`);
+  }
+  
+  // Log response for errors or CORS headers
+  res.on('finish', () => {
+    const corsHeaders = [
+      'access-control-allow-origin',
+      'access-control-allow-methods',
+      'access-control-allow-headers',
+      'access-control-allow-credentials'
+    ];
+    const hasCORS = corsHeaders.some(header => res.getHeader(header));
+    if (hasCORS || res.statusCode >= 400) {
+      console.log(`[co4] Response: ${res.statusCode} | CORS headers: ${hasCORS ? 'sent' : 'none'} | Path: ${path} | Origin: ${origin}`);
+      if (res.statusCode >= 400) {
+        console.log(`[co8] Error: ${res.statusCode} ${res.statusMessage} for ${method} ${path} from ${origin} (Session: ${sessionId})`);
+      }
+    }
+  });
+  
+  next();
+  console.log('[co9] ← exit CORS log middleware');
+});
 
 app.use(
   session({
@@ -194,6 +236,18 @@ function getMelbourneTime(format = 'iso') {
 
 
 //#endregion
+
+
+app.use((req, res, next) => {
+  console.log(`x1        NEW REQUEST ${req.method} ${req.path} `);
+  console.log(`x1        NEW REQUEST ${req.method} ${req.path} from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
+  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} `);
+  // logUserActivity(req, `x3        with SessionID: ${req.sessionID}`);
+  // logUserActivity(req, `x4        and Cookies: ${req.headers.cookie}`);
+  
+  next();
+});
+
 
 // Workflow Validator Admin Interface (No Auth - API Style)
 app.get("/admin/workflow-validator", async (req, res) => {
@@ -453,6 +507,9 @@ app.get("/fileDownload/:filename", (req, res) => {
   }
 });
 
+//#endregion
+
+
 //#region old File handling method
 
 /**
@@ -492,7 +549,12 @@ app.post("/upload", upload.single("file"), async (req, res) => {
  * Route to list attachments
  */
 app.get("/files", async (req, res) => {
-  console.log("vf1      Fetching list of uploaded files for build...", req.query.build_id);
+  if (req.session && req.session.user) {
+    console.log("vf1      Fetching list of uploaded files for build...", req.query.build_id);
+    console.log("vf2       - User:", req.session.user);
+  } else {
+    console.log("vf1      No user session available - uploading files for build...", req.query.build_id);
+  }
 
   try {
     const result = await pool.query("SELECT id, filename FROM files WHERE build_id = " + req.query.build_id + " ORDER BY id DESC");
@@ -567,7 +629,6 @@ app.get("/download/:id", async (req, res) => {
 
 
 
-//#endregion
 
 
 
@@ -3297,4 +3358,3 @@ process.on('SIGINT', () => {
     process.exit(1);
   }, 5000);
 });
-

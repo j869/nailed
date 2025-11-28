@@ -1,6 +1,7 @@
 <% if (locals && locals.user && locals.user.email) { %>
-    Logged in as <%= locals.user.email %> with role <%= locals.user.roles %> | <a href="/logout">Logout</a> | <button id="verify-session-btn" class="btn btn-sm btn-outline-info">Verify Session</button>
+    Logged in as <%= locals.user.email %> with role <%= locals.user.roles %> | <a href="/logout">Logout</a> 
 <% } %>
+<button id="verify-session-btn" class="btn btn-sm btn-outline-info">Verify Session</button>
 
 </body>
 

@@ -82,12 +82,13 @@ app.use((req, res, next) => {
   
   next();
 });
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
+    secure: process.env.NODE_ENV === 'production',       // false for development over HTTP
     httpOnly: true,
     sameSite: 'lax'
   }
@@ -2850,21 +2851,22 @@ passport.use(
 
 
 passport.serializeUser((user, cb) => {
-  console.log('pp95     Serializing user ID:', user.id);
+  console.log('pp5     Serializing user ID:', user.id);
   cb(null, user.id); // Store only user ID in session
 });
 
 passport.deserializeUser(async (id, cb) => {
   try {
-    // console.log('pp96     Deserializing user ID:', id);
+    // console.log('pp6     Deserializing user ID:', id);
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
     if (result.rows.length > 0) {
       cb(null, result.rows[0]); // Return fresh user data from database
     } else {
+      console.log('pp681     User not found during deserialization for ID:', id);
       cb(new Error('User not found'), null);
     }
   } catch (err) {
-    console.error('pp97     Error deserializing user:', err);
+    console.error('pp8     Error deserializing user:', err);
     cb(err, null);
   }
 });
@@ -2944,6 +2946,15 @@ app.get("/update-v2", async (req, res) => {
 
 // LEGACY UPDATE ROUTE - Original Implementation
 app.get("/update", async (req, res) => {
+  console.log('ufg0    Session ID:', req.sessionID);
+  console.log('ufg0    User:', req.user);
+  console.log('ufg0    Cookies:', req.headers.cookie);
+  console.log('ufg0    X-Forwarded headers:', {
+    host: req.headers['x-forwarded-host'],
+    proto: req.headers['x-forwarded-proto'],
+    for: req.headers['x-forwarded-for']
+  });
+  
   if (req.isAuthenticated()) {
     const called_by_button = req.query.btn || 'na';
     const fieldID = req.query.fieldID;

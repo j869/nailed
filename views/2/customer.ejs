@@ -8,59 +8,118 @@
     <title>Customer Form</title>
 
     <style>
+        /* Drag and Drop */
         .drag-handle {
-        cursor: move; /* Show move cursor */
-        user-select: none; /* Prevent text selection */
-        font-size: 18px;
-        color: #ccc;
-        text-align: center;
-        }      
-
+            cursor: move;
+            user-select: none;
+            font-size: 18px;
+            color: #ccc;
+            text-align: center;
+        }
         .drag-handle:hover {
-        opacity: 1;
+            opacity: 1;
+        }
+        tr.dragging {
+            background-color: #f8f9fa;
         }
 
-        /* Optional: Highlight row being dragged */
-        tr.dragging {
-        background-color: #f8f9fa;
-        }        
-
+        /* Layout Utilities */
         .d-flex {
             display: flex;
         }
-
         .align-items-center {
             align-items: center;
         }
-
         .me-2 {
-            margin-right: 0.5rem; /* Add some spacing between the input and button */
+            margin-right: 0.5rem;
         }
 
+        /* Table Scrolling */
         #scrollableTableContainer {
-            height: 400px; /* Adjust height as needed */
-            overflow-y: auto; /* Enable vertical scrolling */
+            height: 400px;
+            overflow-y: auto;
         }
 
+        /* Hidden Rows */
         .hiddenRow {
             padding: 0 !important;
         }
 
-        /* Add additional indentation for nested tables */
+        /* Nested Tables */
         .nested-table {
-            margin-left: 20px; /* Adjust the indentation level as needed */
+            margin-left: 20px;
+        }
+        .double-nested-table {
+            margin-left: 40px;
         }
 
-        /* Second level of indentation */
-        .double-nested-table {
-            margin-left: 40px; /* Adjust the indentation level as needed */
-        }        
-
+        /* Text Overflow */
         .display-text-column {
-            /* Allow the column to expand dynamically based on content */
-            white-space: nowrap; /* Prevent text from wrapping */
-            overflow: hidden; /* Hide any content that overflows */
-            text-overflow: ellipsis; /* Display ellipsis (...) for overflowed text */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Editable Labels */
+        .editable-label {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        /* Job/Status Backgrounds */
+        .job-highlight {
+            background-color: #77DD77;
+        }
+        .job-group-header {
+            background-color: #77dd7783;
+        }
+
+        /* Checkboxes */
+        .custom-checkbox {
+            width: 32px;
+            height: 32px;
+            accent-color: #28a745;
+            margin-right: 8px;
+            box-shadow: 0 2px 8px rgba(40,167,69,0.15);
+            border-radius: 50%;
+            border: 2px solid #e0e0e0;
+            background: #fff;
+        }
+
+        /* Free Text */
+        .free-text {
+            word-break: break-word;
+        }
+
+        /* Floating Bar */
+        .floating-options-bar {
+            position: fixed;
+            top: 27%;
+            left: 20px;
+            transform: translateY(-50%);
+            z-index: 1050;
+            background: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 160px;
+            width: 200px;
+        }
+        .floating-options-bar .btn {
+            min-width: 210px;
+            width: 100%;
+            border: 0;
+            padding: 0;
+        }
+        @media (max-width: 768px) {
+            .floating-options-bar {
+                display: none;
+            }
         }
     </style>
     
@@ -151,15 +210,15 @@
                                 <% locals.tableData.forEach(function(customer) { %>
                                     <% if (customer) { %>
                                         <tr class="accordion-toggle table-primary" data-toggle="collapse" data-target="#xxxcollapseCust<%= customer.id %>" >
-                                            <td><label class="editable" id="customCustomerCode" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.custom_id ? customer.custom_id : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="contactName" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.full_name ? customer.full_name : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="contactAddress" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.home_address ? customer.home_address : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="contactPhone" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_phone ? customer.primary_phone : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="contactEmail" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.primary_email ? customer.primary_email : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="otherContact" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.contact_other ? customer.contact_other : '&nbsp; &nbsp;' %></label></td>
-                                            <td><label class="editable" id="contactStatus" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.current_status ? customer.current_status : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="customCustomerCode" data-record-id="<%= customer.id %>"><%- customer.custom_id ? customer.custom_id : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="contactName" data-record-id="<%= customer.id %>"><%- customer.full_name ? customer.full_name : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="contactAddress" data-record-id="<%= customer.id %>"><%- customer.home_address ? customer.home_address : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="contactPhone" data-record-id="<%= customer.id %>"><%- customer.primary_phone ? customer.primary_phone : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="contactEmail" data-record-id="<%= customer.id %>"><%- customer.primary_email ? customer.primary_email : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="otherContact" data-record-id="<%= customer.id %>"><%- customer.contact_other ? customer.contact_other : '&nbsp; &nbsp;' %></label></td>
+                                            <td><label class="editable editable-label" id="contactStatus" data-record-id="<%= customer.id %>"><%- customer.current_status ? customer.current_status : '&nbsp; &nbsp;' %></label></td>
                                             <td>
-                                                <label title="the next time this will appear on your day task list" class="editable" id="customerFollowUpDate" data-record-id="<%= customer.id %>" style="border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px; padding: 2px 6px;"><%- customer.follow_up ? customer.follow_up : '&nbsp; &nbsp;' %></label>
+                                                <label title="the next time this will appear on your day task list" class="editable editable-label" id="customerFollowUpDate" data-record-id="<%= customer.id %>"><%- customer.follow_up ? customer.follow_up : '&nbsp; &nbsp;' %></label>
                                                 <br>
                                                 <label title="the last time some change was made to this customer" style="font-size: small; color: grey;">for:<%= customer.date_last_actioned %></label>
                                             </td>
@@ -215,23 +274,23 @@
                                                                                     <table id="jobsTable" class="table nested-table">
                                                                                         <thead>
                                                                                             <tr class="table-info">
-                                                                                                <th style="background-color:#77dd7783;">ID</th>
-                                                                                                <th style="background-color:#77dd7783;">Job Group / Stage / Category</th>
-                                                                                                <th style="background-color:#77dd7783;"> </th>
+                                                                                                <th class="job-group-header">ID</th>
+                                                                                                <th class="job-group-header">Job Group / Stage / Category</th>
+                                                                                                <th class="job-group-header"> </th>
                                                                                                 <th style="display: none;">Job Template ID</th>
-                                                                                                <th style="background-color:#77dd7783;">Assign</th>
-                                                                                                <th style="background-color:#77dd7783;">Role ID</th>
+                                                                                                <th class="job-group-header">Assign</th>
+                                                                                                <th class="job-group-header">Role ID</th>
                                                                                                 <th style="display: none;">Build ID</th>
                                                                                                 <th style="display: none;">Product ID</th>
                                                                                                 <th style="display: none;">Reminder ID</th>
                                                                                                 <th style="display: none;">Conversation ID</th>
-                                                                                                <th style="background-color:#77dd7783;">Target Date</th>
+                                                                                                <th class="job-group-header">Target Date</th>
                                                                                                 <th style="display: none;">Created By</th>
                                                                                                 <th style="display: none;">Created Date</th>
-                                                                                                <th style="display: none; background-color:#77dd7783;" >Change Array</th>
+                                                                                                <th class="job-group-header" style="display: none;">Change Array</th>
                                                                                                 <th style="display: none;">Completed By</th>
                                                                                                 <th style="display: none;">Completed Date</th>
-                                                                                                <th style="background-color:#77dd7783;">Current Status</th>
+                                                                                                <th class="job-group-header">Current Status</th>
                                                                                             </tr>
                                                                                         </thead>                                                        
                                                                                         <tbody>
@@ -640,11 +699,12 @@
 
 
 
-    <!-- JavaScript to handle the API request -->
+    <!-- auto scroll table rows on mouse wheel over header -->
 <script>
-
-
-
+// --------------------------------------------------------------------------------
+// auto scroll table rows on mouse wheel over header
+// --------------------------------------------------------------------------------
+//#region autoScrollTableRows
     document.addEventListener('DOMContentLoaded', function() {
         // now working - dont run this exit the function now
         return;
@@ -699,6 +759,16 @@
         });
     });
 
+//#endregion autoScrollTableRows
+
+ </script>
+
+<!-- complete task checkboxes -->
+<script>
+// --------------------------------------------------------------------------------
+// complete task checkboxes
+// --------------------------------------------------------------------------------
+//#region taskCompleteCheckboxes
 
 
     $(document).ready(function() {
@@ -753,7 +823,14 @@
         },
         error: function(xhr, status, error) {
             console.error(`tb81   Error updating task ${taskId}:`, error);
-            showNotification(`Error updating task ${taskId}: ${error.message}`); // Example: Show notification
+            if (xhr.status === 401 || xhr.status === 403) {
+                console.error(`[SL1] SESSION_LOST: /taskComplete - Status: ${xhr.status}, Task ID: ${taskId}`);
+                showNotification('Session lost. Please log in again.', true);
+                // Optionally redirect to login
+                // window.location.href = '/login';
+            } else {
+                showNotification(`Error updating task ${taskId}: ${error.message}`); // Example: Show notification
+            }
             // Revert UI state
             $checkbox.prop('checked', !isChecked);
             $label.text(isChecked ? '' : 'Done');
@@ -802,7 +879,12 @@
                 },
                 error: function(xhr, status, error) {
                     console.error(`jb8    Error updating job ${jobId}:`, error);
-                    showNotification(`Error updating job ${jobId}: ${error.message}`, true);
+                    if (xhr.status === 401 || xhr.status === 403) {
+                        console.error(`[SL2] SESSION_LOST: /jobComplete - Status: ${xhr.status}, Job ID: ${jobId}`);
+                        showNotification('Session lost. Please log in again.', true);
+                    } else {
+                        showNotification(`Error updating job ${jobId}: ${error.message}`, true);
+                    }
                     // Revert checkbox if error occurs
                     $(this).prop('checked', !isChecked);
                 }.bind(this) // Maintain checkbox context in error handler
@@ -841,31 +923,53 @@
                     error: function(xhr, status, error) {
                         // Handle error response if needed
                         console.error('c8    Error updating build status:', error);
+                        if (xhr.status === 401 || xhr.status === 403) {
+                            console.error(`[SL3] SESSION_LOST: /buildComplete - Status: ${xhr.status}, Build ID: ${buildId}`);
+                            showNotification('Session lost. Please log in again.', true);
+                        }
                     }
                 });
             });
         });
-    </script>
+ 
+ //#endregion taskCompleteCheckboxes
 
-</body>
+ </script>
 
 
 
-</html>
-
+<!-- Credentials debugging -->
 <script>
 
+function checkCredentials() {
+    console.log('cc1    Checking session validity');
+    // Check if session is still valid
+    fetch('/verify-session', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Session invalid');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('cc9   Session is valid:', data);
+    })
+    .catch(error => {
+        console.error('Session check failed:', error);
+        // Redirect to login or show notification
+        showNotification('cc8    Session expired. Please log in again.', true);
+        // window.location.href = '/login'; // Uncomment if you want to redirect
+    });
+}
 
-    console.log("locals ", <%- JSON.stringify(locals) %>);
 
-    //---  add listener to all EDITABLE fields.  When field changes, notify the database
-    const baseUrl = "<%= locals.baseUrl %>";
-    const apiHost = window.location.host.replace(/:3000$/, '');
-    const apiPort = window.location.protocol === 'https:' ? '/api/' : ':4000';
-    const apiUrl = `${window.location.protocol}//${apiHost}${apiPort}`;
-    console.log("lf3     apiUrl: ", apiUrl);
+</script>
 
-
+<!-- Notifications -->
+<script>
 
 let notificationTimeout;
 function showNotification(message, isError = true) {
@@ -905,9 +1009,266 @@ function showNotification(message, isError = true) {
 }
         
 
+</script>
+
+<!-- old way of doing file uploads -->
+<script>
+document.addEventListener("DOMContentLoaded", async function () {
+    return; 
+    console.log("lf1     Fetching uploaded files...");
+    const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
+    console.log('lf15   ' + buildId)
+
+    const fileListContainer = document.getElementById("fileList");
+
+    if (!fileListContainer) {
+        console.error("lf81     Error: fileList container not found!");
+        return;
+    }
+
+    try {
+        console.log('lf21     Fetching files for build ID:', buildId);
+        const build_id = <%= locals.tableData[0].builds[0].id %>;   
+        const response = await fetch(`/api/files?build_id=${build_id}`, {
+            credentials: 'include'
+        });
+        const files = await response.json();
+        console.log('lf22     Files fetched:', files);
+        
+
+        if (files.length === 0) {
+            fileListContainer.innerHTML = "<p>No uploaded files found.</p>";
+            console.log("lf82     No files available for download.");
+            return;
+        }
+
+        console.log(`lf2     Displaying ${files.length} files.`);
+        try {
+            await checkCredentials();
+        } catch (e) {
+            console.error('Session check failed:', e);
+        }
+
+        // Generate list of downloadable links with delete buttons
+        fileListContainer.innerHTML = files.map(file =>
+            `<li>
+                <a href="/api/download/${file.id}" download>${file.filename}</a>
+                <button class="btn btn-link text-danger btn-sm delete-btn" data-id="${file.id}">
+                    <i class="fas fa-times"></i> 
+                </button>
+                
+            </li>`
+        ).join("");
+
+        console.log("lf3     File list rendered successfully.");
+
+        // Add event listeners to all delete buttons
+        document.querySelectorAll(".delete-btn").forEach(button => {
+            button.addEventListener("click", async function () {
+                const fileId = this.getAttribute("data-id");
+                console.log(`df4     Delete button clicked for file ID: ${fileId}`);
+
+                try {
+                    console.log(`df5     Sending DELETE request for file ID: ${fileId}`);
+                    const deleteResponse = await fetch(`/api/deletefile/${fileId}`, {
+                        method: "DELETE",
+                        credentials: 'include'
+                    });
+
+                    const result = await deleteResponse.json();
+                    console.log(`df6     Server response: ${result.message}`);
+
+                    if (deleteResponse.ok) {
+                        console.log(`df9     File ID ${fileId} deleted successfully. Removing from UI.`);
+                        this.parentElement.remove();
+                    } else {
+                        console.warn(`df83     Failed to delete file ID: ${fileId}`);
+                        showNotification('Failed to delete file', false);
+                    }
+                } catch (error) {
+                    console.error("df831     Error deleting file:", error);
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("df8     Error fetching file list:", error);
+        showNotification('Failed to fetch file list');
+        fileListContainer.innerHTML = "<p>Error loading files.</p>";
+    }
+});
+
+</script>
+
+<!-- //new + better method of doing file attachments - save to drive not database for scalability -->
+<script>
+// Show file input when attachment button is clicked
+function showAttachmentInput(taskID) {
+    console.log("va1    showing upload box:", taskID);
+    const input = document.getElementById('attachmentInput_' + taskID);
+    if (input) input.click();
+}
+
+// Handle file upload for a specific task
+async function uploadJobAttachment(event, taskID) {
+    const file = event.target.files[0];
+    if (!file) return;
+    console.log("ua1    uploadJobAttachment event - uploading attachment now:", taskID, "file:", file);
+
+    // Show spinner
+    const spinner = document.getElementById('attachmentSpinner_' + taskID);
+    if (spinner) spinner.classList.remove('d-none');
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('task_id', taskID);
+
+    try {
+        console.log("ua2    Uploading file to API:", `/api/fileUpload`);
+        const response = await fetch(`/api/fileUpload`, {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+        
+        if (response.ok) {
+            showNotification('Attachment uploaded!', false);
+            // console.log('ua5    Attachment uploaded successfully');
+            console.log("ua3    Server response:", response);
+            const data = await response.json();
+            const newFileName = data.filename;
+            //const newFileName = response.filename;
+            console.log("ua4    New file name from server:", newFileName);
+            const originalName = file.name;
+            //add download html to the free_text field and trigger the save event
+            //get element where id=jobDesc and data-record-id=taskID
+            const jobDesc = document.querySelector(`#jobDesc[data-record-id="${taskID}"]`);
+            // console.log("ua51    jobDesc element:", jobDesc);
+            if (jobDesc) {
+                // console.log("ua6    Found jobDesc element for taskID:", taskID);
+                const fileType = originalName.split('.').pop().toLowerCase();
+                let iconColor = '#1bbd0c';
+                let iconClass = 'fas fa-save';
+                if (fileType === 'pdf') {
+                    iconColor = '#d9534f';
+                    iconClass = 'fas fa-file-pdf';
+                } else if (fileType === 'txt') {
+                    iconColor = '#007bff';
+                    iconClass = 'fas fa-file-alt';
+                } else if (fileType === 'doc' || fileType === 'docx') {
+                    iconColor = '#2b579a';
+                    iconClass = 'fas fa-file-word';
+                } else if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileType)) {
+                    iconColor = '#f4b400';
+                    iconClass = 'fas fa-file-image';
+                }
+                // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
+                // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
+                // console.log("ua72    filename", newFileName);
+                console.log("ua9   Added attachment", newFileName, "to task", taskID);
+                jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
+                //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
+
+
+                // try {
+                //     const response = await fetch(`/update?fieldID=jobDesc&newValue=${encodeURIComponent(jobDesc.innerHTML)}&whereID=${taskID}`, {
+                //         credentials: 'include'
+                //     });
+                //     console.log("id45     ", response.status, response.statusText);
+                //     if (!response.ok) {
+                //         if (response.status === 400) {
+                //             const errorData = await response;
+                //             console.log('id48    Validation error:', errorData);
+                //             showNotification('Validation error! ' );
+                //             throw new Error('Validation error');
+                //         } else {
+                //             showNotification('Server error: ' );
+                //             console.log('id58    Error:', response.status);
+                //             throw new Error(`HTTP error! status: ${response.status}`);
+                //         }
+                //     } else {
+                //         console.log('id5    response OK');
+                //         showNotification(`Update successful! jobDesc(${taskID})=${jobDesc.innerHTML}`, false);
+                //         // element.contentEditable = true;
+                //     }
+                //     console.log('id9    Update successful');
+                // } catch (error) {
+                //     console.error('id8     Update failed:', error, 'reset value', event.target);
+                //     showNotification('Validation failed');
+                // }
+
+                // Trigger blur event to save changes
+                // jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
+
+
+                // jobDesc.focus();
+            }
+        } else {
+            showNotification('Failed to upload attachment');
+        }
+    } catch (err) {
+        showNotification('Error uploading attachment');
+    }
+    // Hide spinner
+    if (spinner) spinner.classList.add('d-none');
+    // Optionally reset file input
+    event.target.value = '';
+}
+
+async function downloadAttachment(fileName, originalName) {
+    console.log("da1    downloadAttachment called for file:", fileName);
+    if (!fileName) return;
+    try {
+        console.log("da2    Fetching file from API:", `/api/fileDownload/` + fileName);
+        const response = await fetch(`/api/fileDownload/` + fileName, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('da81     Download failed');
+        const blob = await response.blob();
+        // Get fileName from response headers or fallback
+        let downloadName = originalName ? originalName : fileName ;
+        const disposition = response.headers.get('Content-Disposition');
+        console.log("da3    Content-Disposition header:", disposition);
+        if (disposition && disposition.indexOf('filename=') !== -1) {
+            originalName = disposition.split('filename=')[1].replace(/"/g, '').trim();
+        }
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = originalName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        showNotification('Failed to download attachment');
+    }
+}
+
+</script>
+
+
+
+<!-- editable fields -->
+<script>
+
+
+    console.log("locals ", <%- JSON.stringify(locals) %>);
+
+    //---  add listener to all EDITABLE fields.  When field changes, notify the database
+    const baseUrl = "<%= locals.baseUrl %>";
+    const apiHost = window.location.host.replace(/:3000$/, '');
+    const apiPort = window.location.protocol === 'https:' ? '/api/' : ':4000';
+    const apiUrl = `${window.location.protocol}//${apiHost}${apiPort}`;
+    // const apiUrl = "/api";    //use relative path to avoid CORS issues
+    console.log("lf3     apiUrl: ", apiUrl);
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - initializing editable elements");
-    
+
     // Debounce variables
     let isUpdating = false;
     let lastUpdateTime = 0;
@@ -920,13 +1281,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     editableElements.forEach(function(element) {
         // Store initial values
-        console.log('id221   setting original value')
+        // console.log('id221   setting original value')
         if (element.tagName === "SELECT") {
             originalValues.set(element, element.value);
         } else if (element.type === "checkbox") {
             originalValues.set(element, element.checked);
         } else {
-            console.log('id2213   ... new value is ', element.textContent)
+            // console.log('id2213   ... new value is ', element.textContent)
             originalValues.set(element, element.textContent);
         }
         
@@ -983,41 +1344,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("id42    Encoded:", encodeURIComponent(newValue)); // Shows %0A, %0D etc.                
                 console.log(`id4    Attempting update - Field: ${fieldID}, Value: ${newValue}, Record: ${recordID}`);
                 
-//                try {
-                    const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`
-                     , {
-                        credentials: 'include'
-                    });
-                    console.log("id45     ", response.status, response.statusText);
-                    if (!response.ok) {
-                        if (response.status === 400) {
-                            const errorData = await response;
-                            showNotification('Validation error! ' );
-                            throw new Error('Validation error');
-                        } else {
-                            showNotification('Server error: ' );
-                            console.log('id58    Error:', response.status);
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
+                const response = await fetch(`/update?fieldID=${fieldID}&newValue=${encodeURIComponent(newValue)}&whereID=${recordID}`
+                    , {
+                    credentials: 'include'
+                });
+                console.log("id45     ", response.status, response.statusText);
+                if (!response.ok) {
+                    if (response.status === 400) {
+                        const errorData = await response;
+                        showNotification('Validation error! ' );
+                        throw new Error('Validation error');
                     } else {
-                        console.log('id5    response OK');
-                        showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
-                        target.contentEditable = true;
+                        showNotification('Server error: ' );
+                        console.log('id58    Error:', response.status);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-  //              } catch (error) {
-                 //   console.log("id38      ", error)
-    //            }
-                console.log('id9    Update successful');
-                
-                // Update stored original value on success
-                console.log('id223   setting original value')
-                if (target.tagName === "SELECT") {
-                    originalValues.set(target, target.value);
-                } else if (target.type === "checkbox") {
-                    originalValues.set(target, target.checked);
                 } else {
-                    originalValues.set(target, target.textContent);
+                    console.log('id5    response OK');
+                    showNotification(`Update successful! ${fieldID}(${recordID})=${newValue}`, false);
+                    target.contentEditable = true;
                 }
+                console.log('id9    Update successful');
+
+                // Update stored original value on success
+                // console.log('id223   setting original value')
+                // if (target.tagName === "SELECT") {
+                //     originalValues.set(target, target.value);
+                // } else if (target.type === "checkbox") {
+                //     originalValues.set(target, target.checked);
+                // } else {
+                //     originalValues.set(target, target.textContent);
+                // }
                 
             } catch (error) {
                 console.error('id8     Update failed:', error, 'reset value', event.target);
@@ -1090,7 +1447,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
             console.log("uf5      Sending file to backend...");    
-            const response = await fetch(`${apiUrl}/upload`, {
+            // const response = await fetch(`${apiUrl}/upload`, {
+            const response = await fetch(`/api/upload`, {
                 method: "POST",
                 credentials: 'include',
                 body: formData,
@@ -1117,229 +1475,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 
-document.addEventListener("DOMContentLoaded", async function () {
-    console.log("lf1     Fetching uploaded files...");
-    const buildId = <%= locals.tableData[0].builds[0].id %>;    //customer.builds[0].id
-    console.log('lf45   ' + buildId)
 
-    const fileListContainer = document.getElementById("fileList");
 
-    if (!fileListContainer) {
-        console.error("lf81     Error: fileList container not found!");
-        return;
-    }
-
-    try {
-        
-        const build_id = <%= locals.tableData[0].builds[0].id %>;   
-        const response = await fetch(`${apiUrl}/files?build_id=${build_id}`, {
-            credentials: 'include'
-        });
-        const files = await response.json();
-
-        if (files.length === 0) {
-            fileListContainer.innerHTML = "<p>No uploaded files found.</p>";
-            console.log("lf82     No files available for download.");
-            return;
-        }
-
-        console.log(`lf2     Displaying ${files.length} files.`);
-
-        // Generate list of downloadable links with delete buttons
-        fileListContainer.innerHTML = files.map(file =>
-            `<li>
-                <a href="${apiUrl}/download/${file.id}" download>${file.filename}</a>
-                <button class="btn btn-link text-danger btn-sm delete-btn" data-id="${file.id}">
-                    <i class="fas fa-times"></i> 
-                </button>
-                
-            </li>`
-        ).join("");
-
-        console.log("lf3     File list rendered successfully.");
-
-        // Add event listeners to all delete buttons
-        document.querySelectorAll(".delete-btn").forEach(button => {
-            button.addEventListener("click", async function () {
-                const fileId = this.getAttribute("data-id");
-                console.log(`df4     Delete button clicked for file ID: ${fileId}`);
-
-                try {
-                    console.log(`df5     Sending DELETE request for file ID: ${fileId}`);
-                    const deleteResponse = await fetch(`${apiUrl}/deletefile/${fileId}`, {
-                        method: "DELETE",
-                        credentials: 'include'
-                    });
-
-                    const result = await deleteResponse.json();
-                    console.log(`df6     Server response: ${result.message}`);
-
-                    if (deleteResponse.ok) {
-                        console.log(`df9     File ID ${fileId} deleted successfully. Removing from UI.`);
-                        this.parentElement.remove();
-                    } else {
-                        console.warn(`df83     Failed to delete file ID: ${fileId}`);
-                        showNotification('Failed to delete file', false);
-                    }
-                } catch (error) {
-                    console.error("df831     Error deleting file:", error);
-                }
-            });
-        });
-
-    } catch (error) {
-        console.error("df8     Error fetching file list:", error);
-        showNotification('Failed to fetch file list');
-        fileListContainer.innerHTML = "<p>Error loading files.</p>";
-    }
-});
+</script>
 
 
 
-//new + better method of doing file attachments - save to drive not database for scalability
-// Show file input when attachment button is clicked
-function showAttachmentInput(taskID) {
-    const input = document.getElementById('attachmentInput_' + taskID);
-    if (input) input.click();
-}
 
-// Handle file upload for a specific task
-async function uploadJobAttachment(event, taskID) {
-    const file = event.target.files[0];
-    console.log("ua1    uploadJobAttachment called for taskID:", taskID, "file:", file);
-    if (!file) return;
-
-    // Show spinner
-    const spinner = document.getElementById('attachmentSpinner_' + taskID);
-    if (spinner) spinner.classList.remove('d-none');
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('task_id', taskID);
-
-    try {
-    const response = await fetch(apiUrl + '/fileUpload', {
-            method: 'POST',
-            credentials: 'include',
-            body: formData
-        });
-        if (response.ok) {
-            showNotification('Attachment uploaded!', false);
-            // console.log('ua5    Attachment uploaded successfully');
-            console.log("ua3    Server response:", response);
-            const data = await response.json();
-            const newFileName = data.filename;
-            //const newFileName = response.filename;
-            console.log("ua4    New file name from server:", newFileName);
-            const originalName = file.name;
-            //add download html to the free_text field and trigger the save event
-            //get element where id=jobDesc and data-record-id=taskID
-            const jobDesc = document.querySelector(`#jobDesc[data-record-id="${taskID}"]`);
-            // console.log("ua51    jobDesc element:", jobDesc);
-            if (jobDesc) {
-                // console.log("ua6    Found jobDesc element for taskID:", taskID);
-                const fileType = originalName.split('.').pop().toLowerCase();
-                let iconColor = '#1bbd0c';
-                let iconClass = 'fas fa-save';
-                if (fileType === 'pdf') {
-                    iconColor = '#d9534f';
-                    iconClass = 'fas fa-file-pdf';
-                } else if (fileType === 'txt') {
-                    iconColor = '#007bff';
-                    iconClass = 'fas fa-file-alt';
-                } else if (fileType === 'doc' || fileType === 'docx') {
-                    iconColor = '#2b579a';
-                    iconClass = 'fas fa-file-word';
-                } else if (["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileType)) {
-                    iconColor = '#f4b400';
-                    iconClass = 'fas fa-file-image';
-                }
-                // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
-                // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
-                console.log("ua72    filename", newFileName);
-                jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
-                //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
-
-
-                // try {
-                //     const response = await fetch(`/update?fieldID=jobDesc&newValue=${encodeURIComponent(jobDesc.innerHTML)}&whereID=${taskID}`, {
-                //         credentials: 'include'
-                //     });
-                //     console.log("id45     ", response.status, response.statusText);
-                //     if (!response.ok) {
-                //         if (response.status === 400) {
-                //             const errorData = await response;
-                //             console.log('id48    Validation error:', errorData);
-                //             showNotification('Validation error! ' );
-                //             throw new Error('Validation error');
-                //         } else {
-                //             showNotification('Server error: ' );
-                //             console.log('id58    Error:', response.status);
-                //             throw new Error(`HTTP error! status: ${response.status}`);
-                //         }
-                //     } else {
-                //         console.log('id5    response OK');
-                //         showNotification(`Update successful! jobDesc(${taskID})=${jobDesc.innerHTML}`, false);
-                //         // element.contentEditable = true;
-                //     }
-                //     console.log('id9    Update successful');
-                // } catch (error) {
-                //     console.error('id8     Update failed:', error, 'reset value', event.target);
-                //     showNotification('Validation failed');
-                // }
-
-                // Trigger blur event to save changes
-                jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
-
-
-                jobDesc.focus();
-                console.log("ua9   Added attachment", newFileName, "to task", taskID);
-            }
-        } else {
-            showNotification('Failed to upload attachment');
-        }
-    } catch (err) {
-        showNotification('Error uploading attachment');
-    }
-    // Hide spinner
-    if (spinner) spinner.classList.add('d-none');
-    // Optionally reset file input
-    event.target.value = '';
-}
-
-async function downloadAttachment(fileName, originalName) {
-    console.log("da1    downloadAttachment called for file:", fileName);
-    if (!fileName) return;
-    try {
-        console.log("da2    Fetching file from API:", apiUrl + '/fileDownload/' + fileName);
-        const response = await fetch(apiUrl + '/fileDownload/' + fileName, {
-            method: 'GET',
-            credentials: 'include'
-        });
-        if (!response.ok) throw new Error('da81     Download failed');
-        const blob = await response.blob();
-        // Get fileName from response headers or fallback
-        let downloadName = originalName ? originalName : fileName ;
-        const disposition = response.headers.get('Content-Disposition');
-        console.log("da3    Content-Disposition header:", disposition);
-        if (disposition && disposition.indexOf('filename=') !== -1) {
-            originalName = disposition.split('filename=')[1].replace(/"/g, '').trim();
-        }
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = originalName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    } catch (err) {
-        showNotification('Failed to download attachment');
-    }
-}
-
-
-//drag and drop to reorder tasks within a job
+<!-- //drag and drop to reorder tasks within a job -->
+<script>
 document.addEventListener('DOMContentLoaded', () => {
     console.log("dr1    Initializing drag-and-drop functionality for tasks");
   let table 
@@ -1379,8 +1523,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handle drag over and drop
         table.addEventListener('dragover', (e) => {
             e.preventDefault();
-            console.log("dr5    Drag over target row (sort-order:", targetRow.dataset.sortOrder + ")");
             const targetRow = e.target.closest('tr');
+            console.log("dr5    Drag over target row (sort-order:", targetRow ? targetRow.dataset.sortOrder : 'undefined' + ")");
             if (targetRow && targetRow !== draggedRow) {
                 
             const rect = targetRow.getBoundingClientRect();
@@ -1424,6 +1568,7 @@ document.addEventListener('DOMContentLoaded', () => {
             jobOrderCell.innerText = row.dataset.sortOrder;
         }
         try {
+            console.log(`dr75    Sending update for row ID ${row.dataset.rowId} to server`);
             const response = fetch(`/update?fieldID=jobOrder&newValue=${row.dataset.sortOrder}&whereID=${row.dataset.rowId}`, {
                 credentials: 'include'
             });
@@ -1437,12 +1582,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error("Error updating sort_order:", error);
             showNotification('Failed to update task order', false);
         }
+            try {
+                await checkCredentials();
+            } catch (e) {
+                console.error('Session check failed:', e);
+            }
+
     });
   }
 });
 
-
 </script>
+
 
 <!-- Compose Email Modal -->
 <div class="modal fade" id="composeEmailModal" tabindex="-1" aria-labelledby="composeEmailModalLabel" aria-hidden="true">
@@ -1576,6 +1727,7 @@ document.getElementById('composeEmailForm').addEventListener('submit', async fun
     console.log("uw239   message ", document.getElementById('message').innerHTML);
     console.log("uw240   message_html ", document.getElementById('message_html').innerHTML);
     data.message = document.getElementById('message').innerHTML;
+    console.log("uw241   fetch /send-email  ", data.message);
     const response = await fetch('/send-email', {
       method: 'POST',
       credentials: 'include',
@@ -1597,6 +1749,13 @@ document.getElementById('composeEmailForm').addEventListener('submit', async fun
     console.error('Error sending email:', error);
     alert('An error occurred while sending the email.');
   }
+
+    try {
+        await checkCredentials();
+    } catch (e) {
+        console.error('Session check failed:', e);
+    }
+
 });
 
 
