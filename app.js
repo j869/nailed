@@ -19,6 +19,7 @@ import crypto from "crypto";
 import nodemailer from 'nodemailer';
 import { logUserActivity } from './src/logging.js';
 import { getMelbourneTime } from './src/datetime.js';
+import FormData from 'form-data';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -29,27 +30,14 @@ app.set("views", "./views");
 // Multer setup for file upload (max 10MB)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     console.log(`File upload attempt: ${file.originalname} with MIME type: ${file.mimetype}`);
 
-    const allowedMimeTypes = [
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-      "application/vnd.ms-excel", // .xls
-      "application/vnd.ms-excel.sheet.macroEnabled.12", // .xlsm (standard)
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsm (sometimes reported as this)
-      "application/octet-stream" // Fallback for some systems
-    ];
-
-    const allowedExtensions = ['.xlsx', '.xls', '.xlsm'];
+    // Allow all file types
+    cb(null, true);
     const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
 
-    if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(fileExtension)) {
-      cb(null, true);
-    } else {
-      console.log(`File rejected: ${file.originalname} (MIME: ${file.mimetype}, Extension: ${fileExtension})`);
-      cb(new Error(`Only .xlsx, .xls, and .xlsm files are allowed. Received: ${file.mimetype} for file: ${file.originalname}`));
-    }
+    // All file types are allowed - no restrictions applied
   }
 });
 const port = 3000;
@@ -1423,6 +1411,67 @@ async function getBuildData(buildID, userSecurityClause = '1=1') {
   }
 }
 
+
+app.post("/fileUpload", upload.single("file"), async (req, res) => {
+  console.log("gu1    fileUpload starting");
+  // Check if user is authenticated
+  if (!req.isAuthenticated()) {
+    console.log("gu18    fileUpload: User not authenticated");
+    // return res.status(401).json({ error: "Authentication required" });
+  }
+
+  // Log user credentials and input variables
+  console.log("gu21    fileUpload: User credentials - ID:", req.user?.id, "Email:", req.user?.email, "Roles:", req.user?.roles);
+  console.log("gu22    fileUpload: Input variables - Body:", req.body, "File:", req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : "No file");
+          // gu22    fileUpload: Input variables - Body: [Object: null prototype] { task_id: '33076' } File: {
+          //   originalname: 'attachment.pdf',
+          //   mimetype: 'application/pdf',
+          //   size: 43843
+          // }
+
+  // Handle task_id from req.body
+  const taskId = req.body.task_id;
+  if (!taskId) {
+    console.log("gu28    fileUpload: Missing task_id in request");
+    return res.status(400).json({ error: "task_id is required" });
+  }
+
+  // Check if file was uploaded
+  if (!req.file) {
+    console.log("gu38    fileUpload: No file uploaded");
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  try {
+    // Define backend URL (adjust for production)
+    const BACKEND_URL = process.env.API_URL;  //'http://localhost:4000';
+
+    // Create FormData for multipart upload
+    
+    const form = new FormData();
+    form.append('file', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    });
+    form.append('task_id', taskId);
+
+    // Send file to backend API
+    console.log("gu39    Attempting to upload file to backend API", `${BACKEND_URL}/fileUpload`);
+    const response = await axios.post(`${BACKEND_URL}/fileUpload`, form, {
+      headers: {
+        ...form.getHeaders()
+      }
+    });
+
+    console.log("gu39    File uploaded successfully:", response.data);
+
+    // Return success response with filename and task_id
+    res.json({ success: true, filename: response.data.filename, task_id: taskId });
+  } catch (error) {
+    console.error("gu8    Error uploading file:", error.message);
+    res.status(500).json({ error: "Failed to upload file" });
+  }
+});
 
 
 

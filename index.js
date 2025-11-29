@@ -135,6 +135,30 @@ function decrypt(encryptedText, key) {
   }
 }
 
+
+app.use((req, res, next) => {
+  // console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
+  let variables = ``;
+  
+  // Build variables string with available request data
+  const dataParts = [];
+  if (Object.keys(req.params).length > 0) {
+    dataParts.push(`params: ${JSON.stringify(req.params)}`);
+  }
+  if (Object.keys(req.query).length > 0) {
+    dataParts.push(`query: ${JSON.stringify(req.query)}`);
+  }
+  // Note: req.body won't be available here since body parsing middleware comes later
+  
+  if (dataParts.length > 0) {
+    variables = dataParts.join(', ') + ', ';
+  }
+
+  console.log(`x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  next();
+});
+
+
 app.use(cors({
   origin: `${process.env.BASE_URL}`, // Allow frontend requests    ${port}
   methods: "GET, POST, DELETE",  // Allow GET, POST, and DELETE methods

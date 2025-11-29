@@ -1215,27 +1215,30 @@ async function uploadJobAttachment(event, taskID) {
     formData.append('file', file);
     formData.append('task_id', taskID);
 
+    console.log("ua2    Sending file to API:", '/fileUpload');
+    console.log("ua21    FormData contents:", formData.get('file'), formData.get('task_id'));
     try {
-    const response = await fetch(apiUrl + '/fileUpload', {
+        const response = await $.ajax({
+            url: '/fileUpload',
             method: 'POST',
-            credentials: 'include',
-            body: formData
+            data: formData,
+            processData: false, // Prevent jQuery from processing the data
+            contentType: false, // Prevent jQuery from setting contentType
+            xhrFields: {
+                withCredentials: true
+            }
         });
-        if (response.ok) {
-            showNotification('Attachment uploaded!', false);
-            // console.log('ua5    Attachment uploaded successfully');
-            console.log("ua3    Server response:", response);
-            const data = await response.json();
-            const newFileName = data.filename;
-            //const newFileName = response.filename;
-            console.log("ua4    New file name from server:", newFileName);
+
+        showNotification('Attachment uploaded successfully!', false);
+
+        if (response.success) {
+            const newFileName = response.filename;
+            const taskId = response.task_id;
+            console.log("ua41    Server response:", response);
+            // Proceed with the rest of the logic using newFileName and taskId
             const originalName = file.name;
-            //add download html to the free_text field and trigger the save event
-            //get element where id=jobDesc and data-record-id=taskID
-            const jobDesc = document.querySelector(`#jobDesc[data-record-id="${taskID}"]`);
-            // console.log("ua51    jobDesc element:", jobDesc);
+            const jobDesc = document.querySelector(`#jobDesc[data-record-id="${taskId}"]`);
             if (jobDesc) {
-                // console.log("ua6    Found jobDesc element for taskID:", taskID);
                 const fileType = originalName.split('.').pop().toLowerCase();
                 let iconColor = '#1bbd0c';
                 let iconClass = 'fas fa-save';
@@ -1252,53 +1255,28 @@ async function uploadJobAttachment(event, taskID) {
                     iconColor = '#f4b400';
                     iconClass = 'fas fa-file-image';
                 }
-                // console.log("ua7    File type:", fileType, "Icon class:", iconClass);
-                // console.log(`ua71    <i class="${iconClass}" style="color: ${iconColor}; margin-left: 6px; vertical-align: middle; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i>`)
-                console.log("ua72    filename", newFileName);
-                jobDesc.contentEditable = true;
-                jobDesc.focus();
-                jobDesc.innerHTML += ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
-                //console.log("ua8    Updated jobDesc HTML:", jobDesc.innerHTML);
-
-
-                // try {
-                //     const response = await fetch(`/update?fieldID=jobDesc&newValue=${encodeURIComponent(jobDesc.innerHTML)}&whereID=${taskID}`);
-                //     console.log("id45     ", response.status, response.statusText);
-                //     if (!response.ok) {
-                //         if (response.status === 400) {
-                //             const errorData = await response;
-                //             console.log('id48    Validation error:', errorData);
-                //             showNotification('Validation error! ' );
-                //             throw new Error('Validation error');
-                //         } else {
-                //             showNotification('Server error: ' );
-                //             console.log('id58    Error:', response.status);
-                //             throw new Error(`HTTP error! status: ${response.status}`);
-                //         }
-                //     } else {
-                //         console.log('id5    response OK');
-                //         showNotification(`Update successful! jobDesc(${taskID})=${jobDesc.innerHTML}`, false);
-                //         // element.contentEditable = true;
-                //     }
-                //     console.log('id9    Update successful');
-                // } catch (error) {
-                //     console.error('id8     Update failed:', error, 'reset value', event.target);
-                //     showNotification('Validation failed');
-                // }
-
-                // Trigger blur event to save changes
-                // jobDesc.dispatchEvent(new Event('blur', { bubbles: true }));
-
-
-                // jobDesc.focus();
-                console.log("ua9   Added attachment", newFileName, "to task", taskID);
+                jobDesc.innerHTML = jobDesc.innerHTML + ` - File: <i class="${iconClass}" style="color: ${iconColor}; cursor:pointer;" title="${originalName}" onclick="downloadAttachment('${newFileName}','${originalName}')"></i> ${originalName}`;
+                // Trigger save event for the updated free_text
+                jobDesc.dispatchEvent(new Event('blur'));
             }
         } else {
-            showNotification('Failed to upload attachment');
+            showNotification('Failed to upload attachment', true);
         }
-    } catch (err) {
-        showNotification('Error uploading attachment');
+
+        console.log("ua9    Completed attachment process for task", taskID);
+    } catch (error) {
+        console.log('ua45     ', error.status, error.statusText);
+        if (error.status === 400) {
+            console.log('ua48    Validation error:', error.responseText);
+            showNotification('Validation error!');
+            throw new Error('Validation error');
+        } else {
+            showNotification('Failed to upload attachment');
+            console.log('ua58    Error:', error.status);
+            throw new Error(`HTTP error! status: ${error.status}`);
+        }
     }
+
     // Hide spinner
     if (spinner) spinner.classList.add('d-none');
     // Optionally reset file input
