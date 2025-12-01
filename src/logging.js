@@ -13,13 +13,16 @@ const __dirname = path.dirname(__filename);
  * @returns {string|null} - Geolocation data object or null if error.
  */
 export async function getGeolocation(ip) {
+    if (ip === 'remoteAddress') return null;     // ip address couldnt not be deduced from the req object
     try {
         const response = await fetch(`http://ipapi.co/${ip}/json/`);
         if (!response.ok) {
             throw new Error(`hj81   HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        return data ? `${data.city || 'City'} (${data.org || 'ISP'})` : null;
+        let returnValue = data ? `${data.city || 'City'} (${data.org || 'ISP'})` : null;
+        console.log('hj9   Geolocation for [' + ip + ']: ', returnValue);
+        return returnValue;
     } catch (error) {
         console.error('hj8   Error fetching geolocation for [' + ip + ']... ', error);
         return null;
@@ -52,7 +55,7 @@ export async function logUserActivity(req, activity) {
             userId = req.user.id ;
             windowId = req.headers['x-window-id'] || 'x-window-id';
             ipAddress = req.ip || req.connection?.remoteAddress || 'remoteAddress';
-            geoLocation = await getGeolocation(req?.ip || req?.connection?.remoteAddress);
+            geoLocation = await getGeolocation(ipAddress);
             userAgent = req.headers['user-agent'] || 'user-agent';
             sessionID = req.sessionID || 'sessionID';
             referer = req.headers['referer'] || 'referer';
@@ -61,7 +64,7 @@ export async function logUserActivity(req, activity) {
             userId = 0;  // Use 0 for unauthenticated/guest users
             windowId = req?.headers['x-window-id'] || 'x-window-id';
             ipAddress = req?.ip || req?.connection?.remoteAddress || 'remoteAddress';
-            geoLocation = await getGeolocation(req?.ip || req?.connection?.remoteAddress);
+            geoLocation = await getGeolocation(ipAddress);
             userAgent = req?.headers['user-agent'] || 'user-agent';
             sessionID = req?.sessionID || 'sessionID';
             referer = req?.headers['referer'] || 'referer';
@@ -74,7 +77,7 @@ export async function logUserActivity(req, activity) {
             fs.mkdirSync(logsDir, { recursive: true });
         }
 
-        const logFile = path.join(logsDir, `s${sessionID}.log`);
+        const logFile = path.join(logsDir, `${sessionID}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
         const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${ipAddress.toString().padStart(15, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
