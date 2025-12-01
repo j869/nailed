@@ -51,6 +51,7 @@ export async function logUserActivity(req, activity) {
             userId = req.user.id ;
             windowId = req.headers['x-window-id'] || 'x-window-id';
             ipAddress = req.ip || req.connection?.remoteAddress || 'remoteAddress';
+            geoLocation = await getGeolocation(req.ip);
             userAgent = req.headers['user-agent'] || 'user-agent';
             sessionID = req.sessionID || 'sessionID';
             referer = req.headers['referer'] || 'referer';
@@ -59,12 +60,10 @@ export async function logUserActivity(req, activity) {
             userId = 0;  // Use 0 for unauthenticated/guest users
             windowId = req?.headers['x-window-id'] || 'x-window-id';
             ipAddress = req?.ip || req?.connection?.remoteAddress || 'remoteAddress';
+            geoLocation = await getGeolocation(req.ip);
             userAgent = req?.headers['user-agent'] || 'user-agent';
             sessionID = req?.sessionID || 'sessionID';
             referer = req?.headers['referer'] || 'referer';
-        }
-        if (ipAddress) {
-            geoLocation = await getGeolocation(ipAddress);
         }
 
         const logsDir = path.join(__dirname, '..', 'logs', 'user_activity', geoLocation || 'geoLocation', ipAddress + '_' + userId || 'ip_userId');
