@@ -38,18 +38,21 @@ home.ejs
       <% sortedGroups.forEach(group => { %>
         <h3 class="mt-4"><%= group %></h3>
         <table class="table table-striped">
-          <thead class="table-dark">
+            <% let weeks = Math.min(parseInt(group.split(' ')[0]),9); %>
+            <% let bgColor = `#CC${9 - weeks}${9 - weeks}00`; %>
+        
+            <thead ></thead>
             <tr>
-              <th>View</th>
-              <th>ID</th>
-              <th>Title</th>
-              <th>Description</th>
-              <th>Assigned To</th>
-              <th>Due Date</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style="background-color: <%= bgColor %>;">View<%= weeks %></th>
+              <th style="background-color: <%= bgColor %>;">ID</th>
+              <th style="background-color: <%= bgColor %>;">Title</th>
+              <th style="background-color: <%= bgColor %>;">Description</th>
+              <th style="background-color: <%= bgColor %>;">Assigned To</th>
+              <th style="background-color: <%= bgColor %>;">Due Date</th>
+              <th style="background-color: <%= bgColor %>;">Status</th>
+              <th style="background-color: <%= bgColor %>;">Actions</th>
             </tr>
-          </thead>
+            </thead>
           <tbody>
             <% groupedData[group].forEach(item => { %>
             <tr>

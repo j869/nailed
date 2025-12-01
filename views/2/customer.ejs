@@ -887,7 +887,7 @@ function showNotification(message, isError = true) {
     }, 5000);
 }
         
-
+// [id]   Editable fields handling
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - initializing editable elements");
     
@@ -909,10 +909,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (element.type === "checkbox") {
             originalValues.set(element, element.checked);
         } else {
-            console.log('id2213   ... new value is ', element.textContent)
+            // console.log('id2213   ... new value is ', element.textContent)
             originalValues.set(element, element.textContent);
         }
-        
+
         element.addEventListener('dblclick', function(event) {
             if (isUpdating) return;
             
