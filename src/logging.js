@@ -6,6 +6,7 @@ import fetch from 'node-fetch'; // Assuming node-fetch is installed for Node.js
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const geoCache = new Map();
 
 /**
  * Fetches geolocation data for a given IP address (IPv4 or IPv6).
@@ -15,11 +16,22 @@ const __dirname = path.dirname(__filename);
 export async function getGeolocation(ip) {
     if (ip === 'remoteAddress') return null;     // ip address couldnt not be deduced from the req object
     try {
-        const response = await fetch(`http://ipapi.co/${ip}/json/`);
-        if (!response.ok) {
-            throw new Error(`hj81   HTTP error! status: ${response.status}`);
+        let data;
+        if (geoCache.has(ip)) {
+            data = geoCache.get(ip);
+        } else {
+            const response = await fetch(`http://ipapi.co/${ip}/json/`);
+            if (!response.ok) {
+                if response.status === 429) {
+                    console.warn('hj82   Rate limit exceeded when fetching geolocation for [' + ip + ']');
+                    return 'geoLocRateLimitExceeded';
+                } else {
+                    throw new Error(`hj81   HTTP error! status: ${response.status}`);
+                }
+            }
+            data = await response.json();
+            geoCache.set(ip, data);
         }
-        const data = await response.json();
         let returnValue = data ? `${data.city || 'City'} (${data.org || 'ISP'})` : null;
         console.log('hj9   Geolocation for [' + ip + ']: ', returnValue);
         return returnValue;
@@ -49,6 +61,7 @@ export async function logUserActivity(req, activity) {
         if (typeof req === 'number') {
             // If req is a number, treat it as userId
             userId = req;
+            geoLocation = 'successfulLogins'
         } else if (req && req.user && req.user.id) {
             console.log('og2    logUserActivity: Found user ID in req.user:', req);
             // If req is an object with user info
