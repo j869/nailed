@@ -80,7 +80,7 @@ export async function logUserActivity(req, activity) {
         const logFile = path.join(logsDir, `${sessionID}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
-        const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${ipAddress.toString().padStart(15, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
+        const logEntry = `${now} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
 
         fs.appendFile(logFile, logEntry, (err) => {
             if (err) {
