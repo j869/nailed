@@ -2,9 +2,29 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getMelbourneTime } from './datetime.js';
+import fetch from 'node-fetch'; // Assuming node-fetch is installed for Node.js
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Fetches geolocation data for a given IP address (IPv4 or IPv6).
+ * @param {string} ip - The IP address to geolocate.
+ * @returns {string|null} - Geolocation data object or null if error.
+ */
+export async function getGeolocation(ip) {
+    try {
+        const response = await fetch(`http://ipapi.co/${ip}/json/`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data ? `${data.city || 'City'} (${data.org || 'ISP'})` : null;
+    } catch (error) {
+        console.error('Error fetching geolocation:', error);
+        return null;
+    }
+}
 
 /**
  * Logs user activity to a separate file for each user based on user ID.
@@ -12,12 +32,13 @@ const __dirname = path.dirname(__filename);
  * @param {string} activity - Description of the activity to log.
  * 
  */
-export function logUserActivity(req, activity) {
+export async function logUserActivity(req, activity) {
     console.log('og1    logUserActivity called with activity:', activity);
     try {
         let userId;
         let windowId = 'unknown';
         let ipAddress = 'unknown';
+        let geoLocation = 'unknown';
         let userAgent = 'unknown';
         let referer = 'unknown';
         let sessionID = 'unknown';
@@ -42,15 +63,18 @@ export function logUserActivity(req, activity) {
             sessionID = req?.sessionID || 'sessionID';
             referer = req?.headers['referer'] || 'referer';
         }
+        if (ipAddress) {
+            geoLocation = await getGeolocation(ipAddress);
+        }
 
-        const logsDir = path.join(__dirname, '..', 'logs', 'user_activity');
+        const logsDir = path.join(__dirname, '..', 'logs', 'user_activity', geoLocation || 'geoLocation', ipAddress + '_' + userId || 'ip_userId');
         
         // Ensure the logs directory exists
         if (!fs.existsSync(logsDir)) {
             fs.mkdirSync(logsDir, { recursive: true });
         }
 
-        const logFile = path.join(logsDir, `u${userId}_${sessionID}.log`);
+        const logFile = path.join(logsDir, `s${sessionID}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
         const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${ipAddress.toString().padStart(15, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
