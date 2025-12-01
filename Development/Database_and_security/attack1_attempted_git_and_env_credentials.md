@@ -334,7 +334,7 @@ bash
 #!/bin/bash
 # security_monitor.sh - Real-time threat detection
 
-LOG_FILE="logs/user_activity/u00000.log"
+LOG_FILE="logs/user_activity/unknown/u00000.log"
 ALERT_PATTERNS="\.env|\.git|wpbot|zgrab|Censys|PROPFIND|enhancecp"
 
 tail -F "$LOG_FILE" | while read line; do

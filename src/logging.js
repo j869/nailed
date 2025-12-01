@@ -27,20 +27,20 @@ export function logUserActivity(req, activity) {
             userId = req;
         } else if (req && req.user && req.user.id) {
             // If req is an object with user info
-            userId = req.user.id;
-            windowId = req.headers['x-window-id'] || 'unknown';
-            ipAddress = req.ip || req.connection?.remoteAddress || 'unknown';
-            userAgent = req.headers['user-agent'] || 'unknown';
-            sessionID = req.sessionID || 'unknown';
-            referer = req.headers['referer'] || 'unknown';
+            userId = req.user.id ;
+            windowId = req.headers['x-window-id'] || 'x-window-id';
+            ipAddress = req.ip || req.connection?.remoteAddress || 'remoteAddress';
+            userAgent = req.headers['user-agent'] || 'user-agent';
+            sessionID = req.sessionID || 'sessionID';
+            referer = req.headers['referer'] || 'referer';
         } else {
             console.warn('og83       logUserActivity: No user ID found in req.user', req.user);
             userId = 0;  // Use 0 for unauthenticated/guest users
-            windowId = req?.headers['x-window-id'] || 'unknown';
-            ipAddress = req?.ip || req?.connection?.remoteAddress || 'unknown';
-            userAgent = req?.headers['user-agent'] || 'unknown';
-            sessionID = req?.sessionID || 'unknown';
-            referer = req?.headers['referer'] || 'unknown';
+            windowId = req?.headers['x-window-id'] || 'x-window-id';
+            ipAddress = req?.ip || req?.connection?.remoteAddress || 'remoteAddress';
+            userAgent = req?.headers['user-agent'] || 'user-agent';
+            sessionID = req?.sessionID || 'sessionID';
+            referer = req?.headers['referer'] || 'referer';
         }
 
         const logsDir = path.join(__dirname, '..', 'logs', 'user_activity');
@@ -50,10 +50,10 @@ export function logUserActivity(req, activity) {
             fs.mkdirSync(logsDir, { recursive: true });
         }
 
-        const logFile = path.join(logsDir, `u${userId.toString().padStart(5, '0')}.log`);
+        const logFile = path.join(logsDir, `u${userId}_${sessionID}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
-        const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${windowId} | ${ipAddress.toString().padStart(15, ' ')} | ${userAgent.substring(0, 30).toString().padStart(30, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
+        const logEntry = `${timestamp} | ${sessionID.toString().padStart(32, ' ')} | ${ipAddress.toString().padStart(15, ' ')} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
 
         fs.appendFile(logFile, logEntry, (err) => {
             if (err) {
