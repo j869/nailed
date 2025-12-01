@@ -22,7 +22,7 @@ export async function getGeolocation(ip) {
         } else {
             const response = await fetch(`http://ipapi.co/${ip}/json/`);
             if (!response.ok) {
-                if response.status === 429) {
+                if (response.status === 429) {
                     console.warn('hj82   Rate limit exceeded when fetching geolocation for [' + ip + ']');
                     return 'geoLocRateLimitExceeded';
                 } else {
