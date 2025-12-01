@@ -16,12 +16,12 @@ export async function getGeolocation(ip) {
     try {
         const response = await fetch(`http://ipapi.co/${ip}/json/`);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`hj81   HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         return data ? `${data.city || 'City'} (${data.org || 'ISP'})` : null;
     } catch (error) {
-        console.error('Error fetching geolocation:', error);
+        console.error('hj8   Error fetching geolocation for [' + ip + ']... ', error);
         return null;
     }
 }
@@ -47,11 +47,12 @@ export async function logUserActivity(req, activity) {
             // If req is a number, treat it as userId
             userId = req;
         } else if (req && req.user && req.user.id) {
+            console.log('og2    logUserActivity: Found user ID in req.user:', req);
             // If req is an object with user info
             userId = req.user.id ;
             windowId = req.headers['x-window-id'] || 'x-window-id';
             ipAddress = req.ip || req.connection?.remoteAddress || 'remoteAddress';
-            geoLocation = await getGeolocation(req.ip);
+            geoLocation = await getGeolocation(req?.ip || req?.connection?.remoteAddress);
             userAgent = req.headers['user-agent'] || 'user-agent';
             sessionID = req.sessionID || 'sessionID';
             referer = req.headers['referer'] || 'referer';
@@ -60,7 +61,7 @@ export async function logUserActivity(req, activity) {
             userId = 0;  // Use 0 for unauthenticated/guest users
             windowId = req?.headers['x-window-id'] || 'x-window-id';
             ipAddress = req?.ip || req?.connection?.remoteAddress || 'remoteAddress';
-            geoLocation = await getGeolocation(req.ip);
+            geoLocation = await getGeolocation(req?.ip || req?.connection?.remoteAddress);
             userAgent = req?.headers['user-agent'] || 'user-agent';
             sessionID = req?.sessionID || 'sessionID';
             referer = req?.headers['referer'] || 'referer';
