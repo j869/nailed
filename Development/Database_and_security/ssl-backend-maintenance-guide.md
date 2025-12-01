@@ -1,7 +1,7 @@
 # Backend API Security and Maintenance Guide
 
-## Date Created: 2025-11-12
-## Current Time: [Insert Current Time, e.g., 5:00 PM Australia/Melbourne]
+## Date Created: 2025-01-12
+## Current Time: 4:40 PM Australia/Melbourne
 ## Author: AI Assistant (based on setup by John)
 
 ### Overview
@@ -10,14 +10,14 @@ This guide documents the secure setup of the Node.js backend API (port 4000) int
 **Key Components**:
 - **Frontend**: Express app on localhost:3000 (UI, EJS views, client-side JS). Served via Apache on https://buildingbb.com.au (ports 80/443).
 - **Backend**: Node.js API on localhost:4000 (index.js/server.js, endpoints like /update, /fileUpload, /addjob). Proxied via /api (internal-only access).
-- **Apache**: Reverse proxy (enabled modules: proxy, ssl, rewrite). Config: /etc/apache2/sites-available/redirect-to-3000.conf (HTTPS VHost with ProxyPass /api http://127.0.0.1:4000/).
-- **Firewall (UFW)**: Allows 22 (SSH), 80/443 (Apache); denies 3000, 4000, 5432 (external). Internal localhost traffic allowed.
+- **Apache**: Reverse proxy (enabled modules: proxy, ssl, rewrite). Configs in /etc/apache2/sites-enabled/: 000-default.conf (HTTP to HTTPS redirect for www.buildingbb.com.au and buildingbb.com.au), 100-default-le-ssl.conf (HTTPS VHost on *:443 with ProxyPass /api/ http://127.0.0.1:4000/, ProxyPass / http://127.0.0.1:3000/, WebSocket support, detailed logging to /var/log/apache2/100-le-ssl_access.log and error.log), 999-local-logviewer.conf (VHost on *:49157 exposing /apache (/var/log/apache2) and /logs (~/Public/nailed/logs) with basic auth via /etc/apache2/.htpasswd-logviewer, Options Indexes, Require valid-user).
+- **Firewall (UFW)**: Allows 22 (SSH), 80/443 (Apache), 49157 (log viewer); denies 3000, 4000, 5432 (external). Internal localhost traffic allowed.
 - **Database**: PostgreSQL on localhost:5432 (nailed DB, internal-only).
 - **Domain**: buildingbb.com.au (A/AAAA records → 67.219.105.53/IPv6). Cert: Let's Encrypt (/etc/letsencrypt/live/buildingbb.com.au/).
 - **Deployment**: VM (Vultr, Ubuntu/Debian). SSH: john@67.219.105.53 (password: dnrejm2s – CHANGE IMMEDIATELY). Processes: PM2 (pm2 restart all).
-- **Project Paths**: Frontend: ~/Public/nailed (app.js, views/, public/js/). Backend: ~/ (index.js/server.js). Logs: ~/logs/, /var/log/apache2/.
+- **Project Paths**: Frontend: ~/Public/nailed (app.js, views/, public/js/). Backend: ~/ (index.js/server.js). Logs: ~/Public/nailed/logs/ (app-generated logs in subdirs like customer_imports/, user_activity/ with ACLs for www-data:r-x), /var/log/apache2/ (Apache logs, accessible via /apache in log viewer).
 
-**Security Benefits**: All traffic HTTPS (no MITM), ports hidden (UFW deny), no direct backend exposure. Client calls (fetch) use relative /api (proxied). Server-side (axios) uses full https://buildingbb.com.au/api.
+**Security Benefits**: All traffic HTTPS (no MITM), ports hidden (UFW deny), no direct backend exposure. Client calls (fetch) use relative /api (proxied). Server-side (axios) uses full https://buildingbb.com.au/api. Secure log access via authenticated viewer on port 49157 (basic auth, ACL-protected app logs).
 
 ### Rationale for Key Choices
 The setup prioritizes simplicity, security, and maintainability on a single VM. Deviations from "expected" (e.g., subdomain, absolute URLs) are explained below:
@@ -67,25 +67,33 @@ Run on server (SSH: `ssh john@67.219.105.53`).
    - Rationale: 90-day auto-renew; dry-run prevents live issues.
 
 2. **UFW/Firewall Verification** (Weekly):
-   - `sudo ufw status verbose` → Confirm: ALLOW 22/80/443; NO 3000/4000/5432.
+   - `sudo ufw status verbose` → Confirm: ALLOW 22/80/443/49157; NO 3000/4000/5432.
    - Test Block: From local machine, `curl -I http://67.219.105.53:4000` → Refused/Timeout.
    - Test Proxy: `curl -I https://buildingbb.com.au/api/update` → 200/404 (backend response).
+   - Test Log Viewer: `curl -I http://67.219.105.53:49157/apache` → 401 (auth required).
    - Update: If new ports (e.g., add 5432 for remote DB): `sudo ufw allow from YOUR.IP/32 to any port 5432 && sudo ufw reload`.
    - Rationale: Ensures no exposure; default deny policy.
 
 3. **Apache Config/Proxy Check** (Monthly):
    - `sudo apache2ctl configtest` → "Syntax OK".
    - `sudo systemctl status apache2` → Active.
-   - Logs: `sudo tail -n 50 /var/log/apache2/error.log` (no proxy/SSL errors); `sudo tail -n 50 /var/log/apache2/access.log | grep /api` (200s for API calls).
+   - Logs: `sudo tail -n 50 /var/log/apache2/100-le-ssl_error.log` (no proxy/SSL errors); `sudo tail -n 50 /var/log/apache2/100-le-ssl_access.log | grep /api` (200s for API calls); check 999-logviewer-error.log for auth issues.
    - Backup: `sudo cp -r /etc/apache2 /etc/apache2.backup.$(date +%Y%m%d)`.
-   - Rationale: Proxy rules (ProxyPass /api http://127.0.0.1:4000/) must stay intact.
+   - Rationale: Proxy rules in 100-default-le-ssl.conf (ProxyPass /api http://127.0.0.1:4000/, ProxyPass / http://127.0.0.1:3000/) and log viewer in 999-local-logviewer.conf must stay intact.
 
 4. **Node Processes and Logs** (Weekly):
    - `pm2 status` → Active (nailed for 3000, api for 4000).
    - Restart: `pm2 restart all` (after .env/code changes).
-   - Logs: `pm2 logs` (errors like "Invalid URL" → Check .env API_URL); `pm2 logs --lines 100 nailed` (frontend).
+   - Logs: `pm2 logs` (errors like "Invalid URL" → Check .env API_URL); `pm2 logs --lines 100 nailed` (frontend); app-generated logs in ~/Public/nailed/logs/customer_imports/ and user_activity/ (view via https://buildingbb.com.au:49157/logs with auth).
+   - ACL Check: `getfacl ~/Public/nailed/logs/` → Confirm www-data:r-x and defaults.
    - DB Connect: `psql -U postgres -d nailed -c "\dt"` (tables OK).
    - Rationale: PM2 auto-restarts; logs catch proxy/auth issues.
+
+4.5. **Log Viewer Maintenance** (Monthly):
+   - Access Test: Browser to http://67.219.105.53:49157/apache (enter .htpasswd creds) → List logs; check /logs for app files.
+   - Auth: `sudo htpasswd -c /etc/apache2/.htpasswd-logviewer john` (update password); verify Require valid-user in 999-local-logviewer.conf.
+   - ACLs: `sudo setfacl -R -m u:www-data:r-x ~/Public/nailed/logs/` if permissions drift; test `sudo -u www-data ls ~/Public/nailed/logs/`.
+   - Rationale: Ensures secure, readable access to logs without exposing sensitive data.
 
 5. **.env and Code Verification** (After Changes):
    - `cat ~/Public/nailed/.env` → BASE_URL="https://buildingbb.com.au", API_URL="https://buildingbb.com.au/api".
@@ -94,11 +102,11 @@ Run on server (SSH: `ssh john@67.219.105.53`).
    - Rationale: Ensures no regressions (e.g., old localhost:4000).
 
 6. **Backups** (Weekly):
-   - Configs: `sudo tar -czf /root/backups/apache_$(date +%Y%m%d).tar.gz /etc/apache2 /etc/letsencrypt`.
+   - Configs: `sudo tar -czf /root/backups/apache_$(date +%Y%m%d).tar.gz /etc/apache2 /etc/letsencrypt /etc/apache2/.htpasswd-logviewer`.
    - DB: `pg_dump -U postgres nailed > /root/backups/db_$(date +%Y%m%d).sql`.
    - Code: `git commit -am "Backup $(date)"` (if using Git).
-   - Files: `tar -czf /root/backups/uploads_$(date +%Y%m%d).tar.gz ~/uploads/` (attachments).
-   - Rationale: Quick recovery from misconfigs (e.g., bad ProxyPass).
+   - Files: `tar -czf /root/backups/uploads_$(date +%Y%m%d).tar.gz ~/uploads/` (attachments); include ~/Public/nailed/logs/ if needed.
+   - Rationale: Quick recovery from misconfigs (e.g., bad ProxyPass, lost auth file).
 
 7. **Performance/Monitoring** (Monthly):
    - `htop` or `top` → Node/Apache CPU/Mem <80%.
@@ -176,6 +184,6 @@ Use SSH + commands below. Check timestamps in logs (AEDT/Melbourne).
 
 ### History of Actions/Updates
 - **2025-11-12**: Created guide. Proxy setup complete (/api → 4000). .env: Full URLs for Node. JS: Relative /api. UFW: Denied 3000/4000/5432. Attachments fixed (no 404).
-- Append future changes here (e.g., "2025-11-15: Added CORS middleware to backend.").
+- **2025-01-12**: Updated guide for accurate Apache configs (000-default.conf, 100-default-le-ssl.conf, 999-local-logviewer.conf), added log viewer maintenance (port 49157, basic auth, ACLs for ~/Public/nailed/logs/), refined UFW (allow 49157), updated logs paths and debugging for specific files, included ACL verification and backups for auth file.
 
-For issues: SSH in, check logs (`pm2 logs`, Apache), test proxy/DB. Contact support if DNS/Cert fails. This setup is robust—minimal maintenance for high security! 
+For issues: SSH in, check logs (`pm2 logs`, Apache), test proxy/DB. Contact support if DNS/Cert fails. This setup is robust—minimal maintenance for high security!
