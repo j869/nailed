@@ -8,6 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const geoCache = new Map();
 
+
+
 /**
  * Fetches geolocation data for a given IP address (IPv4 or IPv6).
  * @param {string} ip - The IP address to geolocate.
@@ -40,6 +42,66 @@ export async function getGeolocation(ip) {
         return null;
     }
 }
+
+
+
+// Classify by behavior patterns
+function classifyAttacker(req, path) {
+    console.log('og1    classifyAttacker called with path:', path);
+    const classification = {
+        type: 'unknown',
+        confidence: 0,
+        tags: []
+    };
+    
+    // 1. THE SCRIPT KIDDIE (Most Common)
+    if (req.headers['user-agent']?.includes('sqlmap') || 
+        path.includes('union') || 
+        path.includes('select%20')) {
+        classification.type = 'SQL_INJECTION_ATTEMPT';
+        classification.confidence = 90;
+        classification.tags.push('automated', 'low-skill', 'tool-user');
+    }
+    
+    // 2. THE RECON SPECIALIST
+    else if (path.match(/\.(env|git|config|backup|sql)$/i) ||
+            path.includes('admin') || 
+            path.includes('wp-login')) {
+        classification.type = 'RECONNAISSANCE';
+        classification.confidence = 85;
+        classification.tags.push('targeted', 'pre-attack', 'enumeration');
+    }
+    
+    // 3. THE EXPLOIT HUNTER
+    else if (path.includes('.php') && 
+            (path.includes('cmd') || 
+             path.includes('exec') || 
+             path.includes('system'))) {
+        classification.type = 'COMMAND_INJECTION';
+        classification.confidence = 95;
+        classification.tags.push('dangerous', 'execution', 'high-impact');
+    }
+    
+    // 4. THE PATH TRAVERSAL SPECIALIST
+    else if (path.includes('..') || 
+            path.includes('../') ||
+            path.includes('..\\')) {
+        classification.type = 'PATH_TRAVERSAL';
+        classification.confidence = 98;
+        classification.tags.push('file-access', 'lfi', 'critical');
+    }
+    
+    // 5. Short Hash Bruteforce
+    else if (path.match(/^\/[a-f0-9]{4}$/)) {
+        classification.type = 'SHORT_HASH_BRUTEFORCE';
+        classification.confidence = 80;
+        classification.tags.push('automated', 'discovery', 'low-noise');
+    }
+
+    console.log('og9    classifyAttacker result:', classification);
+    return classification;
+}
+
 
 /**
  * Logs user activity to a separate file for each user based on user ID.
@@ -83,14 +145,22 @@ export async function logUserActivity(req, activity) {
             referer = req?.headers['referer'] || 'referer';
         }
 
-        const logsDir = path.join(__dirname, '..', 'logs', 'user_activity', geoLocation || 'geoLocation', ipAddress + '_' + userId || 'ip_userId');
-        
+        const activityClassification = classifyAttacker(req, req.url);
+        let logFile;
+        let  logsDir;
+        if (activityClassification.type !== 'unknown') {
+            logsDir = path.join(__dirname, '..', 'logs', 'user_activity', activityClassification.type || 'attackClass', geoLocation || 'geoLocation');
+            logFile = path.join(logsDir, `${activityClassification.type}.log`);
+        } else {
+            logsDir = path.join(__dirname, '..', 'logs', 'user_activity', geoLocation || 'geoLocation', ipAddress + '_' + userId || 'ip_userId');
+            logFile = path.join(logsDir, `${sessionID}.log`);
+        }
+
         // Ensure the logs directory exists
         if (!fs.existsSync(logsDir)) {
             fs.mkdirSync(logsDir, { recursive: true });
         }
 
-        const logFile = path.join(logsDir, `${sessionID}.log`);
         const now = getMelbourneTime();    //returns type Intl.DateTimeFormat
         const timestamp = now.split(', ')[1];
         const logEntry = `${now} | ${referer.toString().padEnd(50, ' ')} | ${activity} \n`;
