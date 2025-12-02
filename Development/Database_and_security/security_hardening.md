@@ -55,6 +55,7 @@ Adapt the phased plan from `security_hardening.md` to this Node.js/Express/pg pr
   - Test SSH: Key-based login only.
   - Backup old secrets securely (e.g., encrypted file); destroy after verification.
 - [ ] Documentation: Add to md file (this section); notify team of changes (e.g., new SSH keys).
+- [ ] Require all users to reset password - currently all users have a simple password that is known by everyone else. require password reset
 
 This phase ensures no weak/default creds remain post-SQLi fix, reducing lateral movement risks.
 

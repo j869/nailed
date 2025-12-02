@@ -98,6 +98,79 @@ function classifyAttacker(req, path) {
         classification.tags.push('automated', 'discovery', 'low-noise');
     }
 
+  // XDEBUG ATTACK DETECTION
+    else if (req.query.XDEBUG_SESSION_START || 
+             req.headers['xdebug-session'] ||
+             path.toLowerCase().includes('xdebug')) {
+        classification.type = 'XDEBUG_RCE_ATTEMPT';
+        classification.confidence = 95;
+        classification.tags.push('php', 'debugger', 'rce', 'critical');
+        classification.severity = 'CRITICAL';
+    }
+    
+    // Also check for other debugger probes
+    else if (req.query.debug || 
+             req.query.DEBUG ||
+             req.headers['debug']) {
+        classification.type = 'DEBUGGER_PROBE';
+        classification.confidence = 80;
+        classification.tags.push('debug', 'development', 'recon');
+    }
+
+    else if (/<script|javascript:|on\w+\s*=|alert\(|eval\(/i.test(path) || 
+            req.headers['content-type']?.includes('application/xml') && 
+            /<!ENTITY|xxe/i.test(req.body)) {
+        classification.type = 'XSS_XXE_ATTEMPT';
+        classification.confidence = 85;
+        classification.tags.push('client-side', 'injection', 'dom');
+    }
+
+
+    else if (/(169\.254\.169\.254|localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|file:\/\/|gopher:\/\/)/i.test(path)) {
+        classification.type = 'SSRF_ATTEMPT';
+        classification.confidence = 90;
+        classification.tags.push('internal-network', 'server-side', 'proxy-abuse');
+    }
+
+
+    else if (path.match(/\/api\//) && 
+            (req.method === 'PUT' || req.method === 'DELETE') &&
+            !req.headers['authorization']) {
+        classification.type = 'API_AUTH_BYPASS_ATTEMPT';
+        classification.confidence = 75;
+        classification.tags.push('api', 'authorization', 'idor');
+    }
+
+
+    else if (req.method === 'TRACE' || req.method === 'CONNECT') {
+        classification.type = 'HTTP_METHOD_ABUSE';
+        classification.confidence = 95;
+        classification.tags.push('http-method', 'recon', 'xst');
+    }
+    else if (req.method === 'OPTIONS' && req.headers['user-agent']?.includes('scan')) {
+        classification.type = 'HTTP_RECONNAISSANCE';
+        classification.confidence = 70;
+        classification.tags.push('recon', 'methods', 'enumeration');
+    }
+
+    else if (req.headers['host']?.includes('evil.com') ||
+            req.headers['x-forwarded-for'] === '127.0.0.1' ||
+            req.headers['x-original-url'] ||
+            /\r\n/.test(JSON.stringify(req.headers))) {
+        classification.type = 'HEADER_INJECTION';
+        classification.confidence = 85;
+        classification.tags.push('header-manipulation', 'host-header', 'crlf');
+    }
+
+    else if (req.headers['x-forwarded-host'] && 
+            req.headers['x-forwarded-host'] !== req.headers['host']) {
+        classification.type = 'CACHE_POISONING_ATTEMPT';
+        classification.confidence = 75;
+        classification.tags.push('cache', 'poisoning', 'header-injection');
+    }
+
+
+
     console.log('og9    classifyAttacker result:', classification);
     return classification;
 }
