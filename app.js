@@ -99,7 +99,7 @@ app.use((req, res, next) => {
   // console.log('x2       req.user:', req.user?.id || 'unset');
   console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
   let variables = ``;
-  
+  //test
   // Build variables string with available request data
   const dataParts = [];
   if (Object.keys(req.params).length > 0) {
