@@ -2882,10 +2882,11 @@ passport.use(
   "local",
   new Strategy(async function verify(username, password, cb) {
     try {
-      // console.log("pp1     user(" + username + ") is trying to log in on [MAC] at [SYSTIME]"  )
+      console.log("pp1     user(" + username + ") is trying to log in on [MAC] at [SYSTIME]"  )
       const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
         username,
       ]);
+      console.log('pp2      found this user record:', result.rows(0))
       if (result.rows.length > 0) {
         const user = result.rows[0];
         const storedHashedPassword = user.password;
