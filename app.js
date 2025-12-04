@@ -71,6 +71,7 @@ app.use((req, res, next) => {
     secure: req.secure,
     headers: req.headers['cookie']?.substring(0, 50)
   });
+  //test
 
   // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} `);
   // logUserActivity(req, `x3        with SessionID: ${req.sessionID}`);
