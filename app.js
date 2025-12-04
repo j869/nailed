@@ -64,6 +64,14 @@ app.use(express.static("public"));
 app.use((req, res, next) => {
   // console.log(`x1        NEW REQUEST ${req.method} ${req.path} from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
   console.log(`x1        NEW REQUEST ${req.method} ${req.path} `);
+    console.log('x2     Session debug:', {
+    sessionID: req.sessionID,
+    session: req.session,
+    user: req.user,
+    secure: req.secure,
+    headers: req.headers['cookie']?.substring(0, 50)
+  });
+
   // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} `);
   // logUserActivity(req, `x3        with SessionID: ${req.sessionID}`);
   // logUserActivity(req, `x4        and Cookies: ${req.headers.cookie}`);
@@ -84,9 +92,18 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use((req, res, next) => {
   // console.log('x2       req.user:', req.user?.id || 'unset');
+  console.log('x3    Session debug:', {
+    sessionID: req.sessionID,
+    session: req.session,
+    user: req.user,
+    secure: req.secure,
+    headers: req.headers['cookie']?.substring(0, 50)
+  });
+
   console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
   let variables = ``;
   
+
   // Build variables string with available request data
   const dataParts = [];
   if (Object.keys(req.params).length > 0) {
