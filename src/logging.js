@@ -192,11 +192,13 @@ export async function logUserActivity(req, activity) {
         let userAgent = 'unknown';
         let referer = 'unknown';
         let sessionID = 'unknown';
-        
+        let activityClassification = 'unknown';
+
         if (typeof req === 'number') {
             // If req is a number, treat it as userId
             userId = req;
-            geoLocation = 'successfulLogins'
+            geoLocation = 'successfulLogins';
+            activityClassification = 'unknown';
         } else if (req && req.user && req.user.id) {
             console.log('og2    logUserActivity: Found user ID in req.user:', req);
             // If req is an object with user info
@@ -207,6 +209,7 @@ export async function logUserActivity(req, activity) {
             userAgent = req.headers['user-agent'] || 'user-agent';
             sessionID = req.sessionID || 'sessionID';
             referer = req.headers['referer'] || 'referer';
+            activityClassification = classifyAttacker(req, req.url);
         } else {
             console.warn('og83       logUserActivity: No user ID found in req.user', req.user);
             userId = 0;  // Use 0 for unauthenticated/guest users
@@ -216,9 +219,9 @@ export async function logUserActivity(req, activity) {
             userAgent = req?.headers['user-agent'] || 'user-agent';
             sessionID = req?.sessionID || 'sessionID';
             referer = req?.headers['referer'] || 'referer';
+            activityClassification = classifyAttacker(req, req.url);
         }
 
-        const activityClassification = classifyAttacker(req, req.url);
         let logFile;
         let  logsDir;
         if (activityClassification.type !== 'unknown') {
