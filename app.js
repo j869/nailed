@@ -119,7 +119,7 @@ app.use((req, res, next) => {
     variables = dataParts.join(', ') + ', ';
   }
 
-  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
   // logUserActivity(req, `x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
   // console.log('x6       Post-passport - sessionID:', req.sessionID);
   next();
@@ -2897,7 +2897,7 @@ passport.use(
           } else {
             if (valid) {
               console.log(`pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
-              // logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
+              logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
               return cb(null, user);
             } else {
               console.log(`pp81     user(${username}) wrong password on [MAC] at [${getMelbourneTime()}]`);
@@ -2923,12 +2923,15 @@ passport.serializeUser((user, cb) => {
 });
 
 passport.deserializeUser(async (id, cb) => {
+  console.log('pp71 deserializing user ' + id)
   try {
     // console.log('pp96     Deserializing user ID:', id);
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
     if (result.rows.length > 0) {
+      console.log('pp96   retrieved fresh user record from db')
       cb(null, result.rows[0]); // Return fresh user data from database
     } else {
+      console.log('pp98   user not found')
       cb(new Error('User not found'), null);
     }
   } catch (err) {
