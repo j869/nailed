@@ -119,7 +119,7 @@ app.use((req, res, next) => {
     variables = dataParts.join(', ') + ', ';
   }
 
-  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
   // logUserActivity(req, `x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
   // console.log('x6       Post-passport - sessionID:', req.sessionID);
   next();
@@ -2897,7 +2897,7 @@ passport.use(
           } else {
             if (valid) {
               console.log(`pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
-              logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
+              // logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
               return cb(null, user);
             } else {
               console.log(`pp81     user(${username}) wrong password on [MAC] at [${getMelbourneTime()}]`);
