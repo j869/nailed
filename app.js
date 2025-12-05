@@ -40,6 +40,8 @@ const upload = multer({
     // All file types are allowed - no restrictions applied
   }
 });
+
+
 const port = 3000;
 let baseURL = "";
 const saltRounds = 10;
@@ -90,6 +92,8 @@ app.use(passport.session());
 app.use((req, res, next) => {
   // x311. passport decrypts session cookie = abc123
   console.log(`x311          decrypted SessionID: ${req.sessionID} `);
+  // x312. passport remembers who owns this session, and adds {user: 1}
+  console.log(`x312          retrieving user.id: `, req.user);
   next();
 });
 app.use(express.json());    //// Middleware to parse JSON bodies
@@ -123,7 +127,9 @@ app.use((req, res, next) => {
   if (dataParts.length > 0) {
     variables = dataParts.join(', ') + ', ';
   }
-  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
+  console.log(`x2   user() `, req.user)
 
   next();
 });
