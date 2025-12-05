@@ -2923,7 +2923,9 @@ passport.use("local", new Strategy(async (username, password, done) => {
       const isValid = await bcrypt.compare(password, user.password);
 
       if (isValid) {
-        console.log(`x304    Passwords match - user(${user.id}) is now authenticated`);
+        console.log(`x304    Passwords match - we now tell passport to authenticate user(${user.id})`);
+        req.login(user);
+        console.log('x304.1   req.user ', req.user);
         // logUserActivity(user.id, `pp9    user(${user.id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
         // x305. SUCCESS! Tell Passport: "No error, here's Fred's full user object"
         return done(null, user);
