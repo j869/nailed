@@ -63,20 +63,20 @@ if (!fs.existsSync(logsDir)) {
 // Serve static files first (no session processing needed)
 app.use(express.static("public"));
 
-app.use((req, res, next) => {
-  // x310. Fred clicks "My Profile" → NEW REQUEST GET /profile
-  console.log(`x310        NEW REQUEST ${req.method} ${req.path} `);
-  // request contains Cookie: { connect.sid=s%3Aabc123... }
-  //   console.log('     Session cookie (sessionID is encrypted):', {
-  //   headers: req.headers['cookie']?
-  // });
-  console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
-  next();
-});
-
 
 
 //#region passport and session
+  app.use((req, res, next) => {
+    // x310. Fred clicks "My Profile" → NEW REQUEST GET /profile
+    console.log(`x310        NEW REQUEST ${req.method} ${req.path} `);
+    // request contains Cookie: { connect.sid=s%3Aabc123... }
+    //   console.log('     Session cookie (sessionID is encrypted):', {
+    //   headers: req.headers['cookie']?
+    // });
+    console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
+    next();
+  });
+
   app.use(express.json());    //// Middleware to parse JSON bodies
   app.use(session({
     secret: process.env.SESSION_SECRET,
@@ -89,15 +89,13 @@ app.use((req, res, next) => {
     }
   }));
   app.use(passport.initialize());
-  app.use((req, res, next) => {
-    // x311. passport decrypts session cookie = abc123
-    console.log(`x311          decrypted SessionID: ${req.sessionID} `);
-    // x312. passport remembers who owns this session, and adds {user: 1}
-    console.log(`x312          retrieving user.id: `, req.user);
-    next();
-  });
   app.use(passport.session());     //triggers passport.deserializeUser
   app.use((req, res, next) => {
+    // x311. passport has decrypted session cookie = abc123
+    console.log(`x311          decrypted SessionID: ${req.sessionID} `);
+    // x312. passport remembers who owns this session, and added {user: 1}
+    console.log(`x312          retrieved user.id: `, req.user.id);
+    // x314. passport has deserialised user
     console.log(`x314   req.user available to routes `, req.user)
 
     next();
