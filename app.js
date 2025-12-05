@@ -123,7 +123,7 @@ app.use((req, res, next) => {
   if (dataParts.length > 0) {
     variables = dataParts.join(', ') + ', ';
   }
-  await logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
 
   next();
 });
