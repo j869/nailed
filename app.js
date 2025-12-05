@@ -68,7 +68,7 @@ app.use((req, res, next) => {
   //   console.log('     Session cookie (sessionID is encrypted):', {
   //   headers: req.headers['cookie']?
   // });
-  console.log(`x310.4    Cookies: ${req.headers.cookie}`);
+  console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
   // logUserActivity(req, `x310.4        Cookies: ${req.headers.cookie}`);
   next();
 });
@@ -90,23 +90,6 @@ app.use(passport.session());
 app.use((req, res, next) => {
   // x311. passport decrypts session cookie = abc123
   console.log(`x311          decrypted SessionID: ${req.sessionID} `);
-
-
-  //Logging
-  let variables = ``;
-  const dataParts = [];
-  if (Object.keys(req.params).length > 0) {
-    dataParts.push(`params: ${JSON.stringify(req.params)}`);
-  }
-  if (Object.keys(req.query).length > 0) {
-    dataParts.push(`query: ${JSON.stringify(req.query)}`);
-  }
-  // Note: req.body won't be available here since body parsing middleware comes later
-  if (dataParts.length > 0) {
-    variables = dataParts.join(', ') + ', ';
-  }
-
-  logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
   next();
 });
 app.use(express.json());    //// Middleware to parse JSON bodies
@@ -124,6 +107,24 @@ db.connect();
 // Middleware to make db available to routes
 app.use((req, res, next) => {
   req.db = db;
+
+  //Logging
+  let variables = ``;
+  const dataParts = [];
+  if (Object.keys(req.params).length > 0) {
+    dataParts.push(`params: ${JSON.stringify(req.params)}`);
+  }
+  if (Object.keys(req.query).length > 0) {
+    dataParts.push(`query: ${JSON.stringify(req.query)}`);
+  }
+  if (Object.keys(req.query).length > 0) {
+    dataParts.push(`query: ${JSON.stringify(req.body)}`);
+  }
+  if (dataParts.length > 0) {
+    variables = dataParts.join(', ') + ', ';
+  }
+  await logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+
   next();
 });
 
@@ -2942,6 +2943,9 @@ passport.deserializeUser(async (id, done) => {
   // id = 1 (from session)
   // x312. passport remembers who owns this session, and adds {user: 1}
   console.log(`x312          retrieving user.id: ${id} `);
+
+
+
   // x313    Passport calls deserializeUser 
   console.log('x313    serving a new request - deserialising USER(' + id + ')')
   try {
