@@ -90,8 +90,6 @@ app.use(passport.session());
 app.use((req, res, next) => {
   // x311. passport decrypts session cookie = abc123
   console.log(`x311          decrypted SessionID: ${req.sessionID} `);
-  // x312. passport remembers who owns this session, and adds {user: 1}
-  console.log(`x312          retrieving user.id: ${req.user.id} `);
 
 
   //Logging
@@ -2942,6 +2940,8 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   // id = 1 (from session)
+  // x312. passport remembers who owns this session, and adds {user: 1}
+  console.log(`x312          retrieving user.id: ${id} `);
   // x313    Passport calls deserializeUser 
   console.log('x313    serving a new request - deserialising USER(' + id + ')')
   try {
