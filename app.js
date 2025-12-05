@@ -93,10 +93,6 @@ app.use(express.static("public"));
   app.use((req, res, next) => {
     // x311. passport has decrypted session cookie = abc123
     console.log(`x311          decrypted SessionID: ${req.sessionID} `);
-    // x312. passport remembers who owns this session, and added {user: 1}
-    console.log(`x312          retrieved user.id: `, req.user.id);
-    // x314. passport has deserialised user
-    console.log(`x314   req.user available to routes `, req.user)
 
     next();
   });
@@ -117,6 +113,9 @@ db.connect();
 // Middleware to make db available to routes
 app.use((req, res, next) => {
   req.db = db;
+
+  // x314. passport has deserialised user
+  console.log(`x314   req.user available to routes `, req.user)
 
   //Logging
   let variables = ``;
