@@ -1,5 +1,6 @@
 //#region imports
 import express from "express";
+import connectPgSimple from 'connect-pg-simple';
 import multer from "multer";
 import ExcelJS from "exceljs";
 import bodyParser from "body-parser";
@@ -78,10 +79,12 @@ app.use(express.static("public"));
     next();
   });
 
-  app.use(express.json());    //// Middleware to parse JSON bodies
-
   // express-session retains user_id using memorystore
   app.use(session({
+    store: new connectPgSimple({
+      conObject: db,  // Use the existing db connection
+      tableName: 'session'  // Optional, but good practice
+    }),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
@@ -94,9 +97,9 @@ app.use(express.static("public"));
 
   app.use((req, res, next) => {
     console.log(`x3          finished express.session `);
-    console.log('COOKIE HEADER RECEIVED:', req.headers.cookie);
+    console.log('x31     COOKIE HEADER RECEIVED:', req.headers.cookie);
     res.on('finish', () => {
-      console.log('SET-COOKIE HEADER SENT :', res.getHeader('set-cookie'));
+      console.log('x32     SET-COOKIE HEADER SENT :', res.getHeader('set-cookie'));
     });
     console.log(`x3          started passport.initialise `);
     next();
@@ -121,6 +124,7 @@ app.use(express.static("public"));
   });
 //#endregion
 
+app.use(express.json());    //// Middleware to parse JSON bodies
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -2834,21 +2838,6 @@ app.post("/updateRoles", async (req, res) => {
   }
 });
 
-
-
-app.get("/login", (req, res) => {
-  console.log("l1      navigate to LOGIN page")
-  res.render("login.ejs");
-  baseURL = `${req.protocol}://${req.get('host')}`;
-});
-
-app.post("/login",
-  passport.authenticate("local", {
-    successRedirect: "/2/customers",      // "/2/customers",    //"/jobs/94",     //2/build/16,
-    failureRedirect: "/login",
-  })
-);
-
 app.get("/register", (req, res) => {
   res.render("register.ejs");
   baseURL = `${req.protocol}://${req.get('host')}`;
@@ -2897,6 +2886,36 @@ app.get("/logout", (req, res) => {
   });
 });
 
+
+app.get("/login", (req, res) => {
+  console.log("l1      navigate to LOGIN page")
+  res.render("login.ejs");
+  baseURL = `${req.protocol}://${req.get('host')}`;
+});
+
+app.post("/login",
+  passport.authenticate("local", {
+    successRedirect: "/2/customers",      // "/2/customers",    //"/jobs/94",     //2/build/16,
+    failureRedirect: "/login",
+  })
+);
+// app.post('/login', (req, res, next) => {
+//   console.log('l2   POST /login route');
+//   passport.authenticate('local', (err, user, info) => {
+//     if (err)     return next(err);
+//     if (!user)   return res.status(401).json({ message: 'Bad credentials' });
+
+//     // THIS IS THE IMPORTANT PART
+//     req.login(user, (loginErr) => {          // ← triggers serializeUser + session save
+//       if (loginErr) return next(loginErr);
+//       return res.json({ message: 'Logged in', user: { id: user.id, email: user.email } });
+//     });
+//   })(req, res, next);                        // ← this line injects req into the strategy
+
+// });
+
+
+
 // x301. Fred enters: email="fred@email.com", password="secret123"
 passport.use("local", new Strategy(async (username, password, done) => {
     console.log("pp1     Initialising passport...");
@@ -2924,8 +2943,8 @@ passport.use("local", new Strategy(async (username, password, done) => {
 
       if (isValid) {
         console.log(`x304    Passwords match - we now tell passport to authenticate user(${user.id})`);
-        req.login(user);
-        console.log('x304.1   req.user ', req.user);
+        // req.login(user);
+        // console.log('x304.1   req.user ', req.user);
         // logUserActivity(user.id, `pp9    user(${user.id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
         // x305. SUCCESS! Tell Passport: "No error, here's Fred's full user object"
         return done(null, user);
