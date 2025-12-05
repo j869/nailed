@@ -65,9 +65,10 @@ app.use((req, res, next) => {
   // x310. Fred clicks "My Profile" → NEW REQUEST GET /profile
   console.log(`x310        NEW REQUEST ${req.method} ${req.path} `);
   // request contains Cookie: { connect.sid=s%3Aabc123... }
-    console.log('     Session cookie (sessionID is encrypted):', {
-    headers: req.headers['cookie']?
-  });
+  //   console.log('     Session cookie (sessionID is encrypted):', {
+  //   headers: req.headers['cookie']?
+  // });
+  console.log(`x310.4    Cookies: ${req.headers.cookie}`);
   // logUserActivity(req, `x310.4        Cookies: ${req.headers.cookie}`);
   next();
 });
