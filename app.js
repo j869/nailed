@@ -71,32 +71,40 @@ app.use((req, res, next) => {
   //   headers: req.headers['cookie']?
   // });
   console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
-  // logUserActivity(req, `x310.4        Cookies: ${req.headers.cookie}`);
   next();
 });
 
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', 
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-}));
-app.use(passport.initialize());
-app.use(passport.session());
 
-app.use((req, res, next) => {
-  // x311. passport decrypts session cookie = abc123
-  console.log(`x311          decrypted SessionID: ${req.sessionID} `);
-  // x312. passport remembers who owns this session, and adds {user: 1}
-  console.log(`x312          retrieving user.id: `, req.user);
-  next();
-});
-app.use(express.json());    //// Middleware to parse JSON bodies
+//#region passport and session
+  app.use(express.json());    //// Middleware to parse JSON bodies
+  app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', 
+      httpOnly: true,
+      sameSite: 'lax'
+    }
+  }));
+  app.use(passport.initialize());
+  app.use((req, res, next) => {
+    // x311. passport decrypts session cookie = abc123
+    console.log(`x311          decrypted SessionID: ${req.sessionID} `);
+    // x312. passport remembers who owns this session, and adds {user: 1}
+    console.log(`x312          retrieving user.id: `, req.user);
+    next();
+  });
+  app.use(passport.session());     //triggers passport.deserializeUser
+  app.use((req, res, next) => {
+    console.log(`x314   req.user available to routes `, req.user)
+
+    next();
+  });
+//#endregion
+
+
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const db = new pg.Client({
@@ -129,7 +137,6 @@ app.use((req, res, next) => {
   }
   // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
   console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
-  console.log(`x2   user() `, req.user)
 
   next();
 });
@@ -2948,7 +2955,7 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   // id = 1 (from session)
   // x312. passport remembers who owns this session, and adds {user: 1}
-  console.log(`x312          retrieving user.id: ${id} `);
+  console.log(`x312.2          retrieved user.id: ${id} `);
 
 
 
