@@ -62,23 +62,17 @@ if (!fs.existsSync(logsDir)) {
 app.use(express.static("public"));
 
 app.use((req, res, next) => {
-  // console.log(`x1        NEW REQUEST ${req.method} ${req.path} from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
-  console.log(`x1        NEW REQUEST ${req.method} ${req.path} `);
-    console.log('x2     Session debug:', {
-    sessionID: req.sessionID,
-    session: req.session,
-    user: req.user,
-    secure: req.secure,
-    headers: req.headers['cookie']?.substring(0, 50)
+  // x310. Fred clicks "My Profile" → NEW REQUEST GET /profile
+  console.log(`x310        NEW REQUEST ${req.method} ${req.path} `);
+  // request contains Cookie: { connect.sid=s%3Aabc123... }
+    console.log('     Session cookie (sessionID is encrypted):', {
+    headers: req.headers['cookie']?
   });
-  //test
-
-  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} `);
-  // logUserActivity(req, `x3        with SessionID: ${req.sessionID}`);
-  // logUserActivity(req, `x4        and Cookies: ${req.headers.cookie}`);
-  
+  // logUserActivity(req, `x310.4        Cookies: ${req.headers.cookie}`);
   next();
 });
+
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -91,21 +85,16 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+
 app.use((req, res, next) => {
-  // console.log('x2       req.user:', req.user?.id || 'unset');
-  console.log('x3    Session debug:', {
-    sessionID: req.sessionID,
-    session: req.session,
-    user: req.user,
-    secure: req.secure,
-    headers: req.headers['cookie']?.substring(0, 50)
-  });
+  // x311. passport decrypts session cookie = abc123
+  console.log(`x311          decrypted SessionID: ${req.sessionID} `);
+  // x312. passport remembers who owns this session, and adds {user: 1}
+  console.log(`x312          retrieving user.id: ${req.user.id} `);
 
-  console.log(`x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
+
+  //Logging
   let variables = ``;
-  
-
-  // Build variables string with available request data
   const dataParts = [];
   if (Object.keys(req.params).length > 0) {
     dataParts.push(`params: ${JSON.stringify(req.params)}`);
@@ -114,14 +103,11 @@ app.use((req, res, next) => {
     dataParts.push(`query: ${JSON.stringify(req.query)}`);
   }
   // Note: req.body won't be available here since body parsing middleware comes later
-  
   if (dataParts.length > 0) {
     variables = dataParts.join(', ') + ', ';
   }
 
   logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
-  // logUserActivity(req, `x9          ...from USER(${req.user?.id || 'unset'}) with SessionID: ${req.sessionID} `);
-  // console.log('x6       Post-passport - sessionID:', req.sessionID);
   next();
 });
 app.use(express.json());    //// Middleware to parse JSON bodies
@@ -2878,67 +2864,107 @@ app.get("/logout", (req, res) => {
   });
 });
 
-passport.use(
-  "local",
-  new Strategy(async function verify(username, password, cb) {
+// x301. Fred enters: email="fred@email.com", password="secret123"
+passport.use("local", new Strategy(async (username, password, done) => {
+    console.log("pp1     Error:", err);
+    // username = "fred@email.com"
+    // password = "secret123"
+    // done = Passport's callback function (provided by Passport)
+  
     try {
-      console.log("pp1     user(" + username + ") is trying to log in on [MAC] at [SYSTIME]"  )
-      const result = await db.query("SELECT * FROM users WHERE email = $1 ", [
-        username,
-      ]);
-      console.log('pp2      found this user record:', result.rows[0])
-      if (result.rows.length > 0) {
-        const user = result.rows[0];
-        const storedHashedPassword = user.password;
-        bcrypt.compare(password, storedHashedPassword, (err, valid) => {
-          if (err) {
-            console.error("pp83     Error comparing passwords:", err);
-            return cb(err);
-          } else {
-            if (valid) {
-              console.log(`pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
-              logUserActivity(result.rows[0].id, `pp9    user(${result.rows[0].id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
-              return cb(null, user);
-            } else {
-              console.log(`pp81     user(${username}) wrong password on [MAC] at [${getMelbourneTime()}]`);
-              return cb(null, false);
-            }
-          }
-        });
-      } else {
-        console.log("pp82     user(" + username + ") not registered on [MAC] at [SYSTIME]")
-        return cb("Sorry, we do not recognise you as an active user of our system.");
-        // known issue: page should redirect to the register screen.  To reproduce this error enter an unknown username into the login screen
+      console.log(`x301     user(${username}) is trying to log in with pass(***)`);
+      
+      // x302. Database check: "Does fred@email.com exist?"
+      const result = await db.query("SELECT * FROM users WHERE email = $1", [username]);
+      
+      if (result.rows.length === 0) {
+        console.log(`x302     ...could not find ${username} in the database`);
+        return done(null, false, { message: "User not found" });
       }
+      
+      // x303. Found Fred: {id: 1, name: "Fred", email: "fred@email.com", password: "$2b$10$..."}
+      const user = result.rows[0];
+      console.log('x303      found user(' + user.email + ') and pass(' + user.password + ')' );
+      
+      // x304. Password check: bcrypt compares "secret123" with hash
+      const isValid = await bcrypt.compare(password, user.password);
+
+      if (isValid) {
+        console.log(`x304    Passwords match - user(${user.id}) is now authenticated`);
+        logUserActivity(user.id, `pp9    user(${user.id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
+        // x305. SUCCESS! Tell Passport: "No error, here's Fred's full user object"
+        return done(null, user);
+        console.log(`x305    Passport knows that login was successful`);
+      } else {
+        console.log(`x304     wrong password - user(${user.id}) is not authenticated`);
+        return done(null, false, { message: "Incorrect password" });
+      }
+      
     } catch (err) {
-      console.error(err);
+      console.log("pp83     Error:", err);
+      return done(err);
     }
   })
 );
 
 
-passport.serializeUser((user, cb) => {
-  console.log('pp95     Serializing user ID:', user.id);
-  cb(null, user.id); // Store only user ID in session
+//x306. Login successful → we will now serializeUser to protect him
+passport.serializeUser((user, done) => {
+  // user = {id: 1, name: "Fred", email: "fred@email.com", ...}
+  console.log('x306     Serializing user ID:', user.id);
+  // If session is stolen/hijacked, only the ID (1) is exposed
+  done(null, user.id);
+  // x307. Session now contains:
+  // {
+  //   passport: { user: 1 },
+  //   cookie: { originalMaxAge: 86400000, ... }
+  // }
+
+  // x308. Browser receives: Set-Cookie: connect.sid=s%3Aabc123...
+  //   cookie: { 
+  //      passport: missing... not transmitted,
+  //      session.id: s%3Aabc123... (encrypted), 
+  //      user: missing...,
+  //      user.id: missing...
+  //    }
+
+  // x309. session store retained (in memory)
+  //    "sessions": {
+  //      "abc123": {
+  //        "passport": { "user": 1 },  // ← Only user ID here!
+  //        "cookie": { ... }
+  //      }
+  //    }
+
+  // wait for the users next request
 });
 
-passport.deserializeUser(async (id, cb) => {
-  console.log('pp71 deserializing user ' + id)
+passport.deserializeUser(async (id, done) => {
+  // id = 1 (from session)
+  // x313    Passport calls deserializeUser 
+  console.log('x313    serving a new request - deserialising USER(' + id + ')')
   try {
-    // console.log('pp96     Deserializing user ID:', id);
+    // FRESH DATABASE LOOKUP : because If session is stolen/hijacked, only the ID (1) is exposed
     const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
+    const reqUser = result.rows[0];
+    // Got fresh data: {id: 1, name: "Fred", email: "...", ...}
+    
     if (result.rows.length > 0) {
-      console.log('pp96   retrieved fresh user record from db')
-      cb(null, result.rows[0]); // Return fresh user data from database
+      // Attach FULL user to request
+      console.log('x313.9      found user record - passport will add this to the req variable: ', reqUser)
+      done(null, reqUser);
     } else {
-      console.log('pp98   user not found')
-      cb(new Error('User not found'), null);
+      console.log('x313.8      could not deserialise user! bad request?')
+      done(new Error('User not found'));
     }
   } catch (err) {
-    console.error('pp97     Error deserializing user:', err);
-    cb(err, null);
+    done(err);
   }
+  // Now req.user = {id: 1, name: "Fred", email: "fred@email.com", ...}
+  console.log('x313     All routes after this will have the full req.user record')
+  // Route Handlers are called after this - they have the full req.user object
 });
+
 //#endregion
 
 
