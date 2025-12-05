@@ -2872,7 +2872,7 @@ app.get("/logout", (req, res) => {
 
 // x301. Fred enters: email="fred@email.com", password="secret123"
 passport.use("local", new Strategy(async (username, password, done) => {
-    console.log("pp1     Error:", err);
+    console.log("pp1     Initialising passport...");
     // username = "fred@email.com"
     // password = "secret123"
     // done = Passport's callback function (provided by Passport)
