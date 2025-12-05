@@ -65,6 +65,47 @@ if (!fs.existsSync(logsDir)) {
 app.use(express.static("public"));
 
 
+const db = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
+db.connect();
+
+// Middleware to make db available to routes
+app.use((req, res, next) => {
+  req.db = db;
+
+  // x314. passport has deserialised user
+  console.log(`x314   req.user available to routes `, req.user)
+
+  // //Logging
+  // let variables = ``;
+  // const dataParts = [];
+  // if (Object.keys(req.params).length > 0) {
+  //   dataParts.push(`params: ${JSON.stringify(req.params)}`);
+  // }
+  // if (Object.keys(req.query).length > 0) {
+  //   dataParts.push(`query: ${JSON.stringify(req.query)}`);
+  // }
+  // if (Object.keys(req.query).length > 0) {
+  //   dataParts.push(`query: ${JSON.stringify(req.body)}`);
+  // }
+  // if (dataParts.length > 0) {
+  //   variables = dataParts.join(', ') + ', ';
+  // }
+  // // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  // console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
+
+  next();
+});
+
+// Import admin routes
+import adminRoutes from './views/admin/routes.js';
+app.use('/admin', adminRoutes);
+
 
 //#region passport and session
   app.use((req, res, next) => {
@@ -127,47 +168,6 @@ app.use(express.static("public"));
 app.use(express.json());    //// Middleware to parse JSON bodies
 
 app.use(bodyParser.urlencoded({ extended: true }));
-
-const db = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
-db.connect();
-
-// Middleware to make db available to routes
-app.use((req, res, next) => {
-  req.db = db;
-
-  // x314. passport has deserialised user
-  console.log(`x314   req.user available to routes `, req.user)
-
-  //Logging
-  let variables = ``;
-  const dataParts = [];
-  if (Object.keys(req.params).length > 0) {
-    dataParts.push(`params: ${JSON.stringify(req.params)}`);
-  }
-  if (Object.keys(req.query).length > 0) {
-    dataParts.push(`query: ${JSON.stringify(req.query)}`);
-  }
-  if (Object.keys(req.query).length > 0) {
-    dataParts.push(`query: ${JSON.stringify(req.body)}`);
-  }
-  if (dataParts.length > 0) {
-    variables = dataParts.join(', ') + ', ';
-  }
-  // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
-  console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
-
-  next();
-});
-
-// Import admin routes
-import adminRoutes from './views/admin/routes.js';
-app.use('/admin', adminRoutes);
 
 
 //#endregion
