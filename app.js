@@ -2901,7 +2901,7 @@ passport.use("local", new Strategy(async (username, password, done) => {
 
       if (isValid) {
         console.log(`x304    Passwords match - user(${user.id}) is now authenticated`);
-        logUserActivity(user.id, `pp9    user(${user.id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
+        // logUserActivity(user.id, `pp9    user(${user.id}) authenticated on [MAC] at [${getMelbourneTime()}]`);
         // x305. SUCCESS! Tell Passport: "No error, here's Fred's full user object"
         return done(null, user);
         console.log(`x305    Passport knows that login was successful`);
