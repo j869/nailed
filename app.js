@@ -74,10 +74,13 @@ app.use(express.static("public"));
     //   headers: req.headers['cookie']?
     // });
     console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
+    console.log(`x2    starting express.session`);
     next();
   });
 
   app.use(express.json());    //// Middleware to parse JSON bodies
+
+  // express-session retains user_id using memorystore
   app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -88,10 +91,30 @@ app.use(express.static("public"));
       sameSite: 'lax'
     }
   }));
+
+  app.use((req, res, next) => {
+    console.log(`x3          finished express.session `);
+    console.log('COOKIE HEADER RECEIVED:', req.headers.cookie);
+    res.on('finish', () => {
+      console.log('SET-COOKIE HEADER SENT :', res.getHeader('set-cookie'));
+    });
+    console.log(`x3          started passport.initialise `);
+    next();
+  });
+
   app.use(passport.initialize());
+
+  app.use((req, res, next) => {
+    console.log('x4   finished passport.initialise');
+    console.log('x4   begin passport.session');
+    next();
+  });
+
   app.use(passport.session());     //triggers passport.deserializeUser
+
   app.use((req, res, next) => {
     // x311. passport has decrypted session cookie = abc123
+    console.log(`x5          finished passport.session `);
     console.log(`x311          decrypted SessionID: ${req.sessionID} `);
 
     next();
