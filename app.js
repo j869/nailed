@@ -72,33 +72,19 @@ const db = new pg.Client({
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
 });
-db.connect();
+// Connect to database
+try {
+  await db.connect();
+  console.log('db9   Connected to PostgreSQL database');
+} catch (error) {
+  console.error('db8    Database connection error:', error);
+  // process.exit(1);
+}
 
 // Middleware to make db available to routes
 app.use((req, res, next) => {
   req.db = db;
-
-  // x314. passport has deserialised user
-  console.log(`x314   req.user available to routes `, req.user)
-
-  // //Logging
-  // let variables = ``;
-  // const dataParts = [];
-  // if (Object.keys(req.params).length > 0) {
-  //   dataParts.push(`params: ${JSON.stringify(req.params)}`);
-  // }
-  // if (Object.keys(req.query).length > 0) {
-  //   dataParts.push(`query: ${JSON.stringify(req.query)}`);
-  // }
-  // if (Object.keys(req.query).length > 0) {
-  //   dataParts.push(`query: ${JSON.stringify(req.body)}`);
-  // }
-  // if (dataParts.length > 0) {
-  //   variables = dataParts.join(', ') + ', ';
-  // }
-  // // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
-  // console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
-
+  console.log('x00     adding db to req variable')
   next();
 });
 
@@ -128,7 +114,6 @@ app.use('/admin', adminRoutes);
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false,
     cookie: { 
       secure: process.env.NODE_ENV === 'production', 
       httpOnly: true,
@@ -160,6 +145,28 @@ app.use('/admin', adminRoutes);
     // x311. passport has decrypted session cookie = abc123
     console.log(`x5          finished passport.session `);
     console.log(`x311          decrypted SessionID: ${req.sessionID} `);
+
+
+  // x314. passport has deserialised user
+  console.log(`x314   req.user available to routes `, req.user)
+  // //Logging
+  // let variables = ``;
+  // const dataParts = [];
+  // if (Object.keys(req.params).length > 0) {
+  //   dataParts.push(`params: ${JSON.stringify(req.params)}`);
+  // }
+  // if (Object.keys(req.query).length > 0) {
+  //   dataParts.push(`query: ${JSON.stringify(req.query)}`);
+  // }
+  // if (Object.keys(req.query).length > 0) {
+  //   dataParts.push(`query: ${JSON.stringify(req.body)}`);
+  // }
+  // if (dataParts.length > 0) {
+  //   variables = dataParts.join(', ') + ', ';
+  // }
+  // // logUserActivity(req, `x1        NEW REQUEST ${req.method} ${req.path} ${variables}`);
+  // console.log(`x1   NEW REQUEST ${req.method} ${req.path} ${variables}`)
+
 
     next();
   });
@@ -2917,13 +2924,45 @@ app.post("/login",
 
 
 // x301. Fred enters: email="fred@email.com", password="secret123"
-passport.use("local", new Strategy(async (username, password, done) => {
+passport.use("local", new Strategy(
+  {
+    usernameField: 'username',
+    passwordField: 'password',
+    passReqToCallback: true, // ← Enables req access
+    session: true // Also important for session access
+  },
+  async (username, password, done) => {
     console.log("pp1     Initialising passport...");
+    console.log('        ...Request IP:', req.ip);
+    console.log('        ...User Agent:', req.headers['user-agent']);
+    console.log('        ...Session ID:', req.sessionID);
+    console.log('        ...Attempting login for:', username);
     // username = "fred@email.com"
     // password = "secret123"
     // done = Passport's callback function (provided by Passport)
   
     try {
+      // Example: Check CSRF token if using csurf
+      if (process.env.NODE_ENV === 'production') {
+        // You could validate CSRF token here
+        // const csrfToken = req.body._csrf || req.query._csrf;
+        // validateCSRFToken(csrfToken, req.session);
+      }
+
+      // Example: Check rate limiting
+      const loginAttempts = req.session.loginAttempts || 0;
+      if (loginAttempts > 5) {
+        console.log('pp83      Too many login attempts from IP:', req.ip);
+        return done(null, false, { message: 'Too many login attempts. Try again later.' });
+      }
+      
+      // Example: Check for "Remember Me" checkbox
+      const rememberMe = req.body.remember_me === 'on';
+      if (rememberMe) {
+        // Set longer session cookie
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+        
       console.log(`x301     user(${username}) is trying to log in with pass(***)`);
       
       // x302. Database check: "Does fred@email.com exist?"
