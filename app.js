@@ -2971,7 +2971,7 @@ passport.use("local", new Strategy(
     passReqToCallback: true, // ← Enables req access
     session: true // Also important for session access
   },
-  async (username, password, done) => {
+  async (req, username, password, done) => {
     console.log("pp1     Initialising passport...");
     // console.log('        ...Request IP:', req.ip);
     // console.log('        ...User Agent:', req.headers['user-agent']);
