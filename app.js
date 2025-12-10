@@ -1,6 +1,5 @@
 //#region imports
 import express from "express";
-import connectPgSimple from 'connect-pg-simple';
 import multer from "multer";
 import ExcelJS from "exceljs";
 import bodyParser from "body-parser";
@@ -11,9 +10,10 @@ import passport from "passport";
 import { Strategy } from "passport-local";
 import session from "express-session";
 import env from "dotenv";
+import connectPgSimple from 'connect-pg-simple';
 import { main } from './trigger2.js';
-import moment from 'moment';
-import e from "express";
+// import moment from 'moment';
+// import e from "express";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -64,6 +64,14 @@ if (!fs.existsSync(logsDir)) {
 // Serve static files first (no session processing needed)
 app.use(express.static("public"));
 
+const { Pool, Client } = pg;  // Destructure from pg
+const sessionDb = new Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
 const db = new pg.Client({
   user: process.env.PG_USER,
@@ -83,7 +91,7 @@ try {
 
 // Middleware to make db available to routes
 app.use((req, res, next) => {
-  req.db = db;
+  // req.db = db;
   console.log('x00     adding db to req variable')
   next();
 });
@@ -103,17 +111,42 @@ app.use('/admin', adminRoutes);
     // });
     console.log(`x310.4    sessionID is encrypted: ${req.headers.cookie}`);
     console.log(`x2    starting express.session`);
+
     next();
   });
 
+
+
   // express-session retains user_id using memorystore
+  const PgSimpleSession = connectPgSimple(session);  // Call factory to get class
+
+  const sessionStore = new PgSimpleSession({
+  pool: sessionDb,
+  tableName: 'session',
+  createTableIfMissing: true
+});
+
+// Add event listeners to debug session store
+sessionStore.on('connect', () => {
+  console.log('xx51   sessionStore: Connected to PostgreSQL');
+});
+
+sessionStore.on('disconnect', () => {
+  console.log('xx52     sessionStore: Disconnected from PostgreSQL');
+});
+
+sessionStore.on('error', (error) => {
+  console.error('xx59    sessionStore ERROR:', error);
+});
+
   app.use(session({
-    store: new connectPgSimple({
-      conObject: db,  // Use the existing db connection
+    store: new PgSimpleSession({
+      pool: sessionDb,  // Use the existing db connection
       tableName: 'session'  // Optional, but good practice
     }),
     secret: process.env.SESSION_SECRET,
     resave: false,
+    saveUninitialized: true,  
     cookie: { 
       secure: process.env.NODE_ENV === 'production', 
       httpOnly: true,
@@ -127,6 +160,13 @@ app.use('/admin', adminRoutes);
     res.on('finish', () => {
       console.log('x32     SET-COOKIE HEADER SENT :', res.getHeader('set-cookie'));
     });
+    const originalEnd = res.end;
+    res.end = function(chunk, encoding) {
+      console.log('xx51    RESPONSE: SessionID:', req.sessionID);
+      console.log('xx51    RESPONSE: Session saved?', req.session?._saved || false);
+      console.log('xx51    RESPONSE: Cookie being set:', res.getHeader('set-cookie'));
+      originalEnd.call(this, chunk, encoding);
+    };    
     console.log(`x3          started passport.initialise `);
     next();
   });
@@ -2933,9 +2973,9 @@ passport.use("local", new Strategy(
   },
   async (username, password, done) => {
     console.log("pp1     Initialising passport...");
-    console.log('        ...Request IP:', req.ip);
-    console.log('        ...User Agent:', req.headers['user-agent']);
-    console.log('        ...Session ID:', req.sessionID);
+    // console.log('        ...Request IP:', req.ip);
+    // console.log('        ...User Agent:', req.headers['user-agent']);
+    // console.log('        ...Session ID:', req.sessionID);
     console.log('        ...Attempting login for:', username);
     // username = "fred@email.com"
     // password = "secret123"
@@ -4089,7 +4129,31 @@ app.get("/update", async (req, res) => {
 
 const server = app.listen(port, () => {
   console.log(`re9     STARTED running on port ${port}`);
+
+
+    //check database connection
+    console.log('xx4   Checking database objects...');
+      console.log('xx4.1 sessionDb (Pool) type:', typeof sessionDb);
+      console.log('xx4.2 sessionDb constructor:', sessionDb?.constructor?.name);
+      console.log('xx4.3 Is sessionDb a Pool?', sessionDb instanceof pg.Pool);
+      console.log('xx4.4 sessionDb config:', {
+        user: sessionDb.options?.user || 'not set',
+        host: sessionDb.options?.host || 'not set',
+        database: sessionDb.options?.database || 'not set',
+        port: sessionDb.options?.port || 'not set'
+      });
+      
+      console.log('xx4.5 db (Client) type:', typeof db);
+      console.log('xx4.6 db constructor:', db?.constructor?.name);
+      console.log('xx4.7 Is db a Client?', db instanceof pg.Client);
+      console.log('xx4.8 Is db connected?', db._connected || db._connecting || 'unknown');
+      
+      // Also check if PgSimpleSession is properly initialized
+      console.log('xx4.9 PgSimpleSession type:', typeof PgSimpleSession);
+      console.log('xx4.10 Is PgSimpleSession a function?', typeof PgSimpleSession === 'function');
+      
 });
+
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
